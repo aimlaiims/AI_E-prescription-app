@@ -21,6 +21,10 @@ export default function App() {
   const [printing, setPrinting] = useState(false);
   const [oldRecordsNote, setOldRecordsNote] = useState(false);
   const oldRecordsTimeout = useRef(null);
+  // Stable per-update ids (not array position) so accept/reject targets the
+  // right item even when several updates are dispatched in one batch — see
+  // handleVoiceUpdates and the multi-command voice parsing in ReviewPanel.
+  const nextPendingId = useRef(0);
 
   // Rate limiting is a property of the shared voice-service connection, not
   // whichever mic happened to trigger it — the cooldown disables every mic on
@@ -55,7 +59,8 @@ export default function App() {
     if (transcript) setTranscriptLog((prev) => [...prev, transcript]);
     if (note) setUnmatchedNote(note);
     if (updates.length) {
-      setPending((prev) => [...prev, ...updates]);
+      const withIds = updates.map((u) => ({ ...u, id: `u${nextPendingId.current++}` }));
+      setPending((prev) => [...prev, ...withIds]);
     }
   };
 
@@ -92,14 +97,15 @@ export default function App() {
     setState((prev) => ({ ...prev, [update.field]: update.new_value }));
   };
 
-  const handleAccept = (idx) => {
-    const update = pending[idx];
+  const handleAccept = (id) => {
+    const update = pending.find((u) => u.id === id);
+    if (!update) return;
     applyUpdate(update);
-    setPending((prev) => prev.filter((_, i) => i !== idx));
+    setPending((prev) => prev.filter((u) => u.id !== id));
   };
 
-  const handleReject = (idx) => {
-    setPending((prev) => prev.filter((_, i) => i !== idx));
+  const handleReject = (id) => {
+    setPending((prev) => prev.filter((u) => u.id !== id));
   };
 
   const handleAcceptAll = () => {

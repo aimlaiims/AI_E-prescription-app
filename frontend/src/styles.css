@@ -504,6 +504,22 @@ textarea.field-input:focus {
   color: white;
 }
 
+.listening-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  flex-shrink: 0;
+}
+.listening-dot.active {
+  background: #ffffff;
+  animation: listening-pulse 1.2s ease-in-out infinite;
+}
+@keyframes listening-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 .voice-confirm-hint {
   font-size: 12.5px;
   color: var(--ink-soft);

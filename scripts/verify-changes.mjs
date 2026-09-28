@@ -88,44 +88,76 @@ expect("package.json has lucide-react", "frontend/package.json", "lucide-react")
 console.log(`\n${passed} passed, ${failed} failed\n`);
 
 /* ------------------------------------------------------------------ */
-console.log("Known open issues (informational — see docs/ROADMAP.md)");
-function known(label, isOpen) {
-  console.log(`  ${isOpen ? "⚠ OPEN " : "✔ fixed"}  ${label}`);
+// Three states, on purpose. "Bug pattern not found" is NOT evidence of a fix — the code
+// may simply be shaped differently than the pattern expects (an earlier version of this
+// script reported three unfixed bugs as fixed for exactly that reason: the old parser
+// named its loop variable `word`, not `w`). So:
+//   fixed   = positive evidence of the fix was found
+//   OPEN    = the buggy pattern was found and no fix evidence
+//   unknown = neither found — check by hand
+console.log("Known issues (informational — see docs/ROADMAP.md)");
+const tally = { OPEN: 0, fixed: 0, unknown: 0 };
+function known(label, { open = false, fixed = false }) {
+  const state = fixed ? "fixed" : open ? "OPEN" : "unknown";
+  tally[state]++;
+  const icon = { OPEN: "⚠ OPEN   ", fixed: "✔ fixed  ", unknown: "? unknown " }[state];
+  console.log(`  ${icon} ${label}`);
 }
-const rp = read("frontend/src/components/ReviewPanel.jsx") || "";
-const app = read("frontend/src/App.jsx") || "";
-const ext = read("backend/app/services/extraction.py") || "";
-const voice = read("backend/app/routers/voice.py") || "";
-const forms = read("backend/app/routers/forms.py") || "";
-const envEx = read("backend/.env.example") || "";
-const cfg = read("backend/app/config.py") || "";
-const main = read("backend/app/main.py") || "";
-const reqs = read("backend/requirements.txt") || "";
-const readme = read("README.md") || "";
+const src = (p) => read(p) || "";
+const any = (files, re) => files.some((f) => re.test(src(f)));
+const PARSER = ["frontend/src/components/ReviewPanel.jsx", "frontend/src/voiceCommands.js"];
+const hasDir = (p) => existsSync(resolve(root, p));
 
-known("P0-1   Editing after Save: no update endpoint, Print can diverge from stored record",
-  !/@router\.(put|patch)/.test(forms));
-known("P0-2a  Voice 'accept age' can't target Age (label-word filter is length > 3)",
-  /w\.length > 3/.test(rp));
-known("P0-2c  Voice: unmatched/mumbled field name silently falls back to the TOP item",
-  /working\[matchIdx !== -1 \? matchIdx : 0\]/.test(rp));
-known("P0-2e  Voice: only the LAST result of an event is read (drops earlier ones)",
-  /event\.results\[event\.results\.length - 1\]/.test(rp));
-known("P0-3   Extraction: malformed/truncated JSON is returned as 'no updates' (silent)",
-  /except \(ValueError, TypeError\):\s*\n\s*return \{"updates": \[\]/.test(ext));
-known("P0-4   Same field can be pending twice (second computed against stale base)",
-  !/supersede|replace.*same field/i.test(app));
-known("P1-1   Sync SDK calls + time.sleep inside async routes (blocks event loop)",
-  /async def (transcribe|extract)/.test(voice) && /time\.sleep/.test(ext));
-known("hygiene .env.example model differs from config default",
-  !(envEx.match(/EXTRACTION_MODEL=(.+)/)?.[1]?.trim() === (cfg.match(/"EXTRACTION_MODEL",\s*"([^"]+)"/)?.[1])));
-known("hygiene requirements.txt pins pydantic 2.9.2 (no py3.14 wheels; needs >=2.12)",
-  /pydantic==2\.9\.2/.test(reqs));
-known("hygiene README still describes Claude/Anthropic extraction",
-  /anthropic/i.test(readme));
-known("P2     create_all() with no migration tool (schema changes need Alembic)",
-  /create_all/.test(main) && !existsSync(resolve(root, "backend/alembic")));
-known("P1-4   No automated tests",
-  !existsSync(resolve(root, "backend/tests")) && !readdirSync(resolve(root, "frontend/src")).some((f) => f.includes(".test.")));
+known("P0-1   Editing after Save (no update endpoint; Print can diverge from stored record)", {
+  open: !/@router\.(put|patch)/.test(src("backend/app/routers/forms.py")) && src("backend/app/routers/forms.py") !== "",
+  fixed: /@router\.(put|patch)/.test(src("backend/app/routers/forms.py")),
+});
+known("P0-2a  Voice: short field names (e.g. 'age') can never be targeted", {
+  open: any(PARSER, /\.length\s*>\s*3/),
+  fixed: hasDir("frontend/src") && existsSync(resolve(root, "frontend/src/voiceCommands.js")) && /alias/i.test(src("frontend/src/voiceCommands.js")),
+});
+known("P0-2c  Voice: unmatched field name silently falls back to the TOP item", {
+  open: any(PARSER, /!==\s*-1\s*\?\s*\w+\s*:\s*0/),
+  fixed: any(PARSER, /Didn't catch which item/),
+});
+known("P0-2e  Voice: only the LAST result of a recognition event is read", {
+  open: any(PARSER, /event\.results\[\s*event\.results\.length\s*-\s*1\s*\]/),
+  fixed: any(PARSER, /event\.resultIndex/),
+});
+known("P0-3   Extraction: bad/truncated model output is returned as 'no updates'", {
+  open: /except\s*\(\s*ValueError\s*,\s*TypeError\s*\)/.test(src("backend/app/services/extraction.py")),
+  fixed: /finish_reason/.test(src("backend/app/services/extraction.py")),
+});
+known("P0-4   Same field can be pending twice (second computed against a stale base)", {
+  open: /setPending\(\s*\(?\s*prev\s*\)?\s*=>\s*\[\s*\.\.\.prev\s*,\s*\.\.\./.test(src("frontend/src/App.jsx")),
+  fixed: /supersed|dedupe/i.test(src("frontend/src/App.jsx")),
+});
+known("P1-1   Sync SDK calls + time.sleep inside async routes", {
+  open: /async def (transcribe|extract)/.test(src("backend/app/routers/voice.py")) && /time\.sleep/.test(src("backend/app/services/extraction.py")),
+  fixed: /run_in_threadpool|to_thread/.test(src("backend/app/routers/voice.py")),
+});
+const envModel = src("backend/.env.example").match(/^EXTRACTION_MODEL=(.+)$/m)?.[1]?.trim();
+const cfgModel = src("backend/app/config.py").match(/"EXTRACTION_MODEL",\s*"([^"]+)"/)?.[1];
+known("hygiene  .env.example and config.py agree on the default model", {
+  open: !!envModel && !!cfgModel && envModel !== cfgModel,
+  fixed: !!envModel && !!cfgModel && envModel === cfgModel,
+});
+known("hygiene  requirements.txt no longer pins pydantic 2.9.2 (needs >=2.12 on Python 3.14)", {
+  open: /pydantic==2\.9\.2/.test(src("backend/requirements.txt")),
+  fixed: /pydantic\s*(>=|~=)\s*2\.(1[2-9]|[2-9]\d)/.test(src("backend/requirements.txt")),
+});
+known("hygiene  README describes Gemini, not Claude/Anthropic", {
+  open: /anthropic/i.test(src("README.md")),
+  fixed: src("README.md") !== "" && !/anthropic/i.test(src("README.md")) && /gemini/i.test(src("README.md")),
+});
+known("P2     Schema changes need a migration tool (create_all cannot alter tables)", {
+  open: /create_all/.test(src("backend/app/main.py")) && !hasDir("backend/alembic"),
+  fixed: hasDir("backend/alembic"),
+});
+known("P1-4   Automated tests exist", {
+  open: !hasDir("backend/tests") && !readdirSync(resolve(root, "frontend/src")).some((f) => f.includes(".test.")),
+  fixed: hasDir("backend/tests") || readdirSync(resolve(root, "frontend/src")).some((f) => f.includes(".test.")),
+});
+console.log(`\n  ${tally.OPEN} open, ${tally.fixed} fixed, ${tally.unknown} unknown (unknown = neither the bug nor the fix was recognised; look by hand)\n`);
 
 process.exit(failed ? 1 : 0);

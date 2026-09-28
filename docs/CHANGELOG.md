@@ -39,6 +39,10 @@ owner's machine. Two consequences:
   times), not "~10.5s" as stated earlier — the third attempt has no sleep after it.
 - "A 350ms restart delay is measurably more reliable" was overstated. It is a common
   workaround for a known Chrome quirk; it was never measured here.
+- `verify-changes.mjs` first reported a known issue as "fixed" whenever its bug pattern was
+  not found. Against a repo whose code was shaped slightly differently (`word` vs `w` as a
+  loop variable) it wrongly reported P0-2a, P0-2c and P0-3 fixed. It is now three-state and
+  "fixed" requires positive evidence; tested against old-shaped and unrecognised code.
 - `.env.example` (`gemini-3.5-flash`) disagreed with the code default
   (`gemini-3.5-flash-lite`); `README.md` still described Claude extraction;
   `requirements.txt` still pinned versions that fail on Python 3.14. All three are fixed
@@ -125,3 +129,13 @@ the terminal. **Risk:** see ROADMAP P0-3 (truncation returns silent "no updates"
 ## 13. Documentation and tooling (this set)
 `CLAUDE.md`, `README.md`, `docs/*`, `scripts/verify-changes.mjs`, corrected
 `.env.example` / `requirements*.txt`.
+
+## 14. Handoff to Claude Code: repo merged with the chat sandbox snapshot
+The real repo and the sandbox had each diverged. Kept from the repo (not in the sandbox):
+microphone error classification (`MicError`, `MIC_MESSAGES`), context-specific save/print
+error text, per-field "nothing heard / nothing found" notes, structured `empty_audio` and
+`not_found` errors, validation labels in form order, required-fields legend, extraction
+warning log. Brought in from the sandbox: id-based pending updates, `parseVoiceCommands`,
+`RESTART_DELAY_MS` + listening dot, `[timing]` logs (via `logging`, not `print`),
+`max_output_tokens`, flash-lite default, cleaned `.env.example`, three-state
+`verify-changes.mjs`. **Static ✔ 51/51 · TestClient ✔ (stubbed Gemini: timing logged, cap sent) · Live**

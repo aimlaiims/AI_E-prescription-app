@@ -228,6 +228,7 @@ instructions>", matching the style of existing entries where possible.
 8. Return ONLY JSON matching the provided schema. No prose, no markdown fences."""
 
     client = _get_client()
+    t0 = time.perf_counter()
     response = _generate_with_retry(
         client,
         model=settings.EXTRACTION_MODEL,
@@ -237,7 +238,14 @@ instructions>", matching the style of existing entries where possible.
             "response_mime_type": "application/json",
             "response_schema": RESPONSE_SCHEMA,
             "temperature": 0.0,
+            # The schema is small — capping this bounds worst-case latency.
+            # See ROADMAP P0-3 before raising/lowering it.
+            "max_output_tokens": 1024,
         },
+    )
+    logger.info(
+        "[timing] Gemini extraction (%s): %.2fs",
+        settings.EXTRACTION_MODEL, time.perf_counter() - t0,
     )
 
     try:

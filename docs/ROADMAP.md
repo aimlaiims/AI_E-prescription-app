@@ -1,7 +1,8 @@
 # Roadmap, open issues, suggestions
 
-`node scripts/verify-changes.mjs` prints which of the issues below are still open; it
-flips an item to "fixed" when the code no longer matches. Confirmed = reproduced or read
+`node scripts/verify-changes.mjs` reports each issue below as **OPEN** (the bug pattern was
+found), **fixed** (positive evidence of the fix was found) or **unknown** (neither — look by
+hand). "Not found" is never treated as "fixed". Confirmed = reproduced or read
 in the code. Hypothesis = plausible, not yet demonstrated.
 
 Priority: **P0** wrong or unsafe behavior, fix before any further demo · **P1** should fix

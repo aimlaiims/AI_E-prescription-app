@@ -11,11 +11,9 @@ class Settings:
     LOCAL_WHISPER_MODEL: str = os.getenv("LOCAL_WHISPER_MODEL", "base.en")
     LOCAL_WHISPER_DEVICE: str = os.getenv("LOCAL_WHISPER_DEVICE", "cpu")
 
-    # ANTHROPIC_API_KEY: str | None = os.getenv("ANTHROPIC_API_KEY")
-    # EXTRACTION_MODEL: str = os.getenv("EXTRACTION_MODEL", "claude-sonnet-4-6")
-    #Gemini LLM
     GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
-    EXTRACTION_MODEL: str = os.getenv("EXTRACTION_MODEL", "gemini-3.5-flash")
+    # flash-lite for speed; gemini-3.5-flash is the fallback if accuracy suffers.
+    EXTRACTION_MODEL: str = os.getenv("EXTRACTION_MODEL", "gemini-3.5-flash-lite")
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./clinical_forms.db")
 

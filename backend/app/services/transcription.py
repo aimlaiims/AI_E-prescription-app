@@ -10,11 +10,15 @@ propagate — a rate-limited or degraded API should be visibly rate-limited or
 degraded to the caller, never mistaken for a real (if odd) transcript.
 """
 import io
+import logging
 import tempfile
+import time
 from functools import lru_cache
 
 from ..config import settings
 from ..errors import UpstreamError
+
+logger = logging.getLogger(__name__)
 
 # A short vocabulary nudge passed to Whisper as an "initial_prompt" / "prompt".
 # This measurably improves recognition of drug names and clinical shorthand
@@ -60,6 +64,7 @@ def _transcribe_groq(audio_bytes: bytes, filename: str) -> str:
         raise UpstreamError("GROQ_API_KEY is not set in .env", code="auth")
 
     client = Groq(api_key=settings.GROQ_API_KEY)
+    t0 = time.perf_counter()
     try:
         result = client.audio.transcriptions.create(
             file=(filename, io.BytesIO(audio_bytes)),
@@ -95,6 +100,10 @@ def _transcribe_groq(audio_bytes: bytes, filename: str) -> str:
         raise UpstreamError(
             f"Groq transcription request failed: {e.message}", code="unknown"
         ) from e
+    logger.info(
+        "[timing] Groq transcription: %.2fs for %.0f KB audio",
+        time.perf_counter() - t0, len(audio_bytes) / 1024,
+    )
 
     # groq SDK returns either a str or an object depending on response_format
     text = result if isinstance(result, str) else getattr(result, "text", "")
