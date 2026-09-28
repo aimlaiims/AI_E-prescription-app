@@ -547,6 +547,15 @@ textarea.field-input:focus {
   border-color: var(--sage);
   box-shadow: 0 0 0 1px var(--sage);
 }
+.updated-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
 .current-tag {
   margin-left: 8px;
   padding: 1px 6px;

@@ -158,6 +158,11 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
         >
           <div className="field-name">
             {FIELD_SPECS[u.field]?.label || u.field}
+            {u.supersedes && (
+              <span className="updated-tag" title="Replaces an earlier proposal for this field">
+                Updated
+              </span>
+            )}
             {voiceConfirmOn && idx === 0 && <span className="current-tag">Next</span>}
           </div>
           {u.old_value && <div className="diff-old">{u.old_value}</div>}

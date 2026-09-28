@@ -141,6 +141,7 @@ components/
   DictateBar.jsx   big round mic, Space toggle, status text, transcript retry
   ReviewPanel.jsx  diff list, Accept/Discard/Accept all, hands-free toggle
 voiceCommands.js   parseVoiceCommands + FIELD_ALIASES (pure; voiceCommands.test.js)
+pendingUpdates.js  one-pending-per-field merge + pending-applied extraction base (pure; tested)
 printTemplate.js   buildPrintHtml(state, pid) -> full standalone HTML document
 messages.js        error code -> plain language
 api.js             fetch wrappers, ApiError

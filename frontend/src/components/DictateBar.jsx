@@ -71,7 +71,7 @@ export default function DictateBar({ formState, onVoiceUpdates, onVoiceError, di
         setStatus(friendlyErrorMessage(err));
         return;
       }
-      setStatus("Listening describe the visit, then tap the mic or press Space to stop.");
+      setStatus("Listening. Describe the visit, then tap the mic or press Space to stop.");
     }
   };
 
@@ -130,7 +130,7 @@ export default function DictateBar({ formState, onVoiceUpdates, onVoiceError, di
         {lastTranscript && !busy && (
           <button type="button" className="retry-link" onClick={handleRetry} disabled={disabled}>
             <RefreshCw size={12} />
-            Try filling in the prescription again no need to redictate
+            Try filling in the prescription again. No need to redictate.
           </button>
         )}
       </div>

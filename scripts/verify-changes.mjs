@@ -74,6 +74,8 @@ expect("voiceCommands.js: multi-command parser (plural)", "frontend/src/voiceCom
 expect("voiceCommands.js: per-field aliases, whole-word matching", "frontend/src/voiceCommands.js", "FIELD_ALIASES");
 expect("voiceCommands.js: unmatched target does nothing and says so", "frontend/src/voiceCommands.js", "NO_TARGET_MESSAGE");
 expect("voiceCommands.test.js exists (npm test)", "frontend/src/voiceCommands.test.js", "parseVoiceCommands");
+expect("pendingUpdates.js: one pending item per field (P0-4)", "frontend/src/pendingUpdates.js", "export function mergePending");
+expect("App: extraction sees pending proposals applied", "frontend/src/App.jsx", "withPendingApplied(state, pending)");
 expect("ReviewPanel: reads every new result (event.resultIndex)", "frontend/src/components/ReviewPanel.jsx", "event.resultIndex");
 expect("ReviewPanel: old single-command parser removed", "frontend/src/components/ReviewPanel.jsx", /parseVoiceCommand\(/, { present: false });
 expect("voiceCommands: 'accept'/'except' both treated as accept", "frontend/src/voiceCommands.js", /ACCEPT_WORDS = \[[^\]]*"except"/);

@@ -157,3 +157,14 @@ Files: `voiceCommands.js`, `voiceCommands.test.js`, `ReviewPanel.jsx`, `App.jsx`
 `services/extraction.py`, `verify-changes.mjs`, docs.
 **Static ✔ 58/58 · npm test ✔ 20/20 · TestClient ✔ (stubbed Gemini: normal, empty, MAX_TOKENS,
 SAFETY, blocked prompt, bad JSON, list JSON, junk items) · Live** (browser speech, lock UI).
+
+## 16. P0-4 fixed; two broken status strings
+- **P0-4.** `pendingUpdates.js`: `withPendingApplied` (extraction base = form + pending
+  proposals, so "add …" builds on an unreviewed proposal) and `mergePending` (one pending
+  item per field; newer supersedes older, tagged "Updated"; last wins within a batch;
+  `old_value` reset to the real form value). Accept all therefore applies each field once.
+- `DictateBar` copy: "Listening. Describe the visit…" and "…again. No need to redictate."
+  (the dashes had been removed, leaving run-on sentences).
+Files: `pendingUpdates.js`, `pendingUpdates.test.js`, `App.jsx`, `ReviewPanel.jsx`,
+`DictateBar.jsx`, `styles.css`, `package.json`, `verify-changes.mjs`, docs.
+**Static ✔ · npm test ✔ 26/26 · Live** (real "add …" behavior depends on Gemini).

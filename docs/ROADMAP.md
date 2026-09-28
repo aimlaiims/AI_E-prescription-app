@@ -96,6 +96,11 @@ fails to parse, raise `UpstreamError(code="unknown"…)` (or a new `bad_response
 frontend shows the retry link. Log `finish_reason` next to the `[timing]` line.
 
 ### P0-4  Two pending updates for one field are computed against a stale base
+> **Fixed 2026-09-28 (the "better" option plus dedupe).** Extraction is sent the form with
+> pending proposals applied (`withPendingApplied`), and at most one item per field is
+> pending: a newer one supersedes the older and is tagged "Updated" (`mergePending`,
+> `frontend/src/pendingUpdates.js`, tested). `old_value` in the panel stays the real form value.
+
 Dictate the same field twice before reviewing: the second `new_value` was built from the
 form state *without* the first pending change, so accepting both keeps only one, and an
 "add …" append can lose the earlier addition. `handleAcceptAll` also re-applies items in

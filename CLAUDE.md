@@ -49,7 +49,7 @@ ngrok http 5173
 ```powershell
 cd frontend; npm run build            # catches bad imports / JSX / missing icons
 cd backend;  python -c "from app.main import app"   # catches import errors
-cd frontend; npm test                 # voice-command parser tests (node:test, no deps)
+cd frontend; npm test                 # parser + pending-merge tests (node:test, no deps)
 node scripts/verify-changes.mjs       # static check of every documented change
 ```
 
@@ -73,7 +73,9 @@ works.
    Exception: `validation` errors (missing required fields) are shown verbatim — they are
    actionable form feedback, not service failures. See `handleSaveError` in `App.jsx`.
 4. **Pending updates are addressed by stable `id`, never array index.** Several
-   accept/reject actions can fire in one batch.
+   accept/reject actions can fire in one batch. At most one item per field is pending
+   (`mergePending`), and dictation is interpreted against the form with pending items
+   applied (`withPendingApplied`) — see `frontend/src/pendingUpdates.js`.
 5. **Voice command words = button labels** ("Accept", "Discard", "Accept all") so the
    interface is learnable. "yes"/"no" are deliberately NOT commands (false triggers).
 6. **`FIELD_SPECS` exists twice** — `backend/app/schemas.py` and
@@ -119,5 +121,5 @@ works.
 
 ## Where to start
 
-`docs/ROADMAP.md` → **P0-4** (same field pending twice) is the last open P0; P0-2d (Space
-with a button focused) is still unverified. Then P1.
+All P0s are fixed except the unverified **P0-2d** (Space with a button focused — test it in a
+browser, `docs/TESTING.md` §4). Next is P1 in `docs/ROADMAP.md`; ask the owner which first.

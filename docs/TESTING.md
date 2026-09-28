@@ -45,6 +45,9 @@ On Chief complaints:
 5. Edge: "left ear pain too" (is "too" read as addition?)
 6. Edge: "change ear pain to eye pain" in a 3-line value → only the matching line changes
 7. Empty field + "add fever" → behaves as a plain fill
+8. **Without accepting**, say "fever" then "add cough" on the same field → ONE pending item,
+   tagged **Updated**, value `Fever` / `Cough`; its "old" line is the real field value (P0-4)
+9. Pending diagnosis + whole-visit dictation that restates diagnosis → still one diagnosis item
 
 ## 4. Voice confirm and Space
 Get 4–5 proposals pending (Case 1 works), toggle **Hands-free**.

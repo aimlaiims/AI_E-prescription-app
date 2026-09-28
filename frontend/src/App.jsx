@@ -11,6 +11,7 @@ import {
   PENDING_BEFORE_SAVE_MESSAGE,
 } from "./messages.js";
 import { buildPrintHtml } from "./printTemplate.js";
+import { mergePending, withPendingApplied } from "./pendingUpdates.js";
 
 export default function App() {
   const [state, setState] = useState({ ...EMPTY_STATE, date: today() });
@@ -36,6 +37,9 @@ export default function App() {
   const locked = !!savedPid;
   const lockedRef = useRef(locked);
   lockedRef.current = locked;
+  // Latest real form values, readable from async voice callbacks.
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // Rate limiting is a property of the shared voice-service connection, not
   // whichever mic happened to trigger it — the cooldown disables every mic on
@@ -73,8 +77,11 @@ export default function App() {
     if (transcript) setTranscriptLog((prev) => [...prev, transcript]);
     if (note) setUnmatchedNote(note);
     if (updates.length) {
-      const withIds = updates.map((u) => ({ ...u, id: `u${nextPendingId.current++}` }));
-      setPending((prev) => [...prev, ...withIds]);
+      // One pending item per field: a newer proposal supersedes an older one
+      // (ROADMAP P0-4). Ids are stable, never array positions.
+      setPending((prev) =>
+        mergePending(prev, updates, stateRef.current, () => `u${nextPendingId.current++}`)
+      );
     }
   };
 
@@ -222,6 +229,11 @@ export default function App() {
 
   const micsDisabled = !!cooldownUntil;
 
+  // Dictation is interpreted against the form *with pending proposals
+  // applied*, so "add ..." after an unreviewed proposal builds on it instead
+  // of on the stale value underneath (ROADMAP P0-4).
+  const extractionBase = withPendingApplied(state, pending);
+
   const commonFieldProps = (key) => ({
     fieldKey: key,
     spec: FIELD_SPECS[key],
@@ -229,7 +241,7 @@ export default function App() {
     onChange: handleFieldChange,
     onVoiceUpdates: handleVoiceUpdates,
     onVoiceError: handleApiError,
-    formState: state,
+    formState: extractionBase,
     micStatus: micStatus[key],
     setMicStatus,
     disabled: micsDisabled,
@@ -316,7 +328,7 @@ export default function App() {
           {!locked && (
             <>
               <DictateBar
-                formState={state}
+                formState={extractionBase}
                 onVoiceUpdates={handleVoiceUpdates}
                 onVoiceError={handleApiError}
                 disabled={micsDisabled}

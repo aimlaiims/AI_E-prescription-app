@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/voiceCommands.test.js"
+    "test": "node --test src/voiceCommands.test.js src/pendingUpdates.test.js"
   },
   "dependencies": {
     "lucide-react": "^0.460.0",
