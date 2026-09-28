@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
 // Thrown by start() for anything that stops the microphone from starting —
 // permission denial, no device, device busy, or an insecure origin. Kept as a
@@ -80,6 +80,20 @@ export function useRecorder() {
       };
       recorder.stop();
     });
+  }, []);
+
+  // Release the microphone if the component using it goes away mid-recording
+  // (e.g. the whole-visit mic is removed when a saved form locks) — otherwise
+  // the browser keeps the mic open with nothing listening to it.
+  useEffect(() => {
+    return () => {
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        recorder.onstop = null;
+        recorder.stop();
+      }
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
   }, []);
 
   return { isRecording, start, stop };

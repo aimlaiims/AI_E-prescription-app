@@ -95,8 +95,10 @@ SDK exception ─► UpstreamError(code, retry_after)        backend/app/errors.
 Retry policy (`_generate_with_retry`): 5xx → 3 attempts with sleeps of 1.5s then 3s
 (≈4.5s of waiting worst case, plus the three request times). 429 is **not** retried —
 retrying a quota error is pointless; the frontend enforces the cooldown instead.
-Failure paths never fabricate data: an unparseable model response currently returns
-`updates: []` (see ROADMAP P0-3 — that one is too quiet).
+Failure paths never fabricate data. A response that did not finish normally
+(`finish_reason` ≠ STOP), was blocked, or is not a JSON object raises
+`UpstreamError(code="unknown")`, so the doctor sees a retry option, never a false
+"nothing matched". Valid JSON with `updates: []` is still a normal result.
 
 ## 5. Data model
 
@@ -120,8 +122,13 @@ toggle is on **and** something is pending.
   "accept diagnosis accept medications accept all" is not reduced to one action.
 - Recognizer restarts are delayed 350ms (`RESTART_DELAY_MS`); a dot shows whether it is
   actually listening.
-- Known defects in targeting are tracked in ROADMAP P0-2. Merged-result behavior is a
-  **hypothesis** for the "had to repeat myself" report, not yet confirmed.
+- Parser lives in `frontend/src/voiceCommands.js` (pure, tested by `npm test`). Field
+  names are matched as whole words against `FIELD_ALIASES` ("exam", "o/e", "sex", "dx"…).
+  A bare command acts on the top item, marked **Next** in the panel. A command followed
+  by words that name no pending field does **nothing** and shows a notice — never a
+  silent fallback to the top item.
+- `onresult` parses every final result from `event.resultIndex`, not just the last.
+  Merged-result behavior is still a **hypothesis** for the "had to repeat myself" report.
 
 ## 7. Frontend structure
 
@@ -132,7 +139,8 @@ App.jsx            state: form values, pending[] (each with stable id), transcri
 components/
   FormField.jsx    input + per-field mic (idle / recording / processing spinner)
   DictateBar.jsx   big round mic, Space toggle, status text, transcript retry
-  ReviewPanel.jsx  diff list, Accept/Discard/Accept all, hands-free toggle + parser
+  ReviewPanel.jsx  diff list, Accept/Discard/Accept all, hands-free toggle
+voiceCommands.js   parseVoiceCommands + FIELD_ALIASES (pure; voiceCommands.test.js)
 printTemplate.js   buildPrintHtml(state, pid) -> full standalone HTML document
 messages.js        error code -> plain language
 api.js             fetch wrappers, ApiError
@@ -160,7 +168,8 @@ empty medications prints "No medications prescribed."
 | GET | `/api/forms/{pid}` | full record |
 | GET | `/api/forms` | latest 100: pid, name, date, diagnosis, created_at |
 
-There is **no update or delete endpoint** (ROADMAP P0-1).
+There is **no update or delete endpoint**: a saved prescription is final and the form
+locks (ROADMAP P0-1).
 Routes in `voice.py` are `async def` but call synchronous SDK code (ROADMAP P1-1).
 
 ## 9. Performance

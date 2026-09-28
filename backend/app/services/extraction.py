@@ -147,6 +147,19 @@ def _generate_with_retry(client: genai.Client, **kwargs):
     ) from last_exc
 
 
+def _finish_reason(response) -> str | None:
+    """Name of the first candidate's finish_reason ("STOP", "MAX_TOKENS",
+    "SAFETY", ...), "NO_CANDIDATES" if the prompt itself was blocked, or None
+    if the SDK didn't report one."""
+    candidates = getattr(response, "candidates", None)
+    if not candidates:
+        return "NO_CANDIDATES"
+    reason = getattr(candidates[0], "finish_reason", None)
+    if reason is None:
+        return None
+    return getattr(reason, "name", str(reason))
+
+
 def extract_field_updates(
     transcript: str, current_state: dict, target_field: str | None = None
 ) -> dict:
@@ -243,30 +256,46 @@ instructions>", matching the style of existing entries where possible.
             "max_output_tokens": 1024,
         },
     )
+    finish_reason = _finish_reason(response)
     logger.info(
-        "[timing] Gemini extraction (%s): %.2fs",
-        settings.EXTRACTION_MODEL, time.perf_counter() - t0,
+        "[timing] Gemini extraction (%s): %.2fs, finish_reason=%s",
+        settings.EXTRACTION_MODEL, time.perf_counter() - t0, finish_reason,
     )
 
-    try:
-        result = json.loads(response.text)
-    except (ValueError, TypeError):
-        # The doctor sees this identically to "nothing relevant was said" —
-        # that's deliberate (there's no different action for them to take
-        # either way, and retrying is likely to succeed). Log it so a real
-        # model/parsing failure is still visible to whoever operates this.
+    # A truncated, blocked or unparseable response must NOT look like "nothing
+    # relevant was said" — that tells the doctor to rephrase when the real
+    # answer is "try again". Raise so the frontend shows the retry path.
+    # (An empty `updates` list inside valid JSON is still a normal outcome.)
+    text = response.text or ""
+    if finish_reason not in (None, "STOP"):
         logger.warning(
-            "Gemini returned unparseable JSON for extraction; treating as "
-            "empty result. Raw response (truncated): %r",
-            (response.text or "")[:500],
+            "Gemini extraction did not finish normally (finish_reason=%s). "
+            "Raw response (truncated): %r", finish_reason, text[:500],
         )
-        return {"updates": [], "unmatched_transcript_note": ""}
+        raise UpstreamError(
+            f"Gemini extraction stopped early (finish_reason={finish_reason}).",
+            code="unknown",
+        )
+    try:
+        result = json.loads(text)
+        if not isinstance(result, dict):
+            raise TypeError("top-level JSON is not an object")
+    except (ValueError, TypeError) as e:
+        logger.warning(
+            "Gemini returned unparseable JSON for extraction. "
+            "Raw response (truncated): %r", text[:500],
+        )
+        raise UpstreamError(
+            "Gemini returned a response that could not be read.", code="unknown"
+        ) from e
 
     # Defensive filtering: never trust the model to have respected scope/allowed
     # fields perfectly. Drop anything outside what was actually permitted.
     result["updates"] = [
-        u for u in result.get("updates", [])
-        if u.get("field") in allowed_fields
-        and u.get("new_value", "").strip() != ""
+        u for u in result.get("updates") or []
+        if isinstance(u, dict)
+        and u.get("field") in allowed_fields
+        and isinstance(u.get("new_value"), str)
+        and u["new_value"].strip() != ""
     ]
     return result

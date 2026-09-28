@@ -5,7 +5,11 @@ import DictateBar from "./components/DictateBar.jsx";
 import ReviewPanel from "./components/ReviewPanel.jsx";
 import { FIELD_SPECS, EMPTY_STATE } from "./fieldSpecs.js";
 import { saveForm } from "./api.js";
-import { friendlyErrorMessage, friendlyCooldownReason } from "./messages.js";
+import {
+  friendlyErrorMessage,
+  friendlyCooldownReason,
+  PENDING_BEFORE_SAVE_MESSAGE,
+} from "./messages.js";
 import { buildPrintHtml } from "./printTemplate.js";
 
 export default function App() {
@@ -25,6 +29,13 @@ export default function App() {
   // right item even when several updates are dispatched in one batch — see
   // handleVoiceUpdates and the multi-command voice parsing in ReviewPanel.
   const nextPendingId = useRef(0);
+
+  // A saved prescription is final (ROADMAP P0-1, "lock after save"): no
+  // typing, no dictation, no review. Print then always matches the stored
+  // record. Changing anything means starting a new prescription.
+  const locked = !!savedPid;
+  const lockedRef = useRef(locked);
+  lockedRef.current = locked;
 
   // Rate limiting is a property of the shared voice-service connection, not
   // whichever mic happened to trigger it — the cooldown disables every mic on
@@ -56,6 +67,9 @@ export default function App() {
   };
 
   const handleVoiceUpdates = (updates, transcript, note) => {
+    // A per-field request can still be in flight when Save completes; its
+    // result must not reopen a finalized record.
+    if (lockedRef.current) return;
     if (transcript) setTranscriptLog((prev) => [...prev, transcript]);
     if (note) setUnmatchedNote(note);
     if (updates.length) {
@@ -113,8 +127,17 @@ export default function App() {
     setPending([]);
   };
 
+  // Unreviewed proposals would otherwise be silently left out of a record
+  // that can no longer be changed — make the doctor decide on them first.
+  const blockIfPending = () => {
+    if (!pending.length) return false;
+    setError(PENDING_BEFORE_SAVE_MESSAGE);
+    return true;
+  };
+
   const handleSave = async () => {
     setError("");
+    if (blockIfPending()) return;
     setSaving(true);
     try {
       const res = await saveForm(state, transcriptLog.join("\n---\n"));
@@ -132,8 +155,11 @@ export default function App() {
   // any `await`, and reused for the content once ready — opening a window
   // *after* an await is what gets silently blocked by popup blockers, since
   // it's no longer seen as a direct result of the click.
+  // Once saved, the form is locked (see `locked`), so printing a saved record
+  // always prints exactly what is stored.
   const handlePrint = async () => {
     setError("");
+    if (!savedPid && blockIfPending()) return;
     const previewWindow = window.open("", "_blank");
     if (!previewWindow) {
       setError("Your browser blocked the print preview pop-up. Please allow pop-ups for this page and try again.");
@@ -207,6 +233,7 @@ export default function App() {
     micStatus: micStatus[key],
     setMicStatus,
     disabled: micsDisabled,
+    readOnly: locked,
   });
 
   return (
@@ -255,6 +282,10 @@ export default function App() {
                     <Copy size={13} />
                     {copied && <span className="pid-copied">Copied</span>}
                   </button>
+                  <span className="saved-banner-note">
+                    This prescription is now final. To make a change, start a new
+                    prescription.
+                  </span>
                 </span>
               </div>
               <button className="btn" onClick={handleNewForm}>
@@ -282,24 +313,28 @@ export default function App() {
             </div>
           )}
 
-          <DictateBar
-            formState={state}
-            onVoiceUpdates={handleVoiceUpdates}
-            onVoiceError={handleApiError}
-            disabled={micsDisabled}
-          />
+          {!locked && (
+            <>
+              <DictateBar
+                formState={state}
+                onVoiceUpdates={handleVoiceUpdates}
+                onVoiceError={handleApiError}
+                disabled={micsDisabled}
+              />
 
-          <ReviewPanel
-            pending={pending}
-            unmatchedNote={unmatchedNote}
-            onAccept={handleAccept}
-            onReject={handleReject}
-            onAcceptAll={handleAcceptAll}
-          />
+              <ReviewPanel
+                pending={pending}
+                unmatchedNote={unmatchedNote}
+                onAccept={handleAccept}
+                onReject={handleReject}
+                onAcceptAll={handleAcceptAll}
+              />
 
-          <p className="required-legend">
-            Fields marked <span className="req">*</span> are required to save.
-          </p>
+              <p className="required-legend">
+                Fields marked <span className="req">*</span> are required to save.
+              </p>
+            </>
+          )}
 
           <section className="section">
             <h2 className="section-label">
@@ -337,13 +372,13 @@ export default function App() {
         </div>
 
         <footer className="footer-actions">
-          <button className="btn" onClick={handlePrint} disabled={printing}>
+          <button className="btn" onClick={handlePrint} disabled={printing || saving}>
             <Printer size={16} />
             {printing ? "Preparing…" : "Print"}
           </button>
-          <button className="btn primary" onClick={handleSave} disabled={saving || !!savedPid}>
-            <Save size={16} />
-            {saving ? "Saving…" : "Save prescription"}
+          <button className="btn primary" onClick={handleSave} disabled={saving || printing || locked}>
+            {locked ? <Check size={16} /> : <Save size={16} />}
+            {saving ? "Saving…" : locked ? "Saved" : "Save prescription"}
           </button>
         </footer>
       </div>

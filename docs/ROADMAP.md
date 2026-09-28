@@ -13,6 +13,11 @@ before anyone depends on it · **P2** required before real patient data · **P3*
 ## P0 — confirmed bugs
 
 ### P0-1  Editing after Save diverges from the stored record
+> **Fixed 2026-09-28 — lock after save** (the owner's choice; no update endpoint for now).
+> After save every field is read-only, mics and the review panel are removed, and the only
+> way to change anything is a new prescription. Save/Print is blocked while proposals are
+> still pending, so none are silently left out. Original analysis kept below for history.
+
 **Confirmed by code.** After save, `Save` disables permanently. `Print` reuses the old
 Reference ID but prints the *current* (possibly edited) form. The database keeps the old
 values. Paper and record silently disagree. There is also no way to correct a saved record.
@@ -32,6 +37,11 @@ new prescription to change it". Pick one; do not leave the current state.
 Acceptance: save → edit diagnosis → Print → stored record and printout match.
 
 ### P0-2  Voice targeting acts on the wrong item  (this is the "false accept")
+> **Fixed 2026-09-28 (a, b, c, e; 1–5 below).** Parser moved to `frontend/src/voiceCommands.js`
+> with aliases and whole-word matching; an unrecognised target does nothing and shows a
+> notice; the top item is marked "Next"; `onresult` reads from `event.resultIndex`.
+> `npm test` (20 cases, incl. the table below). **(d) is still unverified/open.**
+
 **Confirmed** by running the shipped parser (pending: name, age, gender, exam, diagnosis):
 | said | expected | got |
 |---|---|---|
@@ -70,6 +80,10 @@ Fix:
 Acceptance: `accept age` accepts age; a garbled name accepts nothing and says so.
 
 ### P0-3  Extraction failures look like "nothing matched"
+> **Fixed 2026-09-28.** `finish_reason` other than STOP (e.g. MAX_TOKENS, SAFETY), no
+> candidates, or JSON that does not parse to an object now raise `UpstreamError(code="unknown")`
+> → error banner + retry link. `finish_reason` is logged on the `[timing]` line.
+
 **Confirmed by code.** `extract_field_updates` catches `ValueError/TypeError` from
 `json.loads(response.text)` and returns `updates: []`. Truncation, an empty response, or a
 safety block are therefore indistinguishable from "the doctor said nothing relevant", and

@@ -139,3 +139,21 @@ warning log. Brought in from the sandbox: id-based pending updates, `parseVoiceC
 `RESTART_DELAY_MS` + listening dot, `[timing]` logs (via `logging`, not `print`),
 `max_output_tokens`, flash-lite default, cleaned `.env.example`, three-state
 `verify-changes.mjs`. **Static ✔ 51/51 · TestClient ✔ (stubbed Gemini: timing logged, cap sent) · Live**
+
+## 15. P0-1, P0-2, P0-3 fixed (P0-4 still open)
+- **P0-2 voice targeting.** Parser extracted to `voiceCommands.js` with `FIELD_ALIASES`,
+  whole-word/sequence matching, filler words; unrecognised target → no action + notice;
+  top item tagged "Next"; `onresult` reads from `event.resultIndex`. `npm test`: 20 cases,
+  including every row of the ROADMAP P0-2 table. P0-2d (Space + focused button) untouched.
+- **P0-1 lock after save.** `locked = !!savedPid`: fields read-only, mics/dictate bar/review
+  panel removed, "Saved" button. Save/Print-first blocked while proposals are pending. An
+  in-flight per-field result is ignored after lock; a recording mic is stopped
+  (`FormField` effect, `useRecorder` unmount cleanup). Print and Save can't run at once.
+- **P0-3 extraction failures.** `finish_reason` ≠ STOP, no candidates, unparseable or
+  non-object JSON → `UpstreamError("unknown")` (502 → retry link). Update items that are not
+  objects or have non-string values are dropped.
+Files: `voiceCommands.js`, `voiceCommands.test.js`, `ReviewPanel.jsx`, `App.jsx`,
+`FormField.jsx`, `useRecorder.js`, `messages.js`, `styles.css`, `package.json`,
+`services/extraction.py`, `verify-changes.mjs`, docs.
+**Static ✔ 58/58 · npm test ✔ 20/20 · TestClient ✔ (stubbed Gemini: normal, empty, MAX_TOKENS,
+SAFETY, blocked prompt, bad JSON, list JSON, junk items) · Live** (browser speech, lock UI).

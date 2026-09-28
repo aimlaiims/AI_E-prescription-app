@@ -527,12 +527,34 @@ textarea.field-input:focus {
   margin: 6px 0 14px;
 }
 
+.voice-notice {
+  font-size: 13px;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin: 0 0 12px;
+}
+
 .review-item {
   background: var(--paper-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 12px 14px;
   margin-bottom: 10px;
+}
+.review-item.current {
+  border-color: var(--sage);
+  box-shadow: 0 0 0 1px var(--sage);
+}
+.current-tag {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--sage);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 
 .review-item .field-name {
@@ -629,6 +651,12 @@ textarea.field-input:focus {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+.saved-banner-note {
+  display: block;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 2px;
 }
 
 .pid-copy {

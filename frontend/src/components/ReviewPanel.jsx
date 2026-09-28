@@ -1,89 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, X, CheckCheck, Headphones } from "lucide-react";
 import { FIELD_SPECS } from "../fieldSpecs.js";
+import { parseVoiceCommands, NO_TARGET_MESSAGE } from "../voiceCommands.js";
 
 const SpeechRecognitionImpl =
   typeof window !== "undefined"
     ? window.SpeechRecognition || window.webkitSpeechRecognition
     : null;
 
-// "yes"/"no" deliberately excluded — too common in ordinary sentences
-// ("no wait, let me check...") and were firing on speech that wasn't a command.
-const ACCEPT_WORDS = ["accept", "except", "confirm", "correct"];
-const REJECT_WORDS = ["reject", "discard", "skip", "wrong", "cancel", "remove"];
-const ACCEPT_SET = new Set(ACCEPT_WORDS);
-const REJECT_SET = new Set(REJECT_WORDS);
-
-// Browser speech recognition can merge several spoken commands into ONE
-// final result when there's no pause between them — saying "accept diagnosis,
-// accept medications, accept all" without breaks often arrives as a single
-// recognized string, not three separate results. Extracting only the first
-// command (the old behavior) silently drops the rest, which is exactly what
-// causes "I had to repeat myself" when actually every earlier command DID
-// get heard, just never acted on. This scans for every command keyword in
-// the utterance and returns them all, in order.
-//
-// Field-matching for each command is done against a "working" copy that
-// shrinks as each command in the SAME utterance is simulated — so if you say
-// "accept diagnosis accept medications", the second command doesn't
-// accidentally re-target the item the first command already claimed.
-// Dispatch uses stable ids (not array position), since firing several
-// accept/reject actions in one synchronous batch is exactly the situation
-// where index-based targeting would shift under itself.
-function parseVoiceCommands(text, pendingSnapshot) {
-  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
-  const commands = [];
-  let working = [...pendingSnapshot];
-
-  let i = 0;
-  while (i < words.length) {
-    const word = words[i];
-
-    if ((word === "accept" || word === "except") && words[i + 1] === "all") {
-      commands.push({ action: "acceptAll" });
-      working = [];
-      i += 2;
-      continue;
-    }
-
-    const isAccept = ACCEPT_SET.has(word);
-    const isReject = REJECT_SET.has(word);
-    if (isAccept || isReject) {
-      // Look ahead a few words for a field-name mention, stopping at the
-      // next command keyword so we don't bleed into a following command.
-      const lookahead = [];
-      for (let j = i + 1; j < Math.min(i + 5, words.length); j++) {
-        if (ACCEPT_SET.has(words[j]) || REJECT_SET.has(words[j])) break;
-        lookahead.push(words[j]);
-      }
-      const phrase = lookahead.join(" ");
-      const matchIdx = working.findIndex((u) => {
-        const label = (FIELD_SPECS[u.field]?.label || u.field).toLowerCase();
-        return label.split(" ").some((w) => w.length > 3 && phrase.includes(w));
-      });
-      const target = working[matchIdx !== -1 ? matchIdx : 0];
-      if (target) {
-        commands.push({ action: isAccept ? "accept" : "reject", id: target.id });
-        working = working.filter((u) => u.id !== target.id);
-      }
-    }
-    i += 1;
-  }
-
-  return commands;
-}
-
 // Chrome (and others) periodically stop a "continuous" recognition session on
 // their own — silence timeouts, internal speech-service restarts, session
 // length caps. Restarting *immediately* inside onend is a known source of
 // flakiness: the browser sometimes isn't ready for a new session yet and the
 // start() call silently no-ops, leaving a dead window where nothing is
-// listening. A short delay before restarting is measurably more reliable.
+// listening. A short delay before restarting is a common workaround (not
+// measured here).
 const RESTART_DELAY_MS = 350;
 
 export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject, onAcceptAll }) {
   const [voiceConfirmOn, setVoiceConfirmOn] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  // Shown when a command named something that matched no pending item —
+  // nothing was accepted or discarded, and the doctor needs to know that.
+  const [voiceNotice, setVoiceNotice] = useState("");
   const recognitionRef = useRef(null);
   const restartTimeoutRef = useRef(null);
   // Holds the latest props/state so the recognition's onresult handler (set up
@@ -101,13 +40,20 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
     recognition.lang = navigator.language || "en-US";
 
     recognition.onresult = (event) => {
-      const last = event.results[event.results.length - 1];
-      if (!last.isFinal) return;
-      const text = last[0].transcript.trim();
+      // Read every result that is new in this event (from resultIndex), not
+      // just the last one — one event can carry several final results, and
+      // parsing them as one utterance lets the parser keep its claimed-item
+      // bookkeeping across all of them.
+      const finals = [];
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) finals.push(event.results[i][0].transcript);
+      }
+      if (!finals.length) return;
       const { pending, onAccept, onReject, onAcceptAll } = latestRef.current;
       if (!pending.length) return;
 
-      const commands = parseVoiceCommands(text, pending);
+      const { commands, unmatched } = parseVoiceCommands(finals.join(" "), pending);
+      setVoiceNotice(unmatched ? NO_TARGET_MESSAGE : "");
       for (const cmd of commands) {
         if (cmd.action === "acceptAll") onAcceptAll();
         else if (cmd.action === "accept") onAccept(cmd.id);
@@ -160,6 +106,7 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
       rec.__shouldRun = false;
       clearTimeout(restartTimeoutRef.current);
       rec.stop();
+      setVoiceNotice("");
     }
   }, [voiceConfirmOn, pending.length]);
 
@@ -190,17 +137,29 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
 
       {voiceConfirmOn && (
         <p className="voice-confirm-hint">
-          Say "accept" to confirm an item, or "discard" to remove it. Say the
-          field name to target a specific one, for example "accept diagnosis." You
-          can chain several commands in one breath, like "accept diagnosis, accept
+          Say "accept" or "discard" for the item marked Next. Add the field name
+          to pick a different one, for example "accept diagnosis." You can chain
+          several commands in one breath, like "accept diagnosis, accept
           medications." A dim dot next to the toggle means it's briefly
           reconnecting. This is normal and resolves on its own.
         </p>
       )}
 
-      {pending.map((u) => (
-        <div className="review-item" key={u.id}>
-          <div className="field-name">{FIELD_SPECS[u.field]?.label || u.field}</div>
+      {voiceConfirmOn && voiceNotice && (
+        <p className="voice-notice" role="status">
+          {voiceNotice}
+        </p>
+      )}
+
+      {pending.map((u, idx) => (
+        <div
+          className={`review-item ${voiceConfirmOn && idx === 0 ? "current" : ""}`}
+          key={u.id}
+        >
+          <div className="field-name">
+            {FIELD_SPECS[u.field]?.label || u.field}
+            {voiceConfirmOn && idx === 0 && <span className="current-tag">Next</span>}
+          </div>
           {u.old_value && <div className="diff-old">{u.old_value}</div>}
           <div className="diff-new">{u.new_value}</div>
           {u.evidence && <div className="evidence">"{u.evidence}"</div>}

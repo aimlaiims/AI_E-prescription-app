@@ -72,6 +72,11 @@ export function friendlyCooldownReason() {
   return "Too many voice requests in a short time. This happens occasionally on busy days — dictation will work again automatically once the timer below reaches zero.";
 }
 
+// Saving locks the prescription, so anything still waiting for review would
+// be silently left out of it.
+export const PENDING_BEFORE_SAVE_MESSAGE =
+  "Some dictated details are still waiting for review. Accept or discard them before saving.";
+
 // Shared between the whole-form mic and each per-field mic, so both
 // experiences read the same way instead of drifting apart over time.
 export const EMPTY_TRANSCRIPT_MESSAGE = "Didn't catch anything — tap the mic to try again.";

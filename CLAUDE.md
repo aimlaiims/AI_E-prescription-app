@@ -49,6 +49,7 @@ ngrok http 5173
 ```powershell
 cd frontend; npm run build            # catches bad imports / JSX / missing icons
 cd backend;  python -c "from app.main import app"   # catches import errors
+cd frontend; npm test                 # voice-command parser tests (node:test, no deps)
 node scripts/verify-changes.mjs       # static check of every documented change
 ```
 
@@ -82,8 +83,9 @@ works.
    opened synchronously in the click handler, before any `await` (popup blockers).
 8. **Only tunnel the frontend port.** The API is unauthenticated; the Vite proxy keeps
    requests same-origin. Exposing :8000 bypasses that.
-9. **Print must never show data that differs from what is stored.** (Currently violated
-   after edit-after-save — ROADMAP P0-1.)
+9. **Print must never show data that differs from what is stored.** Enforced by locking
+   the form after save (`locked` in `App.jsx`). Don't add an edit path without an update
+   endpoint that keeps print and record in step.
 
 ## Conventions
 
@@ -117,5 +119,5 @@ works.
 
 ## Where to start
 
-`docs/ROADMAP.md` → **P0-2 (voice targeting: "accept age" accepts the wrong item)** and
-**P0-1 (edit-after-save divergence)**. Both are confirmed bugs, not ideas.
+`docs/ROADMAP.md` → **P0-4** (same field pending twice) is the last open P0; P0-2d (Space
+with a button focused) is still unverified. Then P1.

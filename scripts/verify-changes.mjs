@@ -41,6 +41,7 @@ expect("Gemini 429 handled separately from 5xx", "backend/app/services/extractio
 expect("Gemini 5xx retried with backoff", "backend/app/services/extraction.py", "_generate_with_retry");
 expect("Gemini call is timed", "backend/app/services/extraction.py", "[timing] Gemini extraction");
 expect("Gemini output capped (max_output_tokens)", "backend/app/services/extraction.py", "max_output_tokens");
+expect("Gemini finish_reason checked; bad output raises, not 'no updates'", "backend/app/services/extraction.py", "_finish_reason(response)");
 expect("Spoken-synonym hint in prompt (sex->gender etc.)", "backend/app/services/extraction.py", "synonym_hint");
 expect("Append / correct / replace rule in prompt", "backend/app/services/extraction.py", "CORRECTION language");
 expect("Config default model is flash-lite", "backend/app/config.py", 'gemini-3.5-flash-lite');
@@ -61,16 +62,22 @@ expect("App: accept is id-based, not index-based", "frontend/src/App.jsx", "pend
 expect("App: save/print errors routed via handleSaveError", "frontend/src/App.jsx", "handleSaveError");
 expect("App: Print saves first, opens preview window before any await", "frontend/src/App.jsx", "const previewWindow = window.open");
 expect("App: View old records placeholder present", "frontend/src/App.jsx", "handleViewOldRecords");
+expect("App: form locks after save (P0-1)", "frontend/src/App.jsx", "readOnly: locked");
+expect("App: save blocked while items await review", "frontend/src/App.jsx", "blockIfPending");
 expect("Print template escapes user text", "frontend/src/printTemplate.js", "function escapeHtml");
 expect("Print template exports buildPrintHtml", "frontend/src/printTemplate.js", "export function buildPrintHtml");
 expect("DictateBar: transcript-preserving retry", "frontend/src/components/DictateBar.jsx", "lastTranscript");
 expect("DictateBar: spacebar shortcut, ignores repeats", "frontend/src/components/DictateBar.jsx", /e\.code !== "Space"[\s\S]*e\.repeat/);
 expect("DictateBar: spacebar ignores typing targets", "frontend/src/components/DictateBar.jsx", "isTypingTarget");
 expect("FormField: failures routed to onVoiceError", "frontend/src/components/FormField.jsx", "onVoiceError(err)");
-expect("ReviewPanel: multi-command parser (plural)", "frontend/src/components/ReviewPanel.jsx", "function parseVoiceCommands");
+expect("voiceCommands.js: multi-command parser (plural)", "frontend/src/voiceCommands.js", "export function parseVoiceCommands");
+expect("voiceCommands.js: per-field aliases, whole-word matching", "frontend/src/voiceCommands.js", "FIELD_ALIASES");
+expect("voiceCommands.js: unmatched target does nothing and says so", "frontend/src/voiceCommands.js", "NO_TARGET_MESSAGE");
+expect("voiceCommands.test.js exists (npm test)", "frontend/src/voiceCommands.test.js", "parseVoiceCommands");
+expect("ReviewPanel: reads every new result (event.resultIndex)", "frontend/src/components/ReviewPanel.jsx", "event.resultIndex");
 expect("ReviewPanel: old single-command parser removed", "frontend/src/components/ReviewPanel.jsx", /parseVoiceCommand\(/, { present: false });
-expect("ReviewPanel: 'accept'/'except' both treated as accept", "frontend/src/components/ReviewPanel.jsx", /ACCEPT_WORDS = \[[^\]]*"except"/);
-expect("ReviewPanel: 'yes'/'no' NOT command words", "frontend/src/components/ReviewPanel.jsx", /(ACCEPT|REJECT)_WORDS = \[[^\]]*"(yes|no)"/, { present: false });
+expect("voiceCommands: 'accept'/'except' both treated as accept", "frontend/src/voiceCommands.js", /ACCEPT_WORDS = \[[^\]]*"except"/);
+expect("voiceCommands: 'yes'/'no' NOT command words", "frontend/src/voiceCommands.js", /(ACCEPT|REJECT)_WORDS = \[[^\]]*"(yes|no)"/, { present: false });
 expect("ReviewPanel: locale from navigator.language", "frontend/src/components/ReviewPanel.jsx", "navigator.language");
 expect("ReviewPanel: delayed recognizer restart", "frontend/src/components/ReviewPanel.jsx", "RESTART_DELAY_MS");
 expect("ReviewPanel: buttons pass ids, not indexes", "frontend/src/components/ReviewPanel.jsx", "onAccept(u.id)");
@@ -108,9 +115,11 @@ const any = (files, re) => files.some((f) => re.test(src(f)));
 const PARSER = ["frontend/src/components/ReviewPanel.jsx", "frontend/src/voiceCommands.js"];
 const hasDir = (p) => existsSync(resolve(root, p));
 
-known("P0-1   Editing after Save (no update endpoint; Print can diverge from stored record)", {
-  open: !/@router\.(put|patch)/.test(src("backend/app/routers/forms.py")) && src("backend/app/routers/forms.py") !== "",
-  fixed: /@router\.(put|patch)/.test(src("backend/app/routers/forms.py")),
+// P0-1 has two accepted fixes: an update endpoint, or locking the form after
+// save (the one chosen). Either is positive evidence.
+known("P0-1   Editing after Save (Print can diverge from stored record)", {
+  open: !/@router\.(put|patch)/.test(src("backend/app/routers/forms.py")) && !/readOnly: locked/.test(src("frontend/src/App.jsx")),
+  fixed: /@router\.(put|patch)/.test(src("backend/app/routers/forms.py")) || /readOnly: locked/.test(src("frontend/src/App.jsx")),
 });
 known("P0-2a  Voice: short field names (e.g. 'age') can never be targeted", {
   open: any(PARSER, /\.length\s*>\s*3/),
@@ -154,7 +163,7 @@ known("P2     Schema changes need a migration tool (create_all cannot alter tabl
   open: /create_all/.test(src("backend/app/main.py")) && !hasDir("backend/alembic"),
   fixed: hasDir("backend/alembic"),
 });
-known("P1-4   Automated tests exist", {
+known("P1-4   Some automated tests exist (frontend parser only; backend + CI still to do)", {
   open: !hasDir("backend/tests") && !readdirSync(resolve(root, "frontend/src")).some((f) => f.includes(".test.")),
   fixed: hasDir("backend/tests") || readdirSync(resolve(root, "frontend/src")).some((f) => f.includes(".test.")),
 });

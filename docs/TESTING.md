@@ -50,9 +50,10 @@ On Chief complaints:
 Get 4–5 proposals pending (Case 1 works), toggle **Hands-free**.
 - [ ] "accept" → top item only
 - [ ] "accept diagnosis" → that item
-- [ ] **"accept age"** → age (currently FAILS: accepts the top item — ROADMAP P0-2)
-- [ ] **"accept exam"** → on examination (currently FAILS)
-- [ ] mumbled/nonsense field name → nothing accepted, user told (currently accepts top item)
+- [ ] **"accept age"** → age (fixed P0-2; was the top item)
+- [ ] **"accept exam"** → on examination (fixed P0-2)
+- [ ] mumbled/nonsense field name → nothing accepted, amber "Didn't catch which item" notice
+- [ ] top item shows a **Next** tag while hands-free is on; bare "accept" acts on it
 - [ ] "accept diagnosis accept medications accept all" in one breath → all three act
 - [ ] "no wait let me check the chart" → nothing happens (false-positive guard)
 - [ ] "except all" → treated as "accept all"
@@ -99,15 +100,18 @@ assert r.json()["detail"] == {"error_code": "rate_limited", "message": "x", "ret
 
 ## 6. Save, print, reference ID
 - [ ] Fill required fields → **Save** → banner shows `RX-YYYYMMDD-XXXX`; copy button works
-- [ ] Save is disabled afterwards; "Start a new prescription" resets everything
+- [ ] After save the form is **locked**: fields read-only, no mics, no review panel,
+      button reads "Saved"; "Start a new prescription" resets everything
+- [ ] Save (or Print on an unsaved form) with proposals still pending → blocked with
+      "…still waiting for review…", nothing saved
+- [ ] Start a field mic, then Save from the footer → mic stops, nothing is proposed
 - [ ] Print on an unsaved form saves first, then opens the preview (one record, not two)
 - [ ] Preview: patient row, sections, medications box, signature line; Print/Close buttons
       visible on screen, **hidden in the print dialog**; A4 fits without a stray page
 - [ ] Empty On Examination / Investigation are omitted; empty medications says "No medications prescribed."
 - [ ] Type `<script>alert(1)</script>` as a name → printed literally, not executed
 - [ ] Pop-ups blocked → friendly message, not a silent failure
-- [ ] **Edit a field after saving, then Print** → today the printout differs from the stored
-      record (P0-1). After the fix: they must match.
+- [ ] Save, then Print → printout matches the stored record (editing is impossible once saved)
 
 ## 7. Responsive and visual
 Check at 375px, 768px, 1280px:
