@@ -1,0 +1,86 @@
+import { useRef, useState, useCallback } from "react";
+
+// Thrown by start() for anything that stops the microphone from starting —
+// permission denial, no device, device busy, or an insecure origin. Kept as a
+// small duck-typed {code, message} error (not api.js's ApiError, since this
+// never touches the network) so it drops straight into the same
+// friendlyErrorMessage(err) handling every other voice error already uses.
+export class MicError extends Error {
+  constructor(message, code = "mic_unknown") {
+    super(message);
+    this.code = code;
+  }
+}
+
+function classifyMicError(err) {
+  switch (err?.name) {
+    case "NotAllowedError":
+    case "PermissionDeniedError":
+      return "mic_permission_denied";
+    case "NotFoundError":
+    case "DevicesNotFoundError":
+      return "mic_not_found";
+    case "NotReadableError":
+    case "TrackStartError":
+      return "mic_in_use";
+    case "SecurityError":
+      return "mic_insecure_context";
+    default:
+      return "mic_unknown";
+  }
+}
+
+// Wraps MediaRecorder. Returns a promise-based start/stop so callers can
+// `await stop()` and get the recorded Blob directly, instead of juggling
+// event listeners at every call site.
+export function useRecorder() {
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const streamRef = useRef(null);
+
+  const start = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      // Missing entirely on an insecure origin (non-HTTPS, non-localhost) or
+      // an unsupported browser — there's no DOMException to classify here.
+      throw new MicError(
+        "Microphone access isn't available on this connection.",
+        "mic_insecure_context"
+      );
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      throw new MicError(err.message, classifyMicError(err));
+    }
+    streamRef.current = stream;
+    const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+      ? "audio/webm"
+      : "audio/mp4";
+    const recorder = new MediaRecorder(stream, { mimeType });
+    chunksRef.current = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+    recorder.start();
+    mediaRecorderRef.current = recorder;
+    setIsRecording(true);
+  }, []);
+
+  const stop = useCallback(() => {
+    return new Promise((resolve) => {
+      const recorder = mediaRecorderRef.current;
+      if (!recorder) return resolve(null);
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
+        streamRef.current?.getTracks().forEach((t) => t.stop());
+        setIsRecording(false);
+        resolve(blob);
+      };
+      recorder.stop();
+    });
+  }, []);
+
+  return { isRecording, start, stop };
+}
