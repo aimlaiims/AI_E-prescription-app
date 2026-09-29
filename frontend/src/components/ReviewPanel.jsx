@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, X, CheckCheck, Headphones } from "lucide-react";
 import { FIELD_SPECS } from "../fieldSpecs.js";
 import { parseVoiceCommands, NO_TARGET_MESSAGE } from "../voiceCommands.js";
+import { HANDS_FREE_UNAVAILABLE_MESSAGE } from "../messages.js";
 
 const SpeechRecognitionImpl =
   typeof window !== "undefined"
@@ -17,18 +18,39 @@ const SpeechRecognitionImpl =
 // measured here).
 const RESTART_DELAY_MS = 350;
 
-export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject, onAcceptAll }) {
+// Recognition errors that will just repeat on every automatic restart —
+// without this, the toggle looks "on" while silently retrying every 350ms.
+const FATAL_RECOGNITION_ERRORS = new Set([
+  "not-allowed",
+  "service-not-allowed",
+  "audio-capture",
+  "language-not-supported",
+  "network",
+]);
+
+// `paused`: a dictation mic is open, so stop listening for commands —
+// otherwise dictated words like "confirm diagnosis" or "remove sutures" would
+// be taken as accept/discard.
+export default function ReviewPanel({
+  pending,
+  unmatchedNote,
+  onAccept,
+  onReject,
+  onAcceptAll,
+  paused,
+}) {
   const [voiceConfirmOn, setVoiceConfirmOn] = useState(false);
   const [isListening, setIsListening] = useState(false);
   // Shown when a command named something that matched no pending item —
   // nothing was accepted or discarded, and the doctor needs to know that.
   const [voiceNotice, setVoiceNotice] = useState("");
+  const [handsFreeError, setHandsFreeError] = useState("");
   const recognitionRef = useRef(null);
   const restartTimeoutRef = useRef(null);
   // Holds the latest props/state so the recognition's onresult handler (set up
   // once) never acts on a stale `pending` list from an earlier render.
-  const latestRef = useRef({ pending, onAccept, onReject, onAcceptAll });
-  latestRef.current = { pending, onAccept, onReject, onAcceptAll };
+  const latestRef = useRef({ pending, onAccept, onReject, onAcceptAll, paused });
+  latestRef.current = { pending, onAccept, onReject, onAcceptAll, paused };
 
   useEffect(() => {
     if (!SpeechRecognitionImpl) return;
@@ -49,8 +71,9 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
         if (event.results[i].isFinal) finals.push(event.results[i][0].transcript);
       }
       if (!finals.length) return;
-      const { pending, onAccept, onReject, onAcceptAll } = latestRef.current;
-      if (!pending.length) return;
+      const { pending, onAccept, onReject, onAcceptAll, paused } = latestRef.current;
+      // A result can still arrive just after a dictation mic opened.
+      if (!pending.length || paused) return;
 
       const { commands, unmatched } = parseVoiceCommands(finals.join(" "), pending);
       setVoiceNotice(unmatched ? NO_TARGET_MESSAGE : "");
@@ -64,6 +87,11 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
     recognition.onstart = () => setIsListening(true);
 
     recognition.onerror = (e) => {
+      if (FATAL_RECOGNITION_ERRORS.has(e.error)) {
+        recognition.__shouldRun = false;
+        setVoiceConfirmOn(false);
+        setHandsFreeError(HANDS_FREE_UNAVAILABLE_MESSAGE);
+      }
       if (e.error !== "no-speech" && e.error !== "aborted") {
         console.warn("Hands-free confirm recognition error:", e.error);
       }
@@ -95,7 +123,7 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
   useEffect(() => {
     const rec = recognitionRef.current;
     if (!rec) return;
-    if (voiceConfirmOn && pending.length > 0) {
+    if (voiceConfirmOn && pending.length > 0 && !paused) {
       rec.__shouldRun = true;
       try {
         rec.start();
@@ -106,9 +134,9 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
       rec.__shouldRun = false;
       clearTimeout(restartTimeoutRef.current);
       rec.stop();
-      setVoiceNotice("");
+      if (!paused) setVoiceNotice("");
     }
-  }, [voiceConfirmOn, pending.length]);
+  }, [voiceConfirmOn, pending.length, paused]);
 
   if (!pending.length && !unmatchedNote) return null;
 
@@ -120,7 +148,10 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
           <button
             type="button"
             className={`voice-confirm-toggle ${voiceConfirmOn ? "on" : ""}`}
-            onClick={() => setVoiceConfirmOn((v) => !v)}
+            onClick={() => {
+              setHandsFreeError("");
+              setVoiceConfirmOn((v) => !v);
+            }}
             title='Say "accept" or "discard" to confirm hands-free'
           >
             <Headphones size={14} />
@@ -128,7 +159,13 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
             {voiceConfirmOn && (
               <span
                 className={`listening-dot ${isListening ? "active" : ""}`}
-                title={isListening ? "Listening" : "Reconnecting the mic. This is normal and takes under a second."}
+                title={
+                  paused
+                    ? "Paused while you dictate"
+                    : isListening
+                    ? "Listening"
+                    : "Reconnecting the mic. This is normal and takes under a second."
+                }
               />
             )}
           </button>
@@ -145,7 +182,19 @@ export default function ReviewPanel({ pending, unmatchedNote, onAccept, onReject
         </p>
       )}
 
-      {voiceConfirmOn && voiceNotice && (
+      {voiceConfirmOn && paused && (
+        <p className="voice-notice" role="status">
+          Hands-free is paused while you dictate. It resumes when you stop.
+        </p>
+      )}
+
+      {handsFreeError && (
+        <p className="voice-notice" role="alert">
+          {handsFreeError}
+        </p>
+      )}
+
+      {voiceConfirmOn && !paused && voiceNotice && (
         <p className="voice-notice" role="status">
           {voiceNotice}
         </p>

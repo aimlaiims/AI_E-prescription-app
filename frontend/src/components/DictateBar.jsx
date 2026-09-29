@@ -4,9 +4,18 @@ import { useRecorder } from "../useRecorder.js";
 import { transcribeAudio, extractFields } from "../api.js";
 import { friendlyErrorMessage, EMPTY_TRANSCRIPT_MESSAGE, noMatchMessage } from "../messages.js";
 
-export default function DictateBar({ formState, onVoiceUpdates, onVoiceError, disabled }) {
+const IDLE_STATUS = "Tap the mic or press Space and describe the visit.";
+const PAUSED_STATUS = "Voice input is paused for a moment — see the note above.";
+
+export default function DictateBar({
+  formState,
+  onVoiceUpdates,
+  onVoiceError,
+  onRecordingChange,
+  disabled,
+}) {
   const { isRecording, start, stop } = useRecorder();
-  const [status, setStatus] = useState("Tap the mic or press Space and describe the visit.");
+  const [status, setStatus] = useState(IDLE_STATUS);
   const [busy, setBusy] = useState(false);
   // Kept only when extraction (not transcription) fails, so "Retry" can reuse
   // speech-to-text that already succeeded instead of making the doctor
@@ -14,8 +23,16 @@ export default function DictateBar({ formState, onVoiceUpdates, onVoiceError, di
   const [lastTranscript, setLastTranscript] = useState(null);
 
   useEffect(() => {
-    if (disabled) setStatus("Voice input is paused for a moment — see the note above.");
+    if (disabled) setStatus(PAUSED_STATUS);
+    // When the pause ends, don't leave "paused" showing.
+    else setStatus((prev) => (prev === PAUSED_STATUS ? IDLE_STATUS : prev));
   }, [disabled]);
+
+  // Lets the page pause hands-free confirm while this mic is open, so
+  // dictated words ("confirm", "remove", "wrong") aren't taken as commands.
+  useEffect(() => {
+    onRecordingChange?.(isRecording);
+  }, [isRecording]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runExtraction = async (transcript) => {
     setStatus("Filling in the prescription…");
@@ -65,7 +82,7 @@ export default function DictateBar({ formState, onVoiceUpdates, onVoiceError, di
     } else {
       setLastTranscript(null); // starting fresh supersedes any pending retry
       try {
-        await start();
+        if (!(await start())) return;
       } catch (err) {
         onVoiceError(err);
         setStatus(friendlyErrorMessage(err));
@@ -86,6 +103,10 @@ export default function DictateBar({ formState, onVoiceUpdates, onVoiceError, di
   // the doctor isn't actively typing somewhere else on the form. Without this
   // guard, pressing space while typing a note ("chest pain") would toggle
   // recording instead of typing a space character.
+  // A focused button or link is also left alone: Space already activates it,
+  // so handling it here too would fire twice (e.g. start dictation AND
+  // "New prescription"). If the focused button is this mic, its own click
+  // does the toggle.
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code !== "Space") return;
@@ -95,7 +116,8 @@ export default function DictateBar({ formState, onVoiceUpdates, onVoiceError, di
       const tag = active?.tagName;
       const isTypingTarget =
         tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || active?.isContentEditable;
-      if (isTypingTarget) return;
+      const isActivatable = tag === "BUTTON" || tag === "A";
+      if (isTypingTarget || isActivatable) return;
 
       e.preventDefault(); // stop the page from scrolling on a bare Space press
       handleToggle();

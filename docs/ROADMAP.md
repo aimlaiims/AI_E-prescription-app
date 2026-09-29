@@ -40,7 +40,8 @@ Acceptance: save → edit diagnosis → Print → stored record and printout mat
 > **Fixed 2026-09-28 (a, b, c, e; 1–5 below).** Parser moved to `frontend/src/voiceCommands.js`
 > with aliases and whole-word matching; an unrecognised target does nothing and shows a
 > notice; the top item is marked "Next"; `onresult` reads from `event.resultIndex`.
-> `npm test` (20 cases, incl. the table below). **(d) is still unverified/open.**
+> `npm test` (20 cases, incl. the table below). **(d)** fixed defensively 2026-09-29: Space is
+> ignored when a button/link has focus (the button's own Space activation handles it).
 
 **Confirmed** by running the shipped parser (pending: name, age, gender, exam, diagnosis):
 | said | expected | got |

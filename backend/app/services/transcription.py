@@ -11,7 +11,6 @@ degraded to the caller, never mistaken for a real (if odd) transcript.
 """
 import io
 import logging
-import tempfile
 import time
 from functools import lru_cache
 
@@ -127,17 +126,15 @@ def _transcribe_local(audio_bytes: bytes, filename: str) -> str:
     except Exception as e:
         raise UpstreamError(f"Failed to load local Whisper model: {e}", code="unknown") from e
 
-    suffix = "." + filename.rsplit(".", 1)[-1] if "." in filename else ".webm"
+    # Decode from memory. (A NamedTemporaryFile can't be re-opened by name
+    # while it is still open on Windows, so passing tmp.name failed there.)
     try:
-        with tempfile.NamedTemporaryFile(suffix=suffix) as tmp:
-            tmp.write(audio_bytes)
-            tmp.flush()
-            segments, _info = model.transcribe(
-                tmp.name,
-                initial_prompt=MEDICAL_VOCAB_HINT,
-                temperature=0.0,
-                vad_filter=True,
-            )
-            return " ".join(seg.text.strip() for seg in segments).strip()
+        segments, _info = model.transcribe(
+            io.BytesIO(audio_bytes),
+            initial_prompt=MEDICAL_VOCAB_HINT,
+            temperature=0.0,
+            vad_filter=True,
+        )
+        return " ".join(seg.text.strip() for seg in segments).strip()
     except Exception as e:
         raise UpstreamError(f"Local transcription failed: {e}", code="unknown") from e

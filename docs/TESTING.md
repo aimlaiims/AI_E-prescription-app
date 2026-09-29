@@ -57,6 +57,10 @@ Get 4–5 proposals pending (Case 1 works), toggle **Hands-free**.
 - [ ] **"accept exam"** → on examination (fixed P0-2)
 - [ ] mumbled/nonsense field name → nothing accepted, amber "Didn't catch which item" notice
 - [ ] top item shows a **Next** tag while hands-free is on; bare "accept" acts on it
+- [ ] Hands-free on + items pending, start any mic and say "confirm diagnosis, remove sutures"
+      → nothing is accepted/discarded; "paused while you dictate" shows; resumes after stop
+- [ ] Block the mic for the site, turn hands-free on → it switches itself off with a message
+      (no silent retry loop)
 - [ ] "accept diagnosis accept medications accept all" in one breath → all three act
 - [ ] "no wait let me check the chart" → nothing happens (false-positive guard)
 - [ ] "except all" → treated as "accept all"
@@ -115,6 +119,10 @@ assert r.json()["detail"] == {"error_code": "rate_limited", "message": "x", "ret
 - [ ] Type `<script>alert(1)</script>` as a name → printed literally, not executed
 - [ ] Pop-ups blocked → friendly message, not a silent failure
 - [ ] Save, then Print → printout matches the stored record (editing is impossible once saved)
+- [ ] Start a dictation, click **New prescription** before it finishes → nothing from it appears
+      on the new form; no retry link carried over
+- [ ] Between midnight and 5:30 am IST the date field shows today's date, not yesterday's
+- [ ] **iPhone/Safari**: dictate one field → transcribed (upload is now named .mp4)
 
 ## 7. Responsive and visual
 Check at 375px, 768px, 1280px:

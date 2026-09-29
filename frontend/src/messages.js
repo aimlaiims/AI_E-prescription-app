@@ -72,6 +72,11 @@ export function friendlyCooldownReason() {
   return "Too many voice requests in a short time. This happens occasionally on busy days — dictation will work again automatically once the timer below reaches zero.";
 }
 
+// Hands-free confirm hit an error that retrying won't fix (mic blocked for
+// speech recognition, no connection to the browser's speech service...).
+export const HANDS_FREE_UNAVAILABLE_MESSAGE =
+  "Hands-free confirm stopped: the browser couldn't listen for commands. Tap Accept or Discard instead, or turn hands-free on again to retry.";
+
 // Saving locks the prescription, so anything still waiting for review would
 // be silently left out of it.
 export const PENDING_BEFORE_SAVE_MESSAGE =

@@ -38,8 +38,25 @@ export function useRecorder() {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
+  // True from the moment start() is called until it finishes. A second tap
+  // while the browser's permission prompt is still open would otherwise open
+  // a second mic stream that nothing ever stops (mic light stuck on).
+  const startingRef = useRef(false);
+  const unmountedRef = useRef(false);
 
+  // Resolves true if recording started, false if the call was ignored
+  // (already starting/recording, or the component unmounted meanwhile).
   const start = useCallback(async () => {
+    if (startingRef.current || mediaRecorderRef.current?.state === "recording") return false;
+    startingRef.current = true;
+    try {
+      return await startRecording();
+    } finally {
+      startingRef.current = false;
+    }
+  }, []);
+
+  const startRecording = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       // Missing entirely on an insecure origin (non-HTTPS, non-localhost) or
       // an unsupported browser — there's no DOMException to classify here.
@@ -54,6 +71,11 @@ export function useRecorder() {
     } catch (err) {
       throw new MicError(err.message, classifyMicError(err));
     }
+    if (unmountedRef.current) {
+      // The component went away while the permission prompt was open.
+      stream.getTracks().forEach((t) => t.stop());
+      return false;
+    }
     streamRef.current = stream;
     const mimeType = MediaRecorder.isTypeSupported("audio/webm")
       ? "audio/webm"
@@ -66,12 +88,13 @@ export function useRecorder() {
     recorder.start();
     mediaRecorderRef.current = recorder;
     setIsRecording(true);
-  }, []);
+    return true;
+  };
 
   const stop = useCallback(() => {
     return new Promise((resolve) => {
       const recorder = mediaRecorderRef.current;
-      if (!recorder) return resolve(null);
+      if (!recorder || recorder.state === "inactive") return resolve(null);
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType });
         streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -86,7 +109,9 @@ export function useRecorder() {
   // (e.g. the whole-visit mic is removed when a saved form locks) — otherwise
   // the browser keeps the mic open with nothing listening to it.
   useEffect(() => {
+    unmountedRef.current = false; // StrictMode mounts twice in dev
     return () => {
+      unmountedRef.current = true;
       const recorder = mediaRecorderRef.current;
       if (recorder && recorder.state !== "inactive") {
         recorder.onstop = null;

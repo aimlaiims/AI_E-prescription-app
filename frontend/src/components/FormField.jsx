@@ -62,7 +62,7 @@ export default function FormField({
     } else {
       setNote(null);
       try {
-        await start();
+        if (!(await start())) return;
       } catch (err) {
         onVoiceError(err);
         return;

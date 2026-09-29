@@ -31,9 +31,20 @@ async function toApiError(res) {
   );
 }
 
+// The upload's file name must match what the browser actually recorded:
+// Safari/iOS records MP4, and the speech-to-text service can reject a file
+// whose name says .webm but whose content is MP4.
+export function audioFileName(blob) {
+  const type = blob?.type || "";
+  if (type.includes("mp4")) return "clip.mp4";
+  if (type.includes("ogg")) return "clip.ogg";
+  if (type.includes("wav")) return "clip.wav";
+  return "clip.webm";
+}
+
 export async function transcribeAudio(blob) {
   const form = new FormData();
-  form.append("audio", blob, "clip.webm");
+  form.append("audio", blob, audioFileName(blob));
   const res = await fetch(`${BASE}/transcribe`, { method: "POST", body: form });
   if (!res.ok) throw await toApiError(res);
   const data = await res.json();

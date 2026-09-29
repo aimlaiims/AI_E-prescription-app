@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User, ClipboardList, Pill, Copy, Check, AlertTriangle, Clock3, RotateCcw, Save, Printer, History } from "lucide-react";
 import FormField from "./components/FormField.jsx";
 import DictateBar from "./components/DictateBar.jsx";
@@ -12,6 +12,17 @@ import {
 } from "./messages.js";
 import { buildPrintHtml } from "./printTemplate.js";
 import { mergePending, withPendingApplied } from "./pendingUpdates.js";
+
+// micStatus key for the whole-visit mic (per-field mics use their field key).
+const VISIT_MIC = "__visit";
+
+// Today's date as YYYY-MM-DD in the *local* timezone. toISOString() is UTC,
+// which in India gives yesterday's date until 5:30 am.
+function today() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 export default function App() {
   const [state, setState] = useState({ ...EMPTY_STATE, date: today() });
@@ -37,6 +48,12 @@ export default function App() {
   const locked = !!savedPid;
   const lockedRef = useRef(locked);
   lockedRef.current = locked;
+  // Bumped by "New prescription". Voice results and errors from requests
+  // started for an earlier form are dropped, so a previous patient's
+  // dictation can never appear on the next patient's form. Also used as a
+  // React key so every mic, note and retry link starts fresh.
+  const [formGen, setFormGen] = useState(0);
+  const formGenRef = useRef(formGen);
   // Latest real form values, readable from async voice callbacks.
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -59,10 +76,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [cooldownUntil]);
 
-  function today() {
-    return new Date().toISOString().slice(0, 10);
-  }
-
   const setMicStatus = (field, status) =>
     setMicStatusState((prev) => ({ ...prev, [field]: status }));
 
@@ -70,10 +83,14 @@ export default function App() {
     setState((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Components keep the handler from the render in which the request started,
+  // so `formGen` here is the generation that request belongs to.
   const handleVoiceUpdates = (updates, transcript, note) => {
+    if (formGen !== formGenRef.current) return;
     // A per-field request can still be in flight when Save completes; its
     // result must not reopen a finalized record.
     if (lockedRef.current) return;
+    setError(""); // a working voice request supersedes an earlier failure
     if (transcript) setTranscriptLog((prev) => [...prev, transcript]);
     if (note) setUnmatchedNote(note);
     if (updates.length) {
@@ -88,14 +105,16 @@ export default function App() {
   // Central place every mic's catch block reports failures to. This is what
   // guarantees a failed voice request only ever produces a banner or a
   // cooldown — never something that lands in a field as if it were real data.
-  const handleApiError = useCallback((err) => {
+  const handleApiError = (err) => {
     if ((err?.code || "unknown") === "rate_limited") {
+      // Applies whichever form the request was for: the quota is shared.
       const seconds = err.retryAfter || 20;
       setCooldownUntil(Date.now() + seconds * 1000);
       return;
     }
+    if (formGen !== formGenRef.current) return;
     setError(friendlyErrorMessage(err));
-  }, []);
+  };
 
   // Save/Print failures are a different category from voice failures: a
   // "validation" error (missing required fields) is real, doctor-actionable
@@ -136,6 +155,14 @@ export default function App() {
 
   // Unreviewed proposals would otherwise be silently left out of a record
   // that can no longer be changed — make the doctor decide on them first.
+  // Once the doctor has dealt with every proposal, the "still waiting for
+  // review" banner is no longer true.
+  useEffect(() => {
+    if (!pending.length) {
+      setError((prev) => (prev === PENDING_BEFORE_SAVE_MESSAGE ? "" : prev));
+    }
+  }, [pending.length]);
+
   const blockIfPending = () => {
     if (!pending.length) return false;
     setError(PENDING_BEFORE_SAVE_MESSAGE);
@@ -199,6 +226,9 @@ export default function App() {
   };
 
   const handleNewForm = () => {
+    formGenRef.current += 1;
+    setFormGen(formGenRef.current);
+    setMicStatusState({});
     setState({ ...EMPTY_STATE, date: today() });
     setPending([]);
     setUnmatchedNote("");
@@ -228,6 +258,7 @@ export default function App() {
   };
 
   const micsDisabled = !!cooldownUntil;
+  const anyMicRecording = Object.values(micStatus).includes("recording");
 
   // Dictation is interpreted against the form *with pending proposals
   // applied*, so "add ..." after an unreviewed proposal builds on it instead
@@ -282,7 +313,7 @@ export default function App() {
           </button>
         </div>
 
-        <div className="pad-body">
+        <div className="pad-body" key={formGen}>
           {savedPid && (
             <div className="saved-banner">
               <div className="saved-banner-text">
@@ -331,6 +362,9 @@ export default function App() {
                 formState={extractionBase}
                 onVoiceUpdates={handleVoiceUpdates}
                 onVoiceError={handleApiError}
+                onRecordingChange={(recording) =>
+                  setMicStatus(VISIT_MIC, recording ? "recording" : null)
+                }
                 disabled={micsDisabled}
               />
 
@@ -340,6 +374,7 @@ export default function App() {
                 onAccept={handleAccept}
                 onReject={handleReject}
                 onAcceptAll={handleAcceptAll}
+                paused={anyMicRecording}
               />
 
               <p className="required-legend">

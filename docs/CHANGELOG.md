@@ -168,3 +168,22 @@ SAFETY, blocked prompt, bad JSON, list JSON, junk items) · Live** (browser spee
 Files: `pendingUpdates.js`, `pendingUpdates.test.js`, `App.jsx`, `ReviewPanel.jsx`,
 `DictateBar.jsx`, `styles.css`, `package.json`, `verify-changes.mjs`, docs.
 **Static ✔ · npm test ✔ 26/26 · Live** (real "add …" behavior depends on Gemini).
+
+## 17. Code-review fixes (2026-09-29)
+1. Hands-free confirm pauses while any mic records (dictated "confirm diagnosis" / "remove
+   sutures" were being taken as commands); queued results are ignored too.
+2. "New prescription" bumps `formGen`: voice results/errors from the previous form are
+   dropped and the form body remounts (mics stop, notes and the retry link reset).
+3. Audio upload named after the recorded type (`clip.mp4` on Safari/iPhone, not `.webm`).
+4. P0-2d: Space is ignored when a button/link has focus (no double action).
+5. Default date uses the local date (UTC gave yesterday before 5:30 am IST).
+6. Whole-visit status resets from "paused" when a cooldown ends.
+7. `useRecorder.start()` ignores a second call while starting (stuck-mic leak) and returns
+   whether it started; `stop()` resolves on an inactive recorder.
+8. Hands-free switches itself off with a message on errors that would repeat forever.
+9. `WHISPER_BACKEND=local` decodes from memory (temp-file re-open fails on Windows).
+10. `target_field` validated → 422 instead of a 500.
+11. "Still waiting for review" banner clears when nothing is pending; a successful voice
+    result clears an earlier voice error.
+**Static ✔ · npm test ✔ 27/27 · TestClient ✔ (target_field) · Live:** 1, 2, 4, 6, 7, 8 need a
+browser; 3 needs an iPhone; 9 needs faster-whisper installed (not installed here).

@@ -64,6 +64,15 @@ expect("App: Print saves first, opens preview window before any await", "fronten
 expect("App: View old records placeholder present", "frontend/src/App.jsx", "handleViewOldRecords");
 expect("App: form locks after save (P0-1)", "frontend/src/App.jsx", "readOnly: locked");
 expect("App: save blocked while items await review", "frontend/src/App.jsx", "blockIfPending");
+expect("App: stale results from a previous form are dropped (formGen)", "frontend/src/App.jsx", "formGen !== formGenRef.current");
+expect("App: default date is local, not UTC", "frontend/src/App.jsx", "d.getFullYear()");
+expect("ReviewPanel: hands-free pauses while a mic records", "frontend/src/components/ReviewPanel.jsx", "!paused");
+expect("ReviewPanel: fatal recognition errors stop the retry loop", "frontend/src/components/ReviewPanel.jsx", "FATAL_RECOGNITION_ERRORS");
+expect("DictateBar: Space ignored on a focused button (P0-2d)", "frontend/src/components/DictateBar.jsx", "isActivatable");
+expect("api: upload name matches recorded format (Safari mp4)", "frontend/src/api.js", "export function audioFileName");
+expect("useRecorder: double start guarded", "frontend/src/useRecorder.js", "startingRef");
+expect("schemas: target_field validated", "backend/app/schemas.py", "_known_field");
+expect("local Whisper decodes from memory (Windows temp-file bug)", "backend/app/services/transcription.py", "io.BytesIO(audio_bytes),");
 expect("Print template escapes user text", "frontend/src/printTemplate.js", "function escapeHtml");
 expect("Print template exports buildPrintHtml", "frontend/src/printTemplate.js", "export function buildPrintHtml");
 expect("DictateBar: transcript-preserving retry", "frontend/src/components/DictateBar.jsx", "lastTranscript");
