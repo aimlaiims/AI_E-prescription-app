@@ -143,6 +143,11 @@ components/
   ReviewPanel.jsx  diff list, Accept/Discard/Accept all, hands-free toggle
   StatusBanner.jsx saved (Reference ID copy) / error / cooldown — presentational
   SaveButton.jsx   Save prescription / Saving… / Saved (lock-after-save phases)
+  RecordsDialog.jsx  past prescriptions: debounced search, date chips + range, paging,
+                   loads the full record for the preview, prints (sync window.open)
+  RecordsBrowser.jsx presentational dialog: focus trap / return, roving rows, A4 preview
+                   scaled to fit, phone-only sticky Print (RecordsBrowser.test.jsx)
+dates.js           local YYYY-MM-DD helpers + filter-chip date bounds (tested)
 voiceCommands.js   parseVoiceCommands + FIELD_ALIASES (pure; voiceCommands.test.js)
 pendingUpdates.js  one-pending-per-field merge + pending-applied extraction base (pure; tested)
 printTemplate.js   buildPrintHtml(state, pid, {toolbar, letterhead}) -> standalone A4 HTML (tested)
@@ -178,7 +183,7 @@ Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month na
 | POST | `/api/extract` | `{transcript, current_state, target_field?}` → `{updates[], unmatched_transcript_note}` |
 | POST | `/api/forms` | `{state, raw_transcript_log}` → `{pid, saved_at}`; 400 `validation` |
 | GET | `/api/forms/{pid}` | full record |
-| GET | `/api/forms` | latest 100: pid, name, date, diagnosis, created_at |
+| GET | `/api/forms` | `?q=` (name or Reference ID, partial, case-insensitive) `&date_from=&date_to=` (YYYY-MM-DD) `&limit=` (≤100, default 50) `&offset=` → `{items[], total, has_more}`, newest visit first |
 
 There is **no update or delete endpoint**: a saved prescription is final and the form
 locks (ROADMAP P0-1).

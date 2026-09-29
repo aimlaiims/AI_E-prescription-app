@@ -214,38 +214,6 @@ button { cursor: pointer; }
   padding: 8px 0 18px;
 }
 
-.toolbar-item { position: relative; }
-
-.quiet-button {
-  border: 0;
-  background: transparent;
-  color: var(--ink-soft);
-  display: inline-flex;
-  gap: 7px;
-  align-items: center;
-  min-height: 44px;
-  padding: 8px 0;
-  font-size: 13px;
-  font-weight: 500;
-}
-.quiet-button:hover { color: var(--ink); }
-
-.toolbar-note {
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 0;
-  z-index: 5;
-  width: max-content;
-  max-width: min(260px, calc(100vw - 32px));
-  background: var(--ink);
-  color: var(--paper);
-  font-size: 12px;
-  line-height: 1.4;
-  padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 6px 18px var(--sheet-shadow);
-}
-
 /* ---------- Sections + fields ---------- */
 
 .form-section {
@@ -781,6 +749,334 @@ kbd {
 
 @media (max-width: 479px) {
   .status-secondary { width: 100%; justify-content: center; margin-left: 0; }
+}
+
+/* ---------- Past prescriptions (records browser dialog) ---------- */
+
+.records-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.records-dialog {
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100vw;
+  height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+  outline: none;
+}
+
+.records-list-pane,
+.records-preview-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Phones: one pane at a time — the list, or (after picking) the preview. */
+.records-preview-pane { display: none; background: var(--page-bg); }
+.records-dialog.is-phone-preview .records-list-pane { display: none; }
+.records-dialog.is-phone-preview .records-preview-pane { display: flex; }
+
+@media (min-width: 768px) {
+  .records-backdrop { padding: 24px; }
+  .records-dialog {
+    grid-template-columns: minmax(300px, 380px) 1fr;
+    width: min(1180px, 100%);
+    height: min(820px, 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: 0 24px 64px var(--sheet-shadow);
+  }
+  .records-list-pane { border-right: 1px solid var(--line); }
+  .records-preview-pane,
+  .records-dialog.is-phone-preview .records-preview-pane { display: flex; }
+  .records-dialog.is-phone-preview .records-list-pane { display: flex; }
+}
+
+.records-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 12px 6px 16px;
+}
+.records-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.icon-button:hover { background: var(--paper-raised); color: var(--ink); }
+
+.records-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 6px 16px 0;
+  padding: 0 12px;
+  border: 1px solid var(--control-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+}
+.records-search:focus-within { border-color: var(--sage); box-shadow: 0 0 0 3px var(--sage-soft); }
+.records-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 16px; /* no iOS zoom */
+  outline: none;
+}
+
+.record-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 16px 0;
+}
+.record-filters button {
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1px solid var(--control-line);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+}
+.record-filters button.is-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper-raised);
+}
+
+.date-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 16px 12px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.date-range label { display: inline-flex; align-items: center; gap: 6px; }
+.date-range input {
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid var(--control-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.records-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 8px 16px;
+  border-top: 1px solid var(--line);
+}
+
+.record-date-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 12px 8px 6px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.record-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  text-align: left;
+}
+.record-row:hover { background: var(--paper-raised); }
+.record-row.is-selected {
+  background: var(--sage-soft);
+  box-shadow: inset 3px 0 0 var(--sage);
+}
+.record-row strong { font-weight: 600; overflow-wrap: anywhere; }
+.record-row code {
+  grid-column: 2;
+  grid-row: 1;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.record-meta { color: var(--ink-soft); font-size: 12.5px; }
+.record-diagnosis {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-skeleton {
+  height: 58px;
+  margin: 10px 8px 0;
+  border-radius: var(--radius-sm);
+  background: var(--line);
+  opacity: 0.5;
+}
+
+.records-empty {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  padding: 24px 12px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.records-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--control-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.records-button.primary { border-color: var(--ink); background: var(--ink); color: var(--paper-raised); }
+.records-button:disabled { opacity: 0.6; cursor: progress; }
+.show-more { width: calc(100% - 16px); margin: 12px 8px 0; }
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+.back-records {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 8px 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 500;
+}
+.preview-header .close-preview { margin-left: auto; }
+.preview-header .print-record + .close-preview { margin-left: 0; }
+.preview-header .print-record { margin-left: auto; }
+
+.records-notice {
+  margin: 12px 16px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--maroon);
+  border-radius: var(--radius-sm);
+  background: var(--maroon-soft);
+  color: var(--maroon);
+  font-size: 13px;
+}
+
+/* Preview: the A4 document at 794x1123, scaled down (never up) to the pane
+   width by RecordsBrowser.jsx, which also sets the shell's height. The shell
+   clips the transformed iframe's untransformed layout box so it can't cause
+   horizontal scrolling. */
+.records-frame-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.records-frame-shell {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+}
+.records-frame {
+  display: block;
+  width: 794px;
+  height: 1123px;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  background: #fff;
+  transform-origin: top left;
+}
+
+.preview-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--ink-soft);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Exactly one Print button per screen size: the header one from 768px up,
+   the sticky bottom one below. */
+.phone-print { display: none; }
+@media (max-width: 767px) {
+  .preview-header .print-record { display: none; }
+  .preview-header .close-preview,
+  .preview-header .print-record + .close-preview { margin-left: auto; }
+  .phone-print {
+    display: flex;
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    min-height: 52px;
+    border-radius: 0;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
+@media (min-width: 768px) {
+  .back-records { display: none; }
 }
 
 /* ---------- Footer actions (Print / Save) ---------- */

@@ -1,8 +1,13 @@
 # Testing
 
-There is no automated test suite yet (ROADMAP P1-4). Until there is, this file is the test
-plan. Automated checks that do exist: `npm run build`, the backend import check, and
-`node scripts/verify-changes.mjs` (static — proves code is present, not that it behaves).
+Automated (run all before calling a change done; CI runs them on every push once the repo
+is on GitHub — `.github/workflows/ci.yml`):
+- `cd backend; python -m pytest` — API routes, error taxonomy, extraction parsing/filtering/
+  retries, Groq error classification, non-blocking routes. Groq/Gemini are faked and a
+  throwaway SQLite file is used; no keys or network needed. (`pip install -r requirements-dev.txt`)
+- `cd frontend; npm test` — voice-command parser, pending merge, upload naming, print page.
+- `npm run build`, the backend import check, `node scripts/verify-changes.mjs` (static).
+The manual scripts below cover what those can't: real speech, the browser, the tunnel.
 
 Run the manual tests on the machine and browser that will be used for the demo
 (**Chrome or Edge**), including once **through the ngrok URL**.
@@ -139,6 +144,16 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] Hands-free on → toggle turns sage and the dot is visible
 - [ ] OS set to "reduce motion" → no pulsing mic / dot / spinner animation
 - [ ] Print a record with 24+ medication lines → signature never alone on the last page
+
+## 7b. Past prescriptions
+- [ ] "View past prescriptions" opens the dialog; focus is inside; the page behind doesn't scroll
+- [ ] Type part of a name (or a Reference ID) → list narrows; misspelling → "No matches…"
+- [ ] Today / Last 7 days / All, and From/To dates narrow the list
+- [ ] Arrow keys move between rows; Enter opens the focused one; Esc closes and focus
+      returns to the button
+- [ ] Pick a record → preview shows it; Print opens the normal print page
+- [ ] Phone: list → preview → "Back to list"; ONE Print button, at the bottom
+- [ ] Pop-ups blocked → message inside the dialog
 
 ## 8. Latency (through ngrok and on localhost)
 Dictate one field; read the terminal:

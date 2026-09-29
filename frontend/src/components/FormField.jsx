@@ -15,6 +15,7 @@ export default function FormField({
   micStatus,
   setMicStatus,
   disabled,
+  otherMicRecording,
   readOnly,
   missing,
 }) {
@@ -35,7 +36,9 @@ export default function FormField({
   const [note, setNote] = useState(null);
 
   const handleMicClick = async () => {
-    if (disabled || readOnly) return;
+    if (readOnly) return;
+    // A cooldown or another open mic blocks STARTING, never stopping.
+    if (!isRecording && (disabled || otherMicRecording)) return;
 
     if (isRecording) {
       setMicStatus(fieldKey, "processing");
@@ -78,7 +81,7 @@ export default function FormField({
       ? "processing"
       : isRecording
       ? "recording"
-      : disabled
+      : disabled || otherMicRecording
       ? "disabled"
       : "idle";
 
@@ -164,7 +167,9 @@ export default function FormField({
               isRecording ? `Stop and fill in ${spec.label}` : `Dictate ${spec.label}`
             }
             title={
-              micState === "disabled"
+              micState === "disabled" && otherMicRecording && !disabled
+                ? "Finish the recording in progress first"
+                : micState === "disabled"
                 ? "Voice input is paused for a moment"
                 : isRecording
                 ? "Stop and fill in this field"

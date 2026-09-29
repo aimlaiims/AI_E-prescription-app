@@ -3,6 +3,12 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  // Component tests (Vitest + jsdom). The other *.test.js files use Node's
+  // built-in runner (node --test) and are run separately by `npm test`.
+  test: {
+    include: ["src/**/*.test.jsx"],
+    environment: "jsdom",
+  },
   server: {
     port: 5173,
     // Vite's dev server rejects requests whose Host header it doesn't

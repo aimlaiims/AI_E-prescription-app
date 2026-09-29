@@ -13,6 +13,7 @@ export default function DictateBar({
   onVoiceError,
   onRecordingChange,
   disabled,
+  otherMicRecording,
 }) {
   const { isRecording, start, stop } = useRecorder();
   const [status, setStatus] = useState(IDLE_STATUS);
@@ -55,7 +56,7 @@ export default function DictateBar({
   const handleToggle = async () => {
     if (busy) return;
     // A cooldown blocks starting, never stopping: an open mic must be closable.
-    if (disabled && !isRecording) return;
+    if (!isRecording && (disabled || otherMicRecording)) return;
 
     if (isRecording) {
       setBusy(true);
@@ -129,7 +130,15 @@ export default function DictateBar({
   });
 
   // One visual state: idle | recording | processing | paused.
-  const state = busy ? "processing" : isRecording ? "recording" : disabled ? "paused" : "idle";
+  // "paused" = can't start now: a cooldown, or a field mic is recording
+  // (only one mic records at a time).
+  const state = busy
+    ? "processing"
+    : isRecording
+    ? "recording"
+    : disabled || otherMicRecording
+    ? "paused"
+    : "idle";
 
   const icon =
     state === "processing" ? (

@@ -77,6 +77,10 @@ export function friendlyCooldownReason() {
 export const HANDS_FREE_UNAVAILABLE_MESSAGE =
   "Hands-free confirm stopped: the browser couldn't listen for commands. Tap Accept or Discard instead, or turn hands-free on again to retry.";
 
+// window.open returned null: the browser blocked the print preview.
+export const POPUP_BLOCKED_MESSAGE =
+  "Your browser blocked the print preview pop-up. Please allow pop-ups for this page and try again.";
+
 // Saving locks the prescription, so anything still waiting for review would
 // be silently left out of it.
 export const PENDING_BEFORE_SAVE_MESSAGE =

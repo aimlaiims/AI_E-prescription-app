@@ -18,7 +18,7 @@ rollout. Treat patient data safety seriously anyway — see "Security posture" i
 1. `docs/ROADMAP.md` — open P0/P1 issues with concrete fix specs. **Start there.**
 2. `docs/ARCHITECTURE.md` — why the pipeline is shaped this way.
 3. `docs/CHANGELOG.md` — what was built, how each change is verified.
-4. `docs/TESTING.md` — manual test scripts (there is no automated suite yet).
+4. `docs/TESTING.md` — manual test scripts; automated: `npm test`, `pytest`, CI in `.github/workflows/ci.yml`.
 
 ## Commands
 
@@ -49,7 +49,8 @@ ngrok http 5173
 ```powershell
 cd frontend; npm run build            # catches bad imports / JSX / missing icons
 cd backend;  python -c "from app.main import app"   # catches import errors
-cd frontend; npm test                 # parser + pending-merge tests (node:test, no deps)
+cd frontend; npm test                 # parser, pending-merge, upload name, print tests
+cd backend;  python -m pytest         # API + services, Groq/Gemini faked (pip install -r requirements-dev.txt)
 node scripts/verify-changes.mjs       # static check of every documented change
 ```
 

@@ -1,8 +1,9 @@
-import random
+import secrets
 import string
 from datetime import datetime, date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -14,7 +15,9 @@ router = APIRouter(prefix="/api/forms", tags=["forms"])
 
 def _generate_pid() -> str:
     stamp = date.today().strftime("%Y%m%d")
-    suffix = "".join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    # secrets, not random: Reference IDs should not be predictable.
+    alphabet = string.ascii_uppercase + string.digits
+    suffix = "".join(secrets.choice(alphabet) for _ in range(4))
     return f"RX-{stamp}-{suffix}"
 
 
@@ -39,10 +42,20 @@ def save_form(req: SaveFormRequest, db: Session = Depends(get_db)):
             },
         )
 
-    pid = _generate_pid()
-    # extremely unlikely, but guard against PID collision
-    while db.query(ClinicalForm).filter(ClinicalForm.pid == pid).first():
+    # Collisions are extremely unlikely (36^4 per day), but bounded: an
+    # unbounded retry loop would hang the request forever if they kept happening.
+    for _ in range(10):
         pid = _generate_pid()
+        if not db.query(ClinicalForm).filter(ClinicalForm.pid == pid).first():
+            break
+    else:
+        raise HTTPException(
+            503,
+            {
+                "error_code": "unavailable",
+                "message": "Couldn't create a unique Reference ID. Please try saving again.",
+            },
+        )
 
     record = ClinicalForm(pid=pid, raw_transcript_log=req.raw_transcript_log, **state)
     db.add(record)
@@ -68,16 +81,54 @@ def get_form(pid: str, db: Session = Depends(get_db)):
     }
 
 
+ISO_DATE = r"^\d{4}-\d{2}-\d{2}$"
+
+
 @router.get("")
-def list_forms(db: Session = Depends(get_db)):
-    records = db.query(ClinicalForm).order_by(ClinicalForm.created_at.desc()).limit(100).all()
-    return [
-        {
-            "pid": r.pid,
-            "patient_name": r.patient_name,
-            "date": r.date,
-            "diagnosis": r.diagnosis,
-            "created_at": r.created_at.isoformat(),
-        }
-        for r in records
-    ]
+def list_forms(
+    q: str = Query("", max_length=100, description="Patient name or Reference ID, partial"),
+    date_from: str | None = Query(None, pattern=ISO_DATE, description="Visit date >= (YYYY-MM-DD)"),
+    date_to: str | None = Query(None, pattern=ISO_DATE, description="Visit date <= (YYYY-MM-DD)"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Saved prescriptions for the records browser: newest visit first."""
+    query = db.query(ClinicalForm)
+    needle = q.strip()
+    if needle:
+        # Case-insensitive "contains"; autoescape so % and _ are literal.
+        query = query.filter(
+            or_(
+                func.lower(ClinicalForm.patient_name).contains(needle.lower(), autoescape=True),
+                ClinicalForm.pid.contains(needle.upper(), autoescape=True),
+            )
+        )
+    if date_from:
+        query = query.filter(ClinicalForm.date >= date_from)
+    if date_to:
+        query = query.filter(ClinicalForm.date <= date_to)
+
+    total = query.count()
+    records = (
+        query.order_by(ClinicalForm.date.desc(), ClinicalForm.created_at.desc(), ClinicalForm.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return {
+        "items": [
+            {
+                "pid": r.pid,
+                "patient_name": r.patient_name,
+                "age": r.age,
+                "gender": r.gender,
+                "date": r.date,
+                "diagnosis": r.diagnosis,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in records
+        ],
+        "total": total,
+        "has_more": offset + len(records) < total,
+    }

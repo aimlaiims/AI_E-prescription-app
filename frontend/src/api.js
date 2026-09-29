@@ -74,3 +74,19 @@ export async function saveForm(state, rawTranscriptLog) {
   if (!res.ok) throw await toApiError(res);
   return res.json();
 }
+// Past prescriptions: { items, total, has_more }. Params are all optional:
+// q (name or Reference ID), date_from / date_to (YYYY-MM-DD), limit, offset.
+export async function listForms(params = {}) {
+  const qs = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "")
+  ).toString();
+  const res = await fetch(`${BASE}/forms${qs ? `?${qs}` : ""}`);
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
+export async function getForm(pid) {
+  const res = await fetch(`${BASE}/forms/${encodeURIComponent(pid)}`);
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}

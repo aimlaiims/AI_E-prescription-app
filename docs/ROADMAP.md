@@ -114,13 +114,14 @@ anything is pending. Better: send Gemini the state with pending items applied.
 
 ## P1
 
-1. **Blocking calls in async routes.** `transcribe`/`extract` are `async def` but call sync
+1. ~~**Blocking calls in async routes.**~~ **Fixed 2026-09-29:** `run_in_threadpool` in
+   `voice.py`; a 2s extraction no longer delays other requests (TestClient: health 0.01s). `transcribe`/`extract` are `async def` but call sync
    SDKs and `time.sleep`; one slow request stalls every other. Invisible with one user.
    Fix: `await run_in_threadpool(...)` / `asyncio.to_thread`, or declare the routes `def`.
 2. **Latency** (measure first — read the two `[timing]` lines). Ideas, roughly by payoff:
    - Test without ngrok to isolate the tunnel; it relays every request and the audio upload.
-   - Cap MediaRecorder bitrate (`audioBitsPerSecond` ≈ 16–24k, mono) — Whisper does not need
-     more and the upload shrinks.
+   - ~~Cap MediaRecorder bitrate~~ **Done 2026-09-29:** 24 kbps mono; a 5s clip uploads
+     ~14 KB in Chrome (was several times larger).
    - Check whether Groq offers a faster Whisper variant (e.g. a "turbo" model) — verify the
      current model list before relying on it.
    - Send Gemini only non-empty current fields and only the allowed fields.
@@ -128,10 +129,13 @@ anything is pending. Better: send Gemini the state with pending items applied.
      out) removes a network hop; costs the Whisper vocabulary hint, so compare accuracy.
    - Perceived latency: show per-stage progress ("Transcribing… / Filling in the form…" is
      already there; add elapsed seconds).
-3. **View old records (real).** Modal: list by name/date, search box, click → the existing
+3. ~~**View old records (real).**~~ **Done 2026-09-29** ("View past prescriptions"): search
+   API with indexes, dialog with preview + reprint, 32 ported harness checks + 38 Chrome checks.
+   Original spec: Modal: list by name/date, search box, click → the existing
    print preview. Backend: add `q`, `date_from`, `date_to`, `limit`, `offset` to
    `GET /api/forms`; add indexes on `patient_name` and `date`. Reuse `buildPrintHtml`.
-4. **Automated tests.** Backend: pytest + `TestClient` with Groq/Gemini patched (the patterns
+4. **Automated tests.** *(Backend pytest suite + CI workflow added 2026-09-29: 47 tests,
+   each key fix checked by re-breaking it. Still to do: Vitest/jsdom component tests.)* Backend: pytest + `TestClient` with Groq/Gemini patched (the patterns
    in `docs/TESTING.md` §5). Frontend: Vitest for `voiceCommands.js` and `printTemplate.js`.
    CI: GitHub Actions running `npm run build`, `pytest`, `vitest`, `verify-changes.mjs`.
 5. **Extraction regression set.** `backend/tests/extraction_cases.jsonl`: transcript + current
@@ -140,7 +144,7 @@ anything is pending. Better: send Gemini the state with pending items applied.
 6. **Logging and backups.** File logging with request ids (nothing to check after a demo
    failure right now); a scheduled copy of `clinical_forms.db`.
 7. **Config hygiene.** `FIELD_SPECS` is duplicated backend/frontend — expose
-   `GET /api/schema` and have the frontend read it. Replace deprecated `datetime.utcnow()`.
+   `GET /api/schema` and have the frontend read it. ~~Replace deprecated `datetime.utcnow()`~~ (done).
 
 ## P2 — before any real patient data
 

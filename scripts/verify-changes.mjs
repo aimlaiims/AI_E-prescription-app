@@ -61,17 +61,28 @@ expect("App: stable ids for pending updates", "frontend/src/App.jsx", "nextPendi
 expect("App: accept is id-based, not index-based", "frontend/src/App.jsx", "pending.find((u) => u.id === id)");
 expect("App: save/print errors routed via handleSaveError", "frontend/src/App.jsx", "handleSaveError");
 expect("App: Print saves first, opens preview window before any await", "frontend/src/App.jsx", "const previewWindow = window.open");
-expect("App: View old records placeholder present", "frontend/src/App.jsx", "handleViewOldRecords");
+expect("App: View past prescriptions opens the records dialog", "frontend/src/App.jsx", "<RecordsDialog");
+expect("Records: server search with date range + paging", "backend/app/routers/forms.py", "date_from: str | None");
+expect("Records: phone-only Print button exists", "frontend/src/components/RecordsBrowser.jsx", "phone-print");
+expect("Records: component tests (ported harness)", "frontend/src/components/RecordsBrowser.test.jsx", "focus RETURNS");
 expect("App: form locks after save (P0-1)", "frontend/src/App.jsx", "readOnly: locked");
 expect("App: save blocked while items await review", "frontend/src/App.jsx", "blockIfPending");
 expect("App: stale results from a previous form are dropped (formGen)", "frontend/src/App.jsx", "formGen !== formGenRef.current");
-expect("App: default date is local, not UTC", "frontend/src/App.jsx", "d.getFullYear()");
+expect("Default date is local, not UTC (dates.js)", "frontend/src/dates.js", "d.getFullYear()");
 expect("ReviewPanel: hands-free pauses while a mic records", "frontend/src/components/ReviewPanel.jsx", "!paused");
 expect("ReviewPanel: fatal recognition errors stop the retry loop", "frontend/src/components/ReviewPanel.jsx", "FATAL_RECOGNITION_ERRORS");
 expect("DictateBar: Space ignored on a focused button (P0-2d)", "frontend/src/components/DictateBar.jsx", "isActivatable");
 expect("api: upload name matches recorded format (Safari mp4)", "frontend/src/api.js", "export function audioFileName");
 expect("useRecorder: double start guarded", "frontend/src/useRecorder.js", "startingRef");
 expect("schemas: target_field validated", "backend/app/schemas.py", "_known_field");
+expect("voice: blocking SDK calls run in a worker thread (P1-1)", "backend/app/routers/voice.py", "run_in_threadpool");
+expect("forms: Reference ID suffix uses secrets, not random", "backend/app/routers/forms.py", "secrets.choice");
+expect("models: no deprecated datetime.utcnow", "backend/app/models.py", /datetime\.utcnow/, { present: false });
+expect("recorder: speech bitrate cap (smaller uploads)", "frontend/src/useRecorder.js", "audioBitsPerSecond: 24000");
+expect("App: only one mic records at a time", "frontend/src/App.jsx", "otherMicRecording");
+expect("backend: pytest suite exists", "backend/tests/test_voice_routes.py", "def test_");
+expect("backend: Reference ID retries are bounded", "backend/app/routers/forms.py", "for _ in range(10):");
+expect("CI workflow runs pytest, npm test, build, verify", ".github/workflows/ci.yml", /pytest[\s\S]*npm test[\s\S]*npm run build[\s\S]*verify-changes/);
 expect("local Whisper decodes from memory (Windows temp-file bug)", "backend/app/services/transcription.py", "io.BytesIO(audio_bytes),");
 expect("Print template escapes user text", "frontend/src/printTemplate.js", "function escapeHtml");
 expect("Print template exports buildPrintHtml", "frontend/src/printTemplate.js", "export function buildPrintHtml");
@@ -181,7 +192,7 @@ known("P2     Schema changes need a migration tool (create_all cannot alter tabl
   open: /create_all/.test(src("backend/app/main.py")) && !hasDir("backend/alembic"),
   fixed: hasDir("backend/alembic"),
 });
-known("P1-4   Some automated tests exist (frontend parser only; backend + CI still to do)", {
+known("P1-4   Automated tests: backend pytest + frontend node:test + CI (component tests still to do)", {
   open: !hasDir("backend/tests") && !readdirSync(resolve(root, "frontend/src")).some((f) => f.includes(".test.")),
   fixed: hasDir("backend/tests") || readdirSync(resolve(root, "frontend/src")).some((f) => f.includes(".test.")),
 });

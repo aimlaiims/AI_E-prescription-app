@@ -13,26 +13,21 @@ import DictateBar from "./components/DictateBar.jsx";
 import ReviewPanel from "./components/ReviewPanel.jsx";
 import StatusBanner from "./components/StatusBanner.jsx";
 import SaveButton from "./components/SaveButton.jsx";
+import RecordsDialog from "./components/RecordsDialog.jsx";
 import { FIELD_SPECS, EMPTY_STATE } from "./fieldSpecs.js";
 import { saveForm } from "./api.js";
 import {
   friendlyErrorMessage,
   PENDING_BEFORE_SAVE_MESSAGE,
+  POPUP_BLOCKED_MESSAGE,
   missingFieldsMessage,
 } from "./messages.js";
+import { localToday as today } from "./dates.js";
 import { buildPrintHtml } from "./printTemplate.js";
 import { mergePending, withPendingApplied } from "./pendingUpdates.js";
 
 // micStatus key for the whole-visit mic (per-field mics use their field key).
 const VISIT_MIC = "__visit";
-
-// Today's date as YYYY-MM-DD in the *local* timezone. toISOString() is UTC,
-// which in India gives yesterday's date until 5:30 am.
-function today() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
 
 export default function App() {
   const [state, setState] = useState({ ...EMPTY_STATE, date: today() });
@@ -44,11 +39,10 @@ export default function App() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
-  const [oldRecordsNote, setOldRecordsNote] = useState(false);
+  const [recordsOpen, setRecordsOpen] = useState(false);
   // Set by a Save/Print attempt with required fields empty; from then on the
   // missing fields are highlighted until filled (derived, so never stale).
   const [showMissing, setShowMissing] = useState(false);
-  const oldRecordsTimeout = useRef(null);
   // Stable per-update ids (not array position) so accept/reject targets the
   // right item even when several updates are dispatched in one batch — see
   // handleVoiceUpdates and the multi-command voice parsing in ReviewPanel.
@@ -219,7 +213,7 @@ export default function App() {
     if (!savedPid && (blockIfPending() || blockIfMissing())) return;
     const previewWindow = window.open("", "_blank");
     if (!previewWindow) {
-      setError("Your browser blocked the print preview pop-up. Please allow pop-ups for this page and try again.");
+      setError(POPUP_BLOCKED_MESSAGE);
       return;
     }
     previewWindow.document.write(
@@ -261,16 +255,11 @@ export default function App() {
     setError("");
   };
 
-  // Placeholder until the real record browser is built — the backend already
-  // lists saved forms (GET /api/forms), so this becomes a UI-only task later.
-  const handleViewOldRecords = () => {
-    setOldRecordsNote(true);
-    clearTimeout(oldRecordsTimeout.current);
-    oldRecordsTimeout.current = setTimeout(() => setOldRecordsNote(false), 4000);
-  };
-
   const micsDisabled = !!cooldownUntil;
   const anyMicRecording = Object.values(micStatus).includes("recording");
+  // Only one mic records at a time: two open mics would capture the same
+  // speech twice and send two conflicting proposals.
+  const otherMicRecording = (key) => anyMicRecording && micStatus[key] !== "recording";
 
   // Dictation is interpreted against the form *with pending proposals
   // applied*, so "add ..." after an unreviewed proposal builds on it instead
@@ -288,6 +277,7 @@ export default function App() {
     micStatus: micStatus[key],
     setMicStatus,
     disabled: micsDisabled,
+    otherMicRecording: otherMicRecording(key),
     readOnly: locked,
     missing: showMissing && missingFields.includes(key),
   });
@@ -310,18 +300,15 @@ export default function App() {
         </header>
 
         <div className="toolbar" role="group" aria-label="Form actions">
-          <div className="toolbar-item">
-            <button type="button" className="quiet-button" onClick={handleViewOldRecords}>
-              <History size={16} aria-hidden="true" />
-              View past prescriptions
-            </button>
-            {oldRecordsNote && (
-              <div className="toolbar-note" role="status">
-                Coming soon. Saved prescriptions are already stored and will be
-                searchable here in a future update.
-              </div>
-            )}
-          </div>
+          <button
+            type="button"
+            className="quiet-button"
+            onClick={() => setRecordsOpen(true)}
+            aria-haspopup="dialog"
+          >
+            <History size={16} aria-hidden="true" />
+            View past prescriptions
+          </button>
           <button type="button" className="quiet-button" onClick={handleNewForm}>
             <RotateCcw size={15} aria-hidden="true" />
             New prescription
@@ -353,6 +340,7 @@ export default function App() {
                 setMicStatus(VISIT_MIC, recording ? "recording" : null)
               }
               disabled={micsDisabled}
+              otherMicRecording={otherMicRecording(VISIT_MIC)}
             />
 
             <ReviewPanel
@@ -425,6 +413,7 @@ export default function App() {
           />
         </footer>
       </article>
+      {recordsOpen && <RecordsDialog onClose={() => setRecordsOpen(false)} />}
     </main>
   );
 }

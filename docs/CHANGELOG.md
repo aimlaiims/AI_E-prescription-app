@@ -211,3 +211,50 @@ Commits `UI 1/8` … `UI 8/8`:
 print PDFs 1–60 medication lines. **Live:** real speech, iPhone Safari, the doctor's phone.
 Bundle: JS 178.9 → 183.0 KB (57.3 → 58.7 KB gzip); CSS 13.0 → 13.7 KB; web font files
 7 → 5 (2 families).
+
+## 19. Quick wins (2026-09-29)
+- **P1-1:** Groq/Gemini calls run in a worker thread (`run_in_threadpool`), so one slow
+  request no longer stalls the server. TestClient: `/api/health` answers in 0.01s during a
+  2s extraction.
+- **P1-2 (part):** recording is mono at ~24 kbps; a 5s clip uploads 13.8 KB in Chrome.
+- **One mic at a time:** while any mic records, the others can't start (button or Space).
+- A cooldown blocks *starting* a field mic, never stopping one — the UI 2/8 commit said
+  this but the click handler still returned early; fixed here.
+- Reference ID suffix from `secrets`, not `random`; `datetime.utcnow()` replaced (still
+  naive UTC in SQLite).
+**Static ✔ · TestClient ✔ · real Chrome ✔ (6 checks, API stubbed) · Live:** Safari may
+ignore the bitrate hint.
+
+## 20. Backend tests + CI (2026-09-29)
+`backend/tests/` (pytest, 47 tests): health; save/get/list; validation labels in form
+order; structured 404; empty audio; filename pass-through; every `UpstreamError` code →
+HTTP status (+ `retry_after_seconds`); `target_field` 422; `old_value` from state; a slow
+upstream call not blocking other requests; extraction parsing, filtering, forced schema +
+token cap, 429 not retried, 401/403 auth, 503 retried then `unavailable`, and every
+bad-output case (truncated, safety, blocked, invalid JSON, non-object, and *stopped early
+with valid JSON*); Groq error classification. Groq/Gemini faked, throwaway SQLite.
+**Checked by mutation:** re-breaking each of 6 fixes (P0-3 finish_reason, P1-1 threadpool,
+label order, allowed-field filter, 429 handling, target_field validation) fails the suite.
+That exercise also found that the Reference ID collision loop was unbounded — it now gives
+up after 10 tries with a retryable 503 (tested).
+`.github/workflows/ci.yml`: backend (import + pytest), frontend (npm ci, test, build),
+verify script. Runs once the repo is pushed to GitHub (it isn't yet).
+
+## 21. View past prescriptions (ROADMAP P1-3, 2026-09-29)
+- **Backend:** `GET /api/forms` searches name or Reference ID (partial, case-insensitive,
+  `%`/`_` literal), filters by visit date range (validated YYYY-MM-DD), pages
+  (`limit` ≤ 100, `offset`), returns `{items, total, has_more}` newest visit first.
+  Indexes on `patient_name` and `date` (`CREATE INDEX IF NOT EXISTS` at startup, since
+  `create_all` doesn't alter existing tables — checked on a copy of the live DB).
+  6 new pytest tests (53 total).
+- **Frontend:** `RecordsBrowser.jsx` (recovered v0 component, plain JSX, server-side
+  filtering) + `RecordsDialog.jsx` (data: 250ms debounced search, only the newest request
+  wins, paging, full record for the preview) + `dates.js`. Handoff phone spec built:
+  A4 preview scaled to the pane (ResizeObserver), separate sticky Print on phones, header
+  Print hidden there — exactly one visible at every width.
+- **Tests:** the recovered harness ported to Vitest + jsdom — all 16 checks x 2 (memoized
+  and inline `onClose`); re-breaking Enter-target, focus return, scroll unlock and arrow
+  keys each fails it. `dates.test.js` for chip/range bounds. Real Chrome at
+  320/375/768/1440: 38/38 (no horizontal scroll, one Print button, preview fits,
+  debounced search, date range sent, 44px targets on phones, Back, Esc).
+- New dev dependencies: `vitest`, `jsdom` (tests only).

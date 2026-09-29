@@ -67,7 +67,8 @@ export function useRecorder() {
     }
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Mono is all speech-to-text needs.
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
     } catch (err) {
       throw new MicError(err.message, classifyMicError(err));
     }
@@ -80,7 +81,10 @@ export function useRecorder() {
     const mimeType = MediaRecorder.isTypeSupported("audio/webm")
       ? "audio/webm"
       : "audio/mp4";
-    const recorder = new MediaRecorder(stream, { mimeType });
+    // ~24 kbps is plenty for Whisper and makes the upload (the biggest request,
+    // and slowest over the ngrok tunnel) several times smaller than the
+    // browser default (ROADMAP P1-2). Browsers treat it as a hint.
+    const recorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond: 24000 });
     chunksRef.current = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);

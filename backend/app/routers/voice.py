@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from ..errors import UpstreamError
 from ..schemas import (
@@ -34,7 +35,12 @@ async def transcribe(audio: UploadFile = File(...)):
             },
         )
     try:
-        text = transcribe_audio(audio_bytes, filename=audio.filename or "audio.webm")
+        # The Groq/Gemini SDK calls (and the Gemini retry sleeps) are blocking;
+        # run them in a worker thread so one slow request doesn't stall every
+        # other request on the server (ROADMAP P1-1).
+        text = await run_in_threadpool(
+            transcribe_audio, audio_bytes, filename=audio.filename or "audio.webm"
+        )
     except UpstreamError as e:
         raise _upstream_to_http(e)
     return TranscribeResponse(transcript=text)
@@ -44,7 +50,8 @@ async def transcribe(audio: UploadFile = File(...)):
 async def extract(req: ExtractRequest):
     current_state = req.current_state.model_dump()
     try:
-        result = extract_field_updates(
+        result = await run_in_threadpool(
+            extract_field_updates,
             transcript=req.transcript,
             current_state=current_state,
             target_field=req.target_field,
