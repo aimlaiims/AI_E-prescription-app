@@ -1,65 +1,95 @@
+/* Design tokens. Ported from the v0 design (see docs/CHANGELOG.md §18).
+   Final brand colors/logo are coming later, so components use these tokens
+   only — never raw hex — to keep the theme loosely coupled. */
 :root {
-  /* Ink & paper — a prescription pad, not a SaaS dashboard. Paper nudged a
-     touch cooler than a generic warm cream so it doesn't sit near that cliche. */
+  color-scheme: light;
+  /* Ink & paper — a prescription pad, not a SaaS dashboard. */
   --ink: #1c2b3a;
   --ink-soft: #4a5b6b;
+  /* --ink-faint is ~3.5:1 on white: fine for icons/borders, NOT for text. */
   --ink-faint: #7c8b98;
   --page-bg: #e9e7de;
   --paper: #f5f4ee;
   --paper-raised: #ffffff;
   --line: #d8d5cc;
+  /* Borders of inputs/selects/textareas: >= 3:1 against the page (WCAG 1.4.11). */
+  --control-line: #83817c;
+  --sheet-shadow: color-mix(in srgb, var(--ink) 8%, transparent);
 
-  /* Clinical accents: maroon for required/alert (matches a pad's red glyphs),
-     sage for "listening/confirmed", amber for pending review */
+  /* Clinical accents: maroon for required/alert (a pad's red glyphs), sage
+     for "listening/confirmed", amber for pending review. */
   --maroon: #8c2f2f;
   --maroon-soft: #f7e8e8;
   --sage: #3f6b58;
   --sage-soft: #e7efe9;
   --amber: #a06a1f;
   --amber-soft: #f4ead2;
+  /* Text on --amber-soft (plain --amber is too light for small text there). */
+  --amber-text: #8e5e1b;
 
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
 
   --font-display: "Source Serif 4", Georgia, serif;
-  --font-body: "Inter", -apple-system, sans-serif;
-  --font-mono: "IBM Plex Mono", monospace;
+  --font-body: "Inter", -apple-system, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --shell-padding: 16px;
   --footer-height: 68px;
 }
 
+/* Dark theme: follows the OS unless data-theme forces one. Values from v0,
+   contrast-checked there. Keep both blocks identical. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ink: #e8e6df;
-    --ink-soft: #a9b3ba;
-    --ink-faint: #6d7a84;
-    --page-bg: #0c0e10;
-    --paper: #14181c;
-    --paper-raised: #1c2126;
-    --line: #333c42;
-    --sage-soft: #17251e;
-    --amber-soft: #2a2215;
-    --maroon-soft: #2a1717;
+    color-scheme: dark;
+    --ink: #e7edf2;
+    --ink-soft: #b7c3cd;
+    --ink-faint: #94a1ac;
+    --page-bg: #17212a;
+    --paper: #202c36;
+    --paper-raised: #293743;
+    --line: #3d4b57;
+    --control-line: #778189;
+    --maroon: #e28b8b;
+    --maroon-soft: #4a292d;
+    --sage: #9ac5a9;
+    --sage-soft: #294438;
+    --amber: #e4b86a;
+    --amber-soft: #493919;
+    --amber-text: #e4b86a;
   }
 }
 :root[data-theme="dark"] {
-  --ink: #e8e6df;
-  --ink-soft: #a9b3ba;
-  --ink-faint: #6d7a84;
-  --page-bg: #0c0e10;
-  --paper: #14181c;
-  --paper-raised: #1c2126;
-  --line: #333c42;
-  --sage-soft: #17251e;
-  --amber-soft: #2a2215;
-  --maroon-soft: #2a1717;
+  color-scheme: dark;
+  --ink: #e7edf2;
+  --ink-soft: #b7c3cd;
+  --ink-faint: #94a1ac;
+  --page-bg: #17212a;
+  --paper: #202c36;
+  --paper-raised: #293743;
+  --line: #3d4b57;
+  --control-line: #778189;
+  --maroon: #e28b8b;
+  --maroon-soft: #4a292d;
+  --sage: #9ac5a9;
+  --sage-soft: #294438;
+  --amber: #e4b86a;
+  --amber-soft: #493919;
+  --amber-text: #e4b86a;
 }
 
 * { box-sizing: border-box; }
 
-html, body {
+html {
+  background: var(--page-bg);
+  /* Keyboard focus / scrollIntoView keeps the field above the sticky
+     mobile action bar instead of behind it. */
+  scroll-padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+body {
   margin: 0;
   background: var(--page-bg);
   color: var(--ink);
@@ -67,531 +97,556 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-button { font-family: inherit; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
 
-/* ---------- Layout shell ---------- */
-
-.app-shell {
-  min-height: 100vh;
-  padding: 0;
+/* One visible keyboard-focus ring for every control. Mouse clicks don't
+   show it (:focus-visible). */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--sage);
+  outline-offset: 2px;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Looping animations (recording pulse, listening dot, spinner) must actually
+   STOP — shortening animation-duration alone does not stop infinite ones. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------- Page + sheet ---------- */
+
 /* The whole form is ONE elevated sheet of paper — deliberately not a grid of
-   matching cards. On mobile it runs edge-to-edge (screen space is precious);
-   from tablet up it reads as a sheet sitting on a desk. */
-.paper {
+   matching cards. Edge-to-edge under 640px (screen space is precious); from
+   640px it reads as a sheet sitting on a desk. */
+.clinic-desk {
+  min-height: 100vh;
+  background: var(--page-bg);
+}
+
+.prescription-sheet {
+  width: 100%;
   background: var(--paper);
-  max-width: 100%;
-  margin: 0 auto;
-  padding-bottom: calc(var(--footer-height) + 12px);
+  /* Bottom padding clears the fixed mobile action bar (see .form-footer). */
+  padding: 24px 16px calc(96px + env(safe-area-inset-bottom));
+  box-shadow: 0 12px 36px var(--sheet-shadow);
+}
+
+@media (min-width: 480px) {
+  .prescription-sheet { padding-left: 28px; padding-right: 28px; }
 }
 
 @media (min-width: 640px) {
-  .app-shell { padding: 28px 20px 40px; }
-  .paper {
+  .clinic-desk { padding: 32px 16px; }
+  .prescription-sheet {
     max-width: 680px;
-    border-radius: var(--radius-lg);
+    margin: 0 auto;
     border: 1px solid var(--line);
-    box-shadow: 0 1px 2px rgba(28, 43, 58, 0.04), 0 12px 32px rgba(28, 43, 58, 0.08);
-    padding-bottom: 12px;
+    border-radius: var(--radius-md);
+    padding: 44px 52px 34px;
   }
 }
 
 @media (min-width: 1024px) {
-  .app-shell { padding: 44px 20px 56px; }
-  .paper { max-width: 760px; }
+  .clinic-desk { padding: 44px 16px 56px; }
+  .prescription-sheet { max-width: 760px; }
 }
 
-.pad-body {
-  padding: 0 var(--shell-padding) 8px;
-}
-@media (min-width: 640px) {
-  .pad-body { padding: 0 32px 8px; }
-}
-@media (min-width: 1024px) {
-  .pad-body { padding: 0 44px 8px; }
-}
+/* ---------- Header + toolbar ---------- */
 
-/* ---------- Header ---------- */
-
-.pad-header {
-  padding: 20px var(--shell-padding) 16px;
-  border-bottom: 2px solid var(--ink);
-}
-@media (min-width: 640px) {
-  .pad-header { padding: 28px 32px 20px; }
-}
-@media (min-width: 1024px) {
-  .pad-header { padding: 32px 44px 22px; }
-}
-
-.toolbar-row {
+.sheet-header {
   display: flex;
-  align-items: flex-start;
+  gap: 14px;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.rx-mark {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 0.8;
+  color: var(--maroon);
+  flex-shrink: 0;
+}
+
+.sheet-header h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1.15;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+
+.help-text {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (min-width: 480px) {
+  .rx-mark { font-size: 64px; }
+  .sheet-header h1 { font-size: 29px; }
+}
+
+.toolbar {
+  display: flex;
   justify-content: space-between;
-  gap: 10px;
-  padding: 12px var(--shell-padding) 0;
-  flex-wrap: wrap;
-}
-@media (min-width: 640px) {
-  .toolbar-row { padding: 14px 32px 0; }
-}
-@media (min-width: 1024px) {
-  .toolbar-row { padding: 16px 44px 0; }
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0 18px;
 }
 
 .toolbar-item { position: relative; }
 
-.btn.subtle {
+.quiet-button {
+  border: 0;
   background: transparent;
-  border-color: transparent;
   color: var(--ink-soft);
-  padding: 7px 10px;
-  min-height: auto;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0;
   font-size: 13px;
+  font-weight: 500;
 }
-.btn.subtle:hover:not(:disabled) { background: var(--sage-soft); color: var(--sage); border-color: transparent; }
+.quiet-button:hover { color: var(--ink); }
 
 .toolbar-note {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 2px);
   left: 0;
   z-index: 5;
   width: max-content;
-  max-width: 260px;
+  max-width: min(260px, calc(100vw - 32px));
   background: var(--ink);
   color: var(--paper);
   font-size: 12px;
   line-height: 1.4;
   padding: 9px 12px;
   border-radius: var(--radius-sm);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 18px var(--sheet-shadow);
 }
 
-.pad-header-title {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+/* ---------- Sections + fields ---------- */
+
+.form-section {
+  padding: 0 0 26px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
 }
+.form-section:last-of-type { border-bottom: 0; margin-bottom: 8px; }
 
-.rx-mark {
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 600;
-  line-height: 1;
-  color: var(--ink);
-  flex-shrink: 0;
-}
-
-.pad-header h1 {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 2px;
-  color: var(--ink);
-}
-
-.pad-header-subtitle {
-  font-size: 13px;
-  color: var(--ink-soft);
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* ---------- Sections ---------- */
-
-.section {
-  margin: 26px 0;
-}
-
-.section-label {
+.section-heading {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  gap: 8px;
+  margin: 0 0 16px;
   color: var(--ink-soft);
-  font-weight: 600;
-  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
-
-.section-label svg { color: var(--ink-faint); flex-shrink: 0; }
+.section-heading svg { color: var(--maroon); flex-shrink: 0; }
 
 .required-legend {
   font-size: 12px;
-  color: var(--ink-faint);
-  margin: -6px 0 18px;
-}
-.required-legend .req { color: var(--maroon); }
-
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-@media (max-width: 480px) {
-  .field-row { grid-template-columns: 1fr; gap: 0; }
-}
-
-.field { margin-bottom: 14px; }
-
-.field label {
-  display: block;
-  font-size: 12.5px;
   color: var(--ink-soft);
-  margin-bottom: 6px;
+  margin: -8px 0 20px;
+}
+
+.field-grid { display: grid; gap: 16px; }
+
+@media (min-width: 480px) {
+  .patient-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.field-wrap { min-width: 0; }
+
+.field-wrap label {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 13px;
   font-weight: 500;
+  margin-bottom: 7px;
 }
 
-.field label .req { color: var(--maroon); }
-
-.field-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
+.required {
+  color: var(--maroon);
+  margin-left: 3px;
+  font-size: 14px;
 }
 
-.field-mic-note {
-  font-size: 12px;
-  color: var(--ink-faint);
-  margin: 5px 0 0;
-}
+.control-shell { position: relative; }
 
-input.field-input,
-select.field-input,
-textarea.field-input {
+.field-control {
+  display: block;
   width: 100%;
-  font-family: var(--font-body);
-  font-size: 16px; /* 16px avoids iOS auto-zoom on focus */
-  color: var(--ink);
-  background: var(--paper-raised);
-  border: 1px solid var(--line);
+  min-height: 48px;
+  border: 1px solid var(--control-line);
   border-radius: var(--radius-sm);
-  padding: 11px 44px 11px 13px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* Right padding leaves room for the mic button inside the field. */
+  padding: 11px 52px 11px 13px;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 16px; /* 16px avoids iOS auto-zoom on focus */
+  line-height: 1.4;
+  outline: none;
+  scroll-margin-bottom: calc(112px + env(safe-area-inset-bottom) + 16px);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-textarea.field-input {
-  min-height: 68px;
+textarea.field-control {
   resize: vertical;
-  font-family: var(--font-body);
+  min-height: 92px;
+  line-height: 1.5;
 }
 
-.field.medications textarea.field-input {
-  font-family: var(--font-mono);
-  font-size: 13.5px;
-  min-height: 120px;
-}
+.field-control.is-filled { background: var(--paper); }
 
-input.field-input:focus,
-select.field-input:focus,
-textarea.field-input:focus {
+.field-control:focus,
+.field-control:focus-visible {
   outline: none;
   border-color: var(--sage);
   box-shadow: 0 0 0 3px var(--sage-soft);
 }
 
-/* ---------- Mic buttons ---------- */
+.field-control.is-missing {
+  border-color: var(--maroon);
+  box-shadow: 0 0 0 3px var(--maroon-soft);
+}
 
-.mic-btn {
+select.field-control {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 80px; /* chevron + mic */
+  cursor: pointer;
+}
+.select-chevron {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 36px;
-  height: 36px;
-  min-width: 44px;
-  min-height: 44px;
-  margin: -4px -4px 0 0;
+  right: 50px;
+  top: 16px;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+/* Saved = final: read-only fields look like print, not like inputs. */
+.field-control[readonly],
+select.field-control:disabled {
+  padding-right: 13px;
+  background: var(--paper);
+  border-color: var(--line);
+  color: var(--ink);
+  opacity: 1;
+  cursor: default;
+  resize: none;
+}
+.field-control[readonly]:focus {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.field-message {
+  color: var(--maroon);
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+
+.field-mic-note {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 6px 0 0;
+}
+
+/* ---------- Per-field mic ---------- */
+
+.mic-button {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
   border-radius: 50%;
-  border: none;
   background: transparent;
   color: var(--ink-soft);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s, color 0.15s;
 }
+.mic-button:hover:not(:disabled) { color: var(--sage); background: var(--sage-soft); }
 
-.mic-btn:hover:not(:disabled) { background: var(--sage-soft); color: var(--sage); }
-
-.mic-btn.recording {
+.mic-recording,
+.mic-recording:hover:not(:disabled) {
+  color: var(--paper-raised);
   background: var(--maroon);
-  color: white;
-  animation: pulse 1.4s ease-in-out infinite;
+  animation: pulse 1.6s ease-in-out infinite;
 }
-
-.mic-btn.processing { color: var(--amber); }
-
-.mic-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  animation: none;
-}
+.mic-processing { color: var(--amber-text); background: var(--amber-soft); cursor: progress; }
+.mic-disabled { opacity: 0.35; cursor: not-allowed; }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(140, 47, 47, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(140, 47, 47, 0); }
+  50% { box-shadow: 0 0 0 5px var(--maroon-soft); }
 }
 
-.spin { animation: spin 0.9s linear infinite; }
+.spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- Dictate bar ---------- */
+/* ---------- Dictate bar (whole-visit mic) ---------- */
 
 .dictate-bar {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--paper-raised);
+  padding: 12px;
+  margin: 0 0 22px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  margin-bottom: 22px;
+  background: var(--paper-raised);
 }
 
-.dictate-mic-btn {
-  flex-shrink: 0;
+.dictate-button {
+  flex: 0 0 56px;
   width: 56px;
   height: 56px;
+  display: grid;
+  place-items: center;
+  border: 0;
   border-radius: 50%;
-  border: none;
+  color: var(--paper-raised);
   background: var(--ink);
-  color: var(--paper);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: transform 0.1s ease;
 }
-
-.dictate-mic-btn:hover:not(:disabled) { background: #000; }
-.dictate-mic-btn:active:not(:disabled) { transform: scale(0.96); }
-
-.dictate-mic-btn.recording {
+.dictate-button:active:not(:disabled) { transform: scale(0.96); }
+.dictate-recording .dictate-button {
   background: var(--maroon);
-  animation: pulse 1.4s ease-in-out infinite;
+  animation: pulse 2s ease-in-out infinite;
 }
-
-.dictate-mic-btn.processing { background: var(--amber); }
-
-.dictate-mic-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  animation: none;
-}
-
-.dictate-bar-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.dictate-bar-label {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.dictate-bar .status-text {
-  font-size: 13px;
-  color: var(--ink-soft);
-  line-height: 1.4;
-}
-
-.retry-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  align-self: flex-start;
-  margin-top: 4px;
-  border: none;
-  background: none;
-  color: var(--sage);
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 2px 0;
-}
-.retry-link:hover:not(:disabled) { text-decoration: underline; }
-.retry-link:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ---------- Generic buttons ---------- */
-
-.btn {
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 500;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--paper-raised);
-  color: var(--ink);
-  padding: 11px 18px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  transition: border-color 0.15s ease, background 0.15s ease;
-  min-height: 44px;
-}
-
-.btn:hover:not(:disabled) { border-color: var(--ink-soft); }
-
-.btn.primary {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-.btn.primary:hover:not(:disabled) { background: #000; }
-
-.btn.recording {
-  background: var(--maroon);
-  color: white;
-  border-color: var(--maroon);
-}
-
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ---------- Review panel: diff of proposed field updates before commit ---------- */
-
-.review-panel {
-  border: 1px solid var(--amber);
+.dictate-processing .dictate-button {
+  color: var(--amber-text);
   background: var(--amber-soft);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin-bottom: 22px;
+  cursor: progress;
 }
+.dictate-paused .dictate-button { opacity: 0.35; cursor: not-allowed; }
 
-.review-panel-header {
+.dictate-copy { min-width: 0; }
+
+.dictate-title {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
-
-.review-panel-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 15.5px;
-  font-weight: 600;
+  gap: 8px;
   color: var(--ink);
+  font-size: 14px;
 }
 
-.voice-confirm-toggle {
+.dictate-status {
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 3px;
+}
+.dictate-processing .dictate-status { color: var(--amber-text); }
+
+/* The Space shortcut only means something with a keyboard. */
+kbd {
+  display: none;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+@media (hover: hover) and (pointer: fine) {
+  kbd { display: inline-block; }
+}
+
+.retry-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-body);
-  font-size: 12.5px;
+  min-height: 44px;
+  padding: 4px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--sage);
+  font-size: 13px;
   font-weight: 500;
-  padding: 6px 11px;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-  background: var(--paper-raised);
-  color: var(--ink-soft);
-  cursor: pointer;
-  white-space: nowrap;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.retry-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Review panel: proposed updates, nothing applied until Accept ---------- */
+
+.review-panel {
+  margin: 0 0 22px;
+  padding: 14px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  background: var(--amber-soft);
 }
 
-.voice-confirm-toggle.on {
-  background: var(--sage);
+.review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.review-header h2 {
+  margin: 0;
+  color: var(--amber-text);
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.hands-free-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--control-line);
+  border-radius: 99px;
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+/* On: filled sage, so the listening dot (currentColor) is visible — in v0
+   it was white on a white button. */
+.hands-free-toggle[aria-pressed="true"] {
   border-color: var(--sage);
-  color: white;
+  background: var(--sage);
+  color: var(--paper-raised);
 }
 
 .listening-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
+  background: currentColor;
+  opacity: 0.4;
   flex-shrink: 0;
 }
-.listening-dot.active {
-  background: #ffffff;
-  animation: listening-pulse 1.2s ease-in-out infinite;
+.listening-dot.is-listening {
+  opacity: 1;
+  animation: listening-pulse 1.5s ease-in-out infinite;
 }
 @keyframes listening-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 30%, transparent); }
 }
 
-.voice-confirm-hint {
+.hands-free-hint {
+  margin: 10px 0 12px;
+  color: var(--amber-text);
   font-size: 12.5px;
-  color: var(--ink-soft);
   line-height: 1.5;
-  margin: 6px 0 14px;
 }
 
 .voice-notice {
-  font-size: 13px;
-  color: var(--amber);
-  background: var(--amber-soft);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
   margin: 0 0 12px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--amber);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.review-items {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .review-item {
-  background: var(--paper-raised);
+  padding: 11px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  margin-bottom: 10px;
+  background: var(--paper-raised);
 }
-.review-item.current {
-  border-color: var(--sage);
-  box-shadow: 0 0 0 1px var(--sage);
-}
-.updated-tag {
-  margin-left: 8px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--amber-soft);
-  color: var(--amber);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-}
-.current-tag {
-  margin-left: 8px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--sage);
-  color: #fff;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+/* The item a bare spoken "accept" acts on. */
+.review-item.is-next {
+  border-left: 3px solid var(--sage);
+  padding-left: 10px;
 }
 
-.review-item .field-name {
-  font-size: 11.5px;
-  color: var(--ink-soft);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+.review-item-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
   margin-bottom: 5px;
 }
-
-.review-item .diff-old {
-  font-size: 13px;
-  color: var(--ink-faint);
-  text-decoration: line-through;
-  margin-bottom: 2px;
-}
-
-.review-item .diff-new {
-  font-size: 15px;
-  color: var(--ink);
-  font-weight: 500;
-}
-
-.review-item .evidence {
-  font-size: 12px;
+.review-field-label {
   color: var(--ink-soft);
-  font-style: italic;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.next-tag,
+.updated-tag {
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.next-tag { background: var(--sage-soft); color: var(--sage); }
+.updated-tag { background: var(--amber-soft); color: var(--amber-text); }
+
+.review-old,
+.review-new,
+.review-heard {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.review-old {
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  text-decoration: line-through;
+}
+.review-new {
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+.review-new.is-monospace {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.review-heard {
   margin-top: 5px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-style: italic;
 }
 
 .review-item-actions {
@@ -599,177 +654,179 @@ textarea.field-input:focus {
   gap: 8px;
   margin-top: 10px;
 }
-
-.review-item-actions button {
+.review-item-actions button,
+.accept-all {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  font-weight: 500;
-  padding: 7px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--line);
-  background: var(--paper-raised);
-  color: var(--ink);
-  cursor: pointer;
+  justify-content: center;
+  gap: 6px;
   min-height: 36px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 700;
 }
-
-.review-item-actions button.accept {
-  background: var(--sage-soft);
-  border-color: var(--sage);
-  color: var(--sage);
-}
-
-.unmatched-note {
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  line-height: 1.5;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line);
-}
-
-/* ---------- Status banners ---------- */
-
-.saved-banner,
-.error-banner,
-.cooldown-banner {
-  border-radius: var(--radius-md);
-  padding: 13px 16px;
-  margin-bottom: 20px;
-  font-size: 13.5px;
-  line-height: 1.5;
-}
-
-.saved-banner {
+.review-accept,
+.accept-all {
   border: 1px solid var(--sage);
   background: var(--sage-soft);
   color: var(--sage);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
 }
-@media (min-width: 560px) {
-  .saved-banner { flex-direction: row; align-items: center; justify-content: space-between; }
-}
-
-.saved-banner-text {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.saved-banner-note {
-  display: block;
-  font-size: 12.5px;
+.review-discard {
+  border: 1px solid var(--control-line);
+  background: transparent;
   color: var(--ink-soft);
-  margin-top: 2px;
+}
+.accept-all { margin-top: 10px; }
+
+/* Touch devices and narrower screens: full 44px targets. */
+@media (max-width: 1023px), (pointer: coarse) {
+  .hands-free-toggle,
+  .review-item-actions button,
+  .accept-all { min-height: 44px; }
+}
+@media (max-width: 639px) {
+  .review-item-actions button { flex: 1; }
+  .accept-all { width: 100%; }
 }
 
-.pid-copy {
+.also-heard {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--amber);
+  color: var(--amber-text);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* ---------- Status banners (saved / error / cooldown) ---------- */
+
+.status-banner {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.status-success { color: var(--sage); border-color: var(--sage); background: var(--sage-soft); }
+.status-error { color: var(--maroon); border-color: var(--maroon); background: var(--maroon-soft); }
+.status-cooldown { color: var(--amber-text); border-color: var(--amber); background: var(--amber-soft); }
+
+.status-icon { flex: 0 0 auto; margin-top: 2px; }
+
+.status-copy {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.status-copy strong { font-weight: 700; }
+.status-note { color: var(--ink-soft); font-size: 12.5px; }
+
+.reference-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: none;
-  background: none;
-  cursor: pointer;
+  min-height: 44px;
+  margin: -12px 0;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
   color: inherit;
-  padding: 2px 4px;
-  border-radius: 4px;
-  position: relative;
-}
-.pid-copy:hover { background: rgba(255, 255, 255, 0.4); }
-
-.pid {
+  background: transparent;
   font-family: var(--font-mono);
   font-weight: 600;
-  letter-spacing: 0.02em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
+.reference-button:hover { background: color-mix(in srgb, var(--paper-raised) 50%, transparent); }
 
-.pid-copied {
-  position: absolute;
-  top: -22px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--ink);
-  color: var(--paper);
-  font-size: 11px;
-  font-family: var(--font-body);
-  padding: 3px 7px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.error-banner {
-  border: 1px solid var(--maroon);
-  background: var(--maroon-soft);
-  color: var(--maroon);
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.error-banner svg { flex-shrink: 0; margin-top: 1px; }
-
-.cooldown-banner {
-  border: 1px solid var(--amber);
-  background: var(--amber-soft);
-  color: var(--amber);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.cooldown-banner svg { flex-shrink: 0; }
-
-.cooldown-text { flex: 1; }
-
-.cooldown-text strong {
-  display: block;
-  font-size: 13.5px;
-}
-
-.cooldown-reason {
-  font-size: 12px;
-  opacity: 0.85;
-  margin-top: 2px;
-}
-
-.cooldown-timer {
-  font-family: var(--font-mono);
-  font-size: 20px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-/* ---------- Footer actions ---------- */
-
-.footer-actions {
-  display: flex;
-  gap: 10px;
-  padding: 14px var(--shell-padding);
+.copied-tip {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--sage);
   background: var(--paper-raised);
-  border-top: 1px solid var(--line);
+  font-size: 11px;
 }
 
-/* Sticky, thumb-reachable action bar on mobile — content has bottom padding
-   (via .paper) so the last field is never hidden behind it. */
+.status-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 7px 12px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  background: transparent;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cooldown-count {
+  margin-left: auto;
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 479px) {
+  .status-secondary { width: 100%; justify-content: center; margin-left: 0; }
+}
+
+/* ---------- Footer actions (Print / Save) ---------- */
+
+.form-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.action-button {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.action-button.secondary {
+  color: var(--ink);
+  border: 1px solid var(--control-line);
+  background: var(--paper-raised);
+}
+.action-button.primary {
+  color: var(--paper-raised);
+  border: 1px solid var(--ink);
+  background: var(--ink);
+}
+.action-button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Sticky, thumb-reachable action bar on phones; .prescription-sheet has
+   bottom padding so the last field is never hidden behind it. */
 @media (max-width: 639px) {
-  .footer-actions {
+  .form-footer {
     position: fixed;
-    bottom: 0;
+    z-index: 10;
     left: 0;
     right: 0;
-    z-index: 10;
-    padding-bottom: max(14px, env(safe-area-inset-bottom, 14px));
-  }
-  .footer-actions .btn { flex: 1; justify-content: center; }
-}
-
-@media (min-width: 640px) {
-  .footer-actions {
-    justify-content: flex-end;
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    bottom: 0;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--paper-raised);
     border-top: 1px solid var(--line);
   }
+  .form-footer .action-button { flex: 1; }
 }

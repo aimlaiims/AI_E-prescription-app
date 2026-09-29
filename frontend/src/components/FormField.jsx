@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Mic, Square, Loader2, ChevronDown } from "lucide-react";
 import { useRecorder } from "../useRecorder.js";
 import { transcribeAudio, extractFields } from "../api.js";
 import { EMPTY_TRANSCRIPT_MESSAGE, noMatchMessage } from "../messages.js";
@@ -16,6 +16,7 @@ export default function FormField({
   setMicStatus,
   disabled,
   readOnly,
+  missing,
 }) {
   const { isRecording, start, stop } = useRecorder();
 
@@ -71,54 +72,77 @@ export default function FormField({
     }
   };
 
-  const inputClasses = "field-input";
-  const isProcessing = micStatus === "processing";
+  // One visual state for the mic: idle | recording | processing | disabled.
+  const micState =
+    micStatus === "processing"
+      ? "processing"
+      : isRecording
+      ? "recording"
+      : disabled
+      ? "disabled"
+      : "idle";
+
+  const controlClass = [
+    "field-control",
+    value ? "is-filled" : "",
+    missing ? "is-missing" : "",
+    spec.type === "textarea" ? "is-textarea" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const messageId = `${fieldKey}-message`;
+  const describedBy = missing ? messageId : undefined;
+  const handleChange = (e) => onChange(fieldKey, e.target.value);
 
   return (
-    <div className={`field ${fieldKey}`}>
+    <div className={`field-wrap ${spec.type === "textarea" ? "is-textarea" : ""}`}>
       <label htmlFor={fieldKey}>
         {spec.label}
-        {spec.required && <span className="req"> *</span>}
+        {spec.required && (
+          <span className="required" aria-hidden="true">
+            *
+          </span>
+        )}
       </label>
-      <div className="field-input-wrap">
+      <div className="control-shell">
         {spec.type === "textarea" && (
           <textarea
             id={fieldKey}
-            className={inputClasses}
+            className={controlClass}
             value={value}
             readOnly={readOnly}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
+            rows={fieldKey === "medications" ? 5 : 3}
+            required={spec.required}
+            aria-invalid={missing || undefined}
+            aria-describedby={describedBy}
+            onChange={handleChange}
           />
         )}
-        {spec.type === "text" && (
+        {(spec.type === "text" || spec.type === "date") && (
           <input
             id={fieldKey}
-            type="text"
-            className={inputClasses}
+            type={spec.type}
+            className={controlClass}
             value={value}
             readOnly={readOnly}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
-          />
-        )}
-        {spec.type === "date" && (
-          <input
-            id={fieldKey}
-            type="date"
-            className={inputClasses}
-            value={value}
-            readOnly={readOnly}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
+            required={spec.required}
+            aria-invalid={missing || undefined}
+            aria-describedby={describedBy}
+            onChange={handleChange}
           />
         )}
         {spec.type === "enum" && (
           <select
             id={fieldKey}
-            className={inputClasses}
+            className={controlClass}
             value={value}
             disabled={readOnly}
-            onChange={(e) => onChange(fieldKey, e.target.value)}
+            required={spec.required}
+            aria-invalid={missing || undefined}
+            aria-describedby={describedBy}
+            onChange={handleChange}
           >
-            <option value="">Select…</option>
+            <option value="">Choose {spec.label.toLowerCase()}</option>
             {spec.options.map((o) => (
               <option key={o} value={o}>
                 {o}
@@ -126,33 +150,42 @@ export default function FormField({
             ))}
           </select>
         )}
+        {spec.type === "enum" && !readOnly && (
+          // Our own arrow (the native one sits under the mic button).
+          <ChevronDown size={16} className="select-chevron" aria-hidden="true" />
+        )}
         {!readOnly && (
           <button
             type="button"
-            className={`mic-btn ${isRecording ? "recording" : ""} ${isProcessing ? "processing" : ""}`}
+            className={`mic-button mic-${micState}`}
             onClick={handleMicClick}
-            disabled={disabled}
+            disabled={micState === "disabled" || micState === "processing"}
             aria-label={
               isRecording ? `Stop and fill in ${spec.label}` : `Dictate ${spec.label}`
             }
             title={
-              disabled
+              micState === "disabled"
                 ? "Voice input is paused for a moment"
                 : isRecording
                 ? "Stop and fill in this field"
                 : `Dictate ${spec.label}`
             }
           >
-            {isProcessing ? (
-              <Loader2 size={16} className="spin" />
+            {micState === "processing" ? (
+              <Loader2 size={16} strokeWidth={2.2} className="spin" aria-hidden="true" />
             ) : isRecording ? (
-              <Square size={14} />
+              <Square size={14} strokeWidth={2.2} aria-hidden="true" />
             ) : (
-              <Mic size={16} />
+              <Mic size={16} strokeWidth={2.2} aria-hidden="true" />
             )}
           </button>
         )}
       </div>
+      {missing && (
+        <p className="field-message" id={messageId}>
+          Please add {spec.label.toLowerCase()}.
+        </p>
+      )}
       {note && <p className="field-mic-note">{note}</p>}
     </div>
   );

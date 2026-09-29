@@ -5,15 +5,15 @@ from pydantic import BaseModel, Field, field_validator
 # Both the extraction prompt and the frontend form are driven off this shape,
 # so adding a field to the form later means editing it in exactly one place.
 FORM_FIELD_SPECS = {
-    "patient_name": {"label": "Patient Name", "type": "text"},
+    "patient_name": {"label": "Patient name", "type": "text"},
     "date": {"label": "Date", "type": "date"},
     "age": {"label": "Age", "type": "text"},
     "gender": {"label": "Gender", "type": "enum", "options": ["Male", "Female", "Other"]},
-    "chief_complaints": {"label": "Chief Complaints", "type": "textarea"},
-    "on_examination": {"label": "On Examination", "type": "textarea"},
+    "chief_complaints": {"label": "Chief complaints", "type": "textarea"},
+    "on_examination": {"label": "On examination", "type": "textarea"},
     "diagnosis": {"label": "Diagnosis", "type": "textarea"},
     "investigation": {"label": "Investigation", "type": "textarea"},
-    "medications": {"label": "Medications (Rx)", "type": "textarea"},
+    "medications": {"label": "Medications", "type": "textarea"},
 }
 
 REQUIRED_FIELDS = {"patient_name", "age", "gender", "chief_complaints", "diagnosis"}

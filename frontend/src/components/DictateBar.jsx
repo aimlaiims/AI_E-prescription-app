@@ -53,7 +53,9 @@ export default function DictateBar({
   };
 
   const handleToggle = async () => {
-    if (disabled || busy) return;
+    if (busy) return;
+    // A cooldown blocks starting, never stopping: an open mic must be closable.
+    if (disabled && !isRecording) return;
 
     if (isRecording) {
       setBusy(true);
@@ -126,32 +128,42 @@ export default function DictateBar({
     return () => window.removeEventListener("keydown", handleKeyDown);
   });
 
-  const icon = busy ? (
-    <Loader2 size={22} className="spin" />
-  ) : isRecording ? (
-    <Square size={18} />
-  ) : (
-    <Mic size={22} />
-  );
+  // One visual state: idle | recording | processing | paused.
+  const state = busy ? "processing" : isRecording ? "recording" : disabled ? "paused" : "idle";
+
+  const icon =
+    state === "processing" ? (
+      <Loader2 size={23} className="spin" aria-hidden="true" />
+    ) : state === "recording" ? (
+      <Square size={20} fill="currentColor" aria-hidden="true" />
+    ) : (
+      <Mic size={23} aria-hidden="true" />
+    );
 
   return (
-    <div className="dictate-bar">
+    <div className={`dictate-bar dictate-${state}`}>
       <button
         type="button"
-        className={`dictate-mic-btn ${isRecording ? "recording" : ""} ${busy ? "processing" : ""}`}
+        className="dictate-button"
         onClick={handleToggle}
-        disabled={busy || disabled}
+        disabled={state === "processing" || state === "paused"}
         aria-label={isRecording ? "Stop dictating the visit" : "Dictate the whole visit"}
         title={isRecording ? "Stop and fill in the prescription (Space)" : "Dictate the whole visit (Space)"}
       >
         {icon}
       </button>
-      <div className="dictate-bar-text">
-        <span className="dictate-bar-label">Dictate the whole visit</span>
-        <span className="status-text">{status}</span>
+      <div className="dictate-copy">
+        <div className="dictate-title">
+          <strong>Dictate the whole visit</strong>
+          {/* Shown only where there is a keyboard (see styles.css). */}
+          <kbd>Space</kbd>
+        </div>
+        <div className="dictate-status" aria-live="polite">
+          {status}
+        </div>
         {lastTranscript && !busy && (
-          <button type="button" className="retry-link" onClick={handleRetry} disabled={disabled}>
-            <RefreshCw size={12} />
+          <button type="button" className="retry-button" onClick={handleRetry} disabled={disabled}>
+            <RefreshCw size={14} aria-hidden="true" />
             Try filling in the prescription again. No need to redictate.
           </button>
         )}

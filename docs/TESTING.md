@@ -125,12 +125,20 @@ assert r.json()["detail"] == {"error_code": "rate_limited", "message": "x", "ret
 - [ ] **iPhone/Safari**: dictate one field → transcribed (upload is now named .mp4)
 
 ## 7. Responsive and visual
-Check at 375px, 768px, 1280px:
+Automated once for the v0 port (2026-09-29, real Chrome, API stubbed): no horizontal
+scroll and all tap targets ≥ 44px at 320/375/768/1440 in six states (empty, recording,
+review with Next + Updated, missing fields, cooldown, locked), light + dark. Re-check
+by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] 375: edge-to-edge, sticky Print/Save bar, last field not hidden behind it, patient
       fields stack, no horizontal scroll, inputs do not zoom on focus (iOS)
 - [ ] 768/1280: bordered sheet, footer inline at the bottom of the sheet
 - [ ] Dictate bar, banners and review panel wrap cleanly
 - [ ] Tap targets ≥ 44px; recording state (maroon pulse) and processing spinner visible
+- [ ] Save with empty required fields → red outlines + "Please add …"; they clear as you type
+- [ ] Press Enter in Patient name → nothing is saved
+- [ ] Hands-free on → toggle turns sage and the dot is visible
+- [ ] OS set to "reduce motion" → no pulsing mic / dot / spinner animation
+- [ ] Print a record with 24+ medication lines → signature never alone on the last page
 
 ## 8. Latency (through ngrok and on localhost)
 Dictate one field; read the terminal:

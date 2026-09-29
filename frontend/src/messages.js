@@ -11,11 +11,11 @@ const VOICE_MESSAGES = {
   rate_limited:
     "Voice input is in high demand right now and needs a short break. It will resume automatically — no need to do anything.",
   unavailable:
-    "Voice input isn't responding at the moment. Please try again in a moment, or fill this field in by typing.",
+    "Voice input isn't responding at the moment. Please try again in a moment, or fill this in by typing.",
   auth:
     "Voice input isn't set up correctly on this device. Please let whoever manages this software know.",
   default:
-    "Something interrupted voice input. Please try again, or fill this field in by typing.",
+    "Something interrupted voice input. Please try again, or fill this in by typing.",
 };
 
 const SAVE_MESSAGES = {
@@ -46,13 +46,13 @@ const MIC_MESSAGES = {
   mic_permission_denied:
     "Microphone access is blocked for this page. Allow microphone access from your browser's address bar, then try again.",
   mic_not_found:
-    "No microphone was found on this device. Please connect a microphone, or fill this field in by typing.",
+    "No microphone was found on this device. Please connect a microphone, or fill this in by typing.",
   mic_in_use:
     "The microphone couldn't be started — it may be in use by another app or tab. Close it and try again.",
   mic_insecure_context:
     "Voice input isn't available on this connection. It needs a secure (https) address to access the microphone.",
   mic_unknown:
-    "Couldn't start the microphone. Please try again, or fill this field in by typing.",
+    "Couldn't start the microphone. Please try again, or fill this in by typing.",
 };
 
 const MESSAGES_BY_CONTEXT = {
@@ -69,7 +69,7 @@ export function friendlyErrorMessage(err, context = "voice") {
 }
 
 export function friendlyCooldownReason() {
-  return "Too many voice requests in a short time. This happens occasionally on busy days — dictation will work again automatically once the timer below reaches zero.";
+  return "Too many voice requests in a short time. This happens occasionally on busy days — dictation will work again automatically once the timer reaches zero.";
 }
 
 // Hands-free confirm hit an error that retrying won't fix (mic blocked for
@@ -81,6 +81,11 @@ export const HANDS_FREE_UNAVAILABLE_MESSAGE =
 // be silently left out of it.
 export const PENDING_BEFORE_SAVE_MESSAGE =
   "Some dictated details are still waiting for review. Accept or discard them before saving.";
+
+// Required fields left empty on Save/Print (checked in the browser first).
+export function missingFieldsMessage(labels) {
+  return `Please fill in: ${labels.join(", ")}.`;
+}
 
 // Shared between the whole-form mic and each per-field mic, so both
 // experiences read the same way instead of drifting apart over time.

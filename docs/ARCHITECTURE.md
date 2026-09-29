@@ -137,26 +137,37 @@ App.jsx            state: form values, pending[] (each with stable id), transcri
                    savedPid, error, cooldownUntil, printing/saving. Orchestrates save,
                    print, error routing (handleApiError / handleSaveError).
 components/
-  FormField.jsx    input + per-field mic (idle / recording / processing spinner)
-  DictateBar.jsx   big round mic, Space toggle, status text, transcript retry
+  FormField.jsx    input with the mic inside it (idle / recording / processing / disabled),
+                   missing-field outline + message, read-only when locked
+  DictateBar.jsx   big round mic, Space toggle (+ kbd hint on keyboard devices), retry
   ReviewPanel.jsx  diff list, Accept/Discard/Accept all, hands-free toggle
+  StatusBanner.jsx saved (Reference ID copy) / error / cooldown — presentational
+  SaveButton.jsx   Save prescription / Saving… / Saved (lock-after-save phases)
 voiceCommands.js   parseVoiceCommands + FIELD_ALIASES (pure; voiceCommands.test.js)
 pendingUpdates.js  one-pending-per-field merge + pending-applied extraction base (pure; tested)
-printTemplate.js   buildPrintHtml(state, pid) -> full standalone HTML document
+printTemplate.js   buildPrintHtml(state, pid, {toolbar, letterhead}) -> standalone A4 HTML (tested)
 messages.js        error code -> plain language
 api.js             fetch wrappers, ApiError
 fieldSpecs.js      field labels/types/required (MIRRORS backend schemas.py)
 useRecorder.js     MediaRecorder start()/stop() -> Blob promise
 styles.css         tokens + responsive layout
 ```
-Layout: one elevated "paper sheet" (prescription-pad look, from the original reference
-form) — edge-to-edge under 640px with a sticky bottom action bar; a bordered sheet from
-640px; wider at 1024px. Two-column patient fields collapse under 480px.
+Layout (v0 design, ported 2026-09-29): one elevated "paper sheet" — edge-to-edge under
+640px with a sticky bottom action bar; a bordered sheet from 640px; wider at 1024px.
+Patient fields are two columns from 480px. Required fields are checked in the browser
+before Save/Print (red outline + "Please add …"; the banner is derived from the form, so
+it clears as fields fill); the backend still validates. There is deliberately no `<form>`
+submit — Enter must never save (and so lock) a prescription.
 
 **Print.** `handlePrint` opens the preview window *synchronously* (before any `await`),
 saves first if there is no Reference ID, then writes the document. The preview has its
 own Print/Close buttons (hidden when printing). Empty optional sections are omitted;
-empty medications prints "No medications prescribed."
+empty medications prints "No medications prescribed." Blank patient fields print "-".
+The last 3 medication lines and the signature share one `break-inside: avoid` block, so
+the signature is never alone on a page (plain `break-before: avoid` does not hold in
+Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month names
+("28 Sep 2026"); `en-GB` locale formatting gives "Sept" in current Chrome. Letterhead
+(clinic / doctor / registration no.) is supported but not configured yet.
 
 ## 8. API
 

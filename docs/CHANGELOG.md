@@ -187,3 +187,27 @@ Files: `pendingUpdates.js`, `pendingUpdates.test.js`, `App.jsx`, `ReviewPanel.js
     result clears an earlier voice error.
 **Static ✔ · npm test ✔ 27/27 · TestClient ✔ (target_field) · Live:** 1, 2, 4, 6, 7, 8 need a
 browser; 3 needs an iPhone; 9 needs faster-whisper installed (not installed here).
+
+## 18. UI redesign: v0 design ported (2026-09-29)
+Source: `v0-live-current.zip` (form, dictate bar, review panel, status banner, save
+button, globals.css) and `v0-recovered.zip` (print page), per `UI_HANDOFF.md`. Plain
+JSX + CSS, no Tailwind/TypeScript, no new runtime dependencies. Logic unchanged.
+Commits `UI 1/8` … `UI 8/8`:
+1. Tokens (`--control-line`, `--amber-text`, `--sheet-shadow`, v0 dark palette on the
+   existing prefers-color-scheme/data-theme switch), focus rings, real reduced motion,
+   scroll padding; IBM Plex Mono and a Source Serif weight dropped.
+2. Sheet + fields; browser-side required check with per-field messages; read-only
+   locked look; own select chevron; sentence-case labels (both `FIELD_SPECS`).
+3. Dictate bar; a cooldown no longer blocks stopping an open mic.
+4. Review panel; v0's invisible listening dot fixed.
+5. `StatusBanner`; 6. `SaveButton`.
+7. Print page; orphaned-signature fix that works in Chrome; fixed month names.
+8. Copy ("fill this in by typing"), docs, verify checks.
+**Deliberately not taken from the handoff:** Update record / "Unsaved changes" / PUT
+(owner chose lock-after-save), records browser and letterhead config (later), v0's
+`<form onSubmit>` (Enter would save + lock).
+**Static ✔ · npm test ✔ 38/38 · real Chrome ✔** (playwright-core, scratch only):
+320/375/768/1440, 6 states, light + dark — no horizontal scroll, all tap targets ≥ 44px;
+print PDFs 1–60 medication lines. **Live:** real speech, iPhone Safari, the doctor's phone.
+Bundle: JS 178.9 → 183.0 KB (57.3 → 58.7 KB gzip); CSS 13.0 → 13.7 KB; web font files
+7 → 5 (2 families).

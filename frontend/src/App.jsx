@@ -1,14 +1,24 @@
 import { useState, useEffect, useRef } from "react";
-import { User, ClipboardList, Pill, Copy, Check, AlertTriangle, Clock3, RotateCcw, Save, Printer, History } from "lucide-react";
+import {
+  User,
+  ClipboardList,
+  Pill,
+  RotateCcw,
+  Printer,
+  History,
+  Loader2,
+} from "lucide-react";
 import FormField from "./components/FormField.jsx";
 import DictateBar from "./components/DictateBar.jsx";
 import ReviewPanel from "./components/ReviewPanel.jsx";
+import StatusBanner from "./components/StatusBanner.jsx";
+import SaveButton from "./components/SaveButton.jsx";
 import { FIELD_SPECS, EMPTY_STATE } from "./fieldSpecs.js";
 import { saveForm } from "./api.js";
 import {
   friendlyErrorMessage,
-  friendlyCooldownReason,
   PENDING_BEFORE_SAVE_MESSAGE,
+  missingFieldsMessage,
 } from "./messages.js";
 import { buildPrintHtml } from "./printTemplate.js";
 import { mergePending, withPendingApplied } from "./pendingUpdates.js";
@@ -31,11 +41,13 @@ export default function App() {
   const [transcriptLog, setTranscriptLog] = useState([]);
   const [micStatus, setMicStatusState] = useState({});
   const [savedPid, setSavedPid] = useState(null);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [oldRecordsNote, setOldRecordsNote] = useState(false);
+  // Set by a Save/Print attempt with required fields empty; from then on the
+  // missing fields are highlighted until filled (derived, so never stale).
+  const [showMissing, setShowMissing] = useState(false);
   const oldRecordsTimeout = useRef(null);
   // Stable per-update ids (not array position) so accept/reject targets the
   // right item even when several updates are dispatched in one batch — see
@@ -169,9 +181,20 @@ export default function App() {
     return true;
   };
 
+  // Required fields are checked here first so the doctor sees exactly which
+  // fields to fill; the backend still validates as the source of truth.
+  const missingFields = Object.keys(FIELD_SPECS).filter(
+    (k) => FIELD_SPECS[k].required && !String(state[k] ?? "").trim()
+  );
+  const blockIfMissing = () => {
+    if (!missingFields.length) return false;
+    setShowMissing(true);
+    return true;
+  };
+
   const handleSave = async () => {
     setError("");
-    if (blockIfPending()) return;
+    if (blockIfPending() || blockIfMissing()) return;
     setSaving(true);
     try {
       const res = await saveForm(state, transcriptLog.join("\n---\n"));
@@ -193,7 +216,7 @@ export default function App() {
   // always prints exactly what is stored.
   const handlePrint = async () => {
     setError("");
-    if (!savedPid && blockIfPending()) return;
+    if (!savedPid && (blockIfPending() || blockIfMissing())) return;
     const previewWindow = window.open("", "_blank");
     if (!previewWindow) {
       setError("Your browser blocked the print preview pop-up. Please allow pop-ups for this page and try again.");
@@ -229,24 +252,13 @@ export default function App() {
     formGenRef.current += 1;
     setFormGen(formGenRef.current);
     setMicStatusState({});
+    setShowMissing(false);
     setState({ ...EMPTY_STATE, date: today() });
     setPending([]);
     setUnmatchedNote("");
     setTranscriptLog([]);
     setSavedPid(null);
-    setCopied(false);
     setError("");
-  };
-
-  const handleCopyPid = async () => {
-    if (!savedPid) return;
-    try {
-      await navigator.clipboard.writeText(savedPid);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard access denied — the ID is still visible to copy by hand */
-    }
   };
 
   // Placeholder until the real record browser is built — the backend already
@@ -277,158 +289,142 @@ export default function App() {
     setMicStatus,
     disabled: micsDisabled,
     readOnly: locked,
+    missing: showMissing && missingFields.includes(key),
   });
 
+  const visibleMissing = showMissing ? missingFields : [];
+
   return (
-    <div className="app-shell">
-      <div className="paper">
-        <header className="pad-header">
-          <div className="pad-header-title">
-            <span className="rx-mark">℞</span>
-            <div>
-              <h1>Clinical Voice Form</h1>
-              <p className="pad-header-subtitle">
-                Dictate the visit, review what was heard, then save.
-              </p>
-            </div>
+    <main className="clinic-desk">
+      {/* Keyed by form generation: "New prescription" remounts everything
+          inside, so no mic, note or retry link survives into the next form. */}
+      <article className="prescription-sheet" key={formGen}>
+        <header className="sheet-header">
+          <div className="rx-mark" aria-hidden="true">
+            ℞
+          </div>
+          <div>
+            <h1>Clinical Voice Form</h1>
+            <p className="help-text">Dictate the visit, review what was heard, then save.</p>
           </div>
         </header>
 
-        <div className="toolbar-row">
+        <div className="toolbar" role="group" aria-label="Form actions">
           <div className="toolbar-item">
-            <button className="btn subtle" onClick={handleViewOldRecords}>
-              <History size={15} />
+            <button type="button" className="quiet-button" onClick={handleViewOldRecords}>
+              <History size={16} aria-hidden="true" />
               View past prescriptions
             </button>
             {oldRecordsNote && (
-              <div className="toolbar-note">
-                Coming soon — saved prescriptions are already stored and will be
+              <div className="toolbar-note" role="status">
+                Coming soon. Saved prescriptions are already stored and will be
                 searchable here in a future update.
               </div>
             )}
           </div>
-          <button className="btn subtle" onClick={handleNewForm}>
-            <RotateCcw size={15} />
+          <button type="button" className="quiet-button" onClick={handleNewForm}>
+            <RotateCcw size={15} aria-hidden="true" />
             New prescription
           </button>
         </div>
 
-        <div className="pad-body" key={formGen}>
-          {savedPid && (
-            <div className="saved-banner">
-              <div className="saved-banner-text">
-                <Check size={18} strokeWidth={2.5} />
-                <span>
-                  Prescription saved. Reference ID{" "}
-                  <button type="button" className="pid-copy" onClick={handleCopyPid}>
-                    <span className="pid">{savedPid}</span>
-                    <Copy size={13} />
-                    {copied && <span className="pid-copied">Copied</span>}
-                  </button>
-                  <span className="saved-banner-note">
-                    This prescription is now final. To make a change, start a new
-                    prescription.
-                  </span>
-                </span>
-              </div>
-              <button className="btn" onClick={handleNewForm}>
-                <RotateCcw size={15} />
-                Start a new prescription
-              </button>
-            </div>
-          )}
+        {savedPid && (
+          <StatusBanner kind="saved" referenceId={savedPid} onNewPrescription={handleNewForm} />
+        )}
 
-          {error && (
-            <div className="error-banner">
-              <AlertTriangle size={17} strokeWidth={2.2} />
-              <span>{error}</span>
-            </div>
-          )}
+        {visibleMissing.length > 0 && (
+          <StatusBanner
+            kind="error"
+            message={missingFieldsMessage(visibleMissing.map((k) => FIELD_SPECS[k].label))}
+          />
+        )}
 
-          {cooldownUntil && (
-            <div className="cooldown-banner">
-              <Clock3 size={18} strokeWidth={2.2} />
-              <div className="cooldown-text">
-                <strong>Voice input is taking a short break</strong>
-                <div className="cooldown-reason">{friendlyCooldownReason()}</div>
-              </div>
-              <span className="cooldown-timer">{remainingSeconds}s</span>
-            </div>
-          )}
+        {error && <StatusBanner kind="error" message={error} />}
 
-          {!locked && (
-            <>
-              <DictateBar
-                formState={extractionBase}
-                onVoiceUpdates={handleVoiceUpdates}
-                onVoiceError={handleApiError}
-                onRecordingChange={(recording) =>
-                  setMicStatus(VISIT_MIC, recording ? "recording" : null)
-                }
-                disabled={micsDisabled}
-              />
+        {cooldownUntil && <StatusBanner kind="cooldown" secondsLeft={remainingSeconds} />}
 
-              <ReviewPanel
-                pending={pending}
-                unmatchedNote={unmatchedNote}
-                onAccept={handleAccept}
-                onReject={handleReject}
-                onAcceptAll={handleAcceptAll}
-                paused={anyMicRecording}
-              />
+        {!locked && (
+          <>
+            <DictateBar
+              formState={extractionBase}
+              onVoiceUpdates={handleVoiceUpdates}
+              onVoiceError={handleApiError}
+              onRecordingChange={(recording) =>
+                setMicStatus(VISIT_MIC, recording ? "recording" : null)
+              }
+              disabled={micsDisabled}
+            />
 
-              <p className="required-legend">
-                Fields marked <span className="req">*</span> are required to save.
-              </p>
-            </>
-          )}
+            <ReviewPanel
+              pending={pending}
+              unmatchedNote={unmatchedNote}
+              onAccept={handleAccept}
+              onReject={handleReject}
+              onAcceptAll={handleAcceptAll}
+              paused={anyMicRecording}
+            />
 
-          <section className="section">
-            <h2 className="section-label">
-              <User size={16} strokeWidth={2.2} />
-              Patient information
-            </h2>
-            <div className="field-row">
-              <FormField {...commonFieldProps("patient_name")} />
-              <FormField {...commonFieldProps("date")} />
-            </div>
-            <div className="field-row">
-              <FormField {...commonFieldProps("age")} />
-              <FormField {...commonFieldProps("gender")} />
-            </div>
-          </section>
+            <p className="required-legend">
+              Fields marked <span className="required">*</span> are required to save.
+            </p>
+          </>
+        )}
 
-          <section className="section">
-            <h2 className="section-label">
-              <ClipboardList size={16} strokeWidth={2.2} />
-              Clinical assessment
-            </h2>
+        <section className="form-section">
+          <h2 className="section-heading">
+            <User size={17} aria-hidden="true" />
+            <span>Patient information</span>
+          </h2>
+          <div className="field-grid patient-grid">
+            <FormField {...commonFieldProps("patient_name")} />
+            <FormField {...commonFieldProps("date")} />
+            <FormField {...commonFieldProps("age")} />
+            <FormField {...commonFieldProps("gender")} />
+          </div>
+        </section>
+
+        <section className="form-section">
+          <h2 className="section-heading">
+            <ClipboardList size={17} aria-hidden="true" />
+            <span>Clinical assessment</span>
+          </h2>
+          <div className="field-grid">
             <FormField {...commonFieldProps("chief_complaints")} />
             <FormField {...commonFieldProps("on_examination")} />
             <FormField {...commonFieldProps("diagnosis")} />
             <FormField {...commonFieldProps("investigation")} />
-          </section>
+          </div>
+        </section>
 
-          <section className="section">
-            <h2 className="section-label">
-              <Pill size={16} strokeWidth={2.2} />
-              Medications
-            </h2>
-            <FormField {...commonFieldProps("medications")} />
-          </section>
-        </div>
+        <section className="form-section">
+          <h2 className="section-heading">
+            <Pill size={17} aria-hidden="true" />
+            <span>Medications</span>
+          </h2>
+          <FormField {...commonFieldProps("medications")} />
+        </section>
 
-        <footer className="footer-actions">
-          <button className="btn" onClick={handlePrint} disabled={printing || saving}>
-            <Printer size={16} />
+        <footer className="form-footer">
+          <button
+            type="button"
+            className="action-button secondary"
+            onClick={handlePrint}
+            disabled={printing || saving}
+          >
+            {printing ? (
+              <Loader2 size={17} className="spin" aria-hidden="true" />
+            ) : (
+              <Printer size={17} aria-hidden="true" />
+            )}
             {printing ? "Preparing…" : "Print"}
           </button>
-          <button className="btn primary" onClick={handleSave} disabled={saving || printing || locked}>
-            {locked ? <Check size={16} /> : <Save size={16} />}
-            {saving ? "Saving…" : locked ? "Saved" : "Save prescription"}
-          </button>
+          <SaveButton
+            phase={saving ? "saving" : locked ? "saved" : "unsaved"}
+            onSave={handleSave}
+            disabled={printing}
+          />
         </footer>
-      </div>
-    </div>
+      </article>
+    </main>
   );
 }

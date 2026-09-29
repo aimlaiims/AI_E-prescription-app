@@ -95,13 +95,20 @@ expect("ReviewPanel: buttons pass ids, not indexes", "frontend/src/components/Re
 expect("ReviewPanel: no debug 'Heard:' readout shown to user", "frontend/src/components/ReviewPanel.jsx", "lastHeard", { present: false });
 
 console.log("\nFrontend — styles, config, deps");
-for (const cls of [".dictate-mic-btn", ".retry-link", ".listening-dot", ".cooldown-banner", ".toolbar-row", ".paper", ".footer-actions"]) {
+for (const cls of [".dictate-button", ".retry-button", ".listening-dot", ".status-banner", ".toolbar", ".prescription-sheet", ".form-footer", ".field-control", ".mic-button"]) {
   expect(`styles.css defines ${cls}`, "frontend/src/styles.css", cls);
 }
 expect("mobile sticky footer rule present", "frontend/src/styles.css", /@media \(max-width: 639px\)[\s\S]*position: fixed/);
 expect("vite: dev allowedHosts covers ngrok-free.dev", "frontend/vite.config.js", ".ngrok-free.dev");
 expect("vite: separate preview block (own proxy + hosts)", "frontend/vite.config.js", /preview:\s*\{[\s\S]*allowedHosts[\s\S]*proxy/);
 expect("package.json has lucide-react", "frontend/package.json", "lucide-react");
+expect("UI: StatusBanner component", "frontend/src/components/StatusBanner.jsx", "export default function StatusBanner");
+expect("UI: SaveButton component (no Update phase: lock-after-save)", "frontend/src/components/SaveButton.jsx", "export default function SaveButton");
+expect("UI: input borders use --control-line", "frontend/src/styles.css", "border: 1px solid var(--control-line)");
+expect("UI: reduced motion actually stops animations", "frontend/src/styles.css", "animation: none !important");
+expect("UI: no <form> submit (Enter must not save)", "frontend/src/App.jsx", /<form[\s>]/, { present: false });
+expect("Print: signature kept with the last medication lines", "frontend/src/printTemplate.js", ".closing { break-inside: avoid;");
+expect("Print: fixed month names (no 'Sept')", "frontend/src/printTemplate.js", "const MONTHS = [");
 
 console.log(`\n${passed} passed, ${failed} failed\n`);
 

@@ -96,10 +96,14 @@ works.
 - Icons: `lucide-react`. **Verify the icon name exists** in
   `frontend/node_modules/lucide-react/dist/esm/icons/` — names like `Clock3`/`Loader2`
   map to `clock-3.js`/`loader-2.js`. A wrong name fails the build.
-- CSS: tokens in `:root` (`--ink`, `--paper`, `--sage`, `--maroon`, `--amber`) — final
-  brand colors/logo are coming later, so keep the theme loosely coupled. Breakpoints:
+- CSS: tokens in `:root` (`--ink`, `--paper`, `--sage`, `--maroon`, `--amber`,
+  `--amber-text`, `--control-line`) — final brand colors/logo are coming later, so keep
+  the theme loosely coupled; never raw hex in component rules. Dark theme = the same
+  tokens under `prefers-color-scheme` / `data-theme` (keep both blocks identical).
+  `--ink-faint` is for icons/borders only (fails contrast for text). Breakpoints:
   480 / 640 / 1024. Mobile: sticky bottom action bar, 44px touch targets, 16px input
-  font (prevents iOS zoom).
+  font (prevents iOS zoom). Reduced motion must use `animation: none` (shortening the
+  duration does not stop looping animations).
 - Backend: keep routers thin; external calls live in `services/`; classify every SDK
   exception into `UpstreamError`.
 - Keep diffs small and targeted. The owner reviews changes by file; do not reformat or

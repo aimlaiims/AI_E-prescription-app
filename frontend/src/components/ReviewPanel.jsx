@@ -140,32 +140,35 @@ export default function ReviewPanel({
 
   if (!pending.length && !unmatchedNote) return null;
 
+  const dotTitle = paused
+    ? "Paused while you dictate"
+    : isListening
+    ? "Listening"
+    : "Reconnecting the mic. This is normal and takes under a second.";
+
   return (
-    <div className="review-panel">
-      <div className="review-panel-header">
-        <h2 className="review-panel-title">Review what was heard</h2>
+    <section className="review-panel" aria-labelledby="review-panel-title">
+      <div className="review-header">
+        <h2 id="review-panel-title">Review what was heard</h2>
         {SpeechRecognitionImpl ? (
           <button
             type="button"
-            className={`voice-confirm-toggle ${voiceConfirmOn ? "on" : ""}`}
+            className="hands-free-toggle"
+            aria-pressed={voiceConfirmOn}
             onClick={() => {
               setHandsFreeError("");
               setVoiceConfirmOn((v) => !v);
             }}
             title='Say "accept" or "discard" to confirm hands-free'
           >
-            <Headphones size={14} />
-            Hands-free {voiceConfirmOn ? "on" : "off"}
+            <Headphones size={15} aria-hidden="true" />
+            <span>Hands-free {voiceConfirmOn ? "on" : "off"}</span>
             {voiceConfirmOn && (
               <span
-                className={`listening-dot ${isListening ? "active" : ""}`}
-                title={
-                  paused
-                    ? "Paused while you dictate"
-                    : isListening
-                    ? "Listening"
-                    : "Reconnecting the mic. This is normal and takes under a second."
-                }
+                className={`listening-dot ${isListening && !paused ? "is-listening" : ""}`}
+                role="img"
+                aria-label={dotTitle}
+                title={dotTitle}
               />
             )}
           </button>
@@ -173,7 +176,7 @@ export default function ReviewPanel({
       </div>
 
       {voiceConfirmOn && (
-        <p className="voice-confirm-hint">
+        <p className="hands-free-hint">
           Say "accept" or "discard" for the item marked Next. Add the field name
           to pick a different one, for example "accept diagnosis." You can chain
           several commands in one breath, like "accept diagnosis, accept
@@ -200,48 +203,64 @@ export default function ReviewPanel({
         </p>
       )}
 
-      {pending.map((u, idx) => (
-        <div
-          className={`review-item ${voiceConfirmOn && idx === 0 ? "current" : ""}`}
-          key={u.id}
-        >
-          <div className="field-name">
-            {FIELD_SPECS[u.field]?.label || u.field}
-            {u.supersedes && (
-              <span className="updated-tag" title="Replaces an earlier proposal for this field">
-                Updated
-              </span>
-            )}
-            {voiceConfirmOn && idx === 0 && <span className="current-tag">Next</span>}
-          </div>
-          {u.old_value && <div className="diff-old">{u.old_value}</div>}
-          <div className="diff-new">{u.new_value}</div>
-          {u.evidence && <div className="evidence">"{u.evidence}"</div>}
-          <div className="review-item-actions">
-            <button className="accept" onClick={() => onAccept(u.id)}>
-              <Check size={15} />
-              Accept
-            </button>
-            <button onClick={() => onReject(u.id)}>
-              <X size={15} />
-              Discard
-            </button>
-          </div>
+      {pending.length > 0 && (
+        <div className="review-items">
+          {pending.map((u, idx) => {
+            const label = FIELD_SPECS[u.field]?.label || u.field;
+            const isNext = voiceConfirmOn && idx === 0;
+            return (
+              <article
+                key={u.id}
+                className={`review-item ${isNext ? "is-next" : ""}`}
+                role="group"
+                aria-label={`${label}: proposed change`}
+              >
+                <div className="review-item-heading">
+                  <span className="review-field-label">{label}</span>
+                  {u.supersedes && (
+                    <span className="updated-tag" title="Replaces an earlier proposal for this field">
+                      Updated
+                    </span>
+                  )}
+                  {isNext && <span className="next-tag">Next</span>}
+                </div>
+                {u.old_value && (
+                  <p className="review-old">
+                    <span className="sr-only">Currently: </span>
+                    {u.old_value}
+                  </p>
+                )}
+                <p className={`review-new ${u.field === "medications" ? "is-monospace" : ""}`}>
+                  <span className="sr-only">Proposed: </span>
+                  {u.new_value}
+                </p>
+                {u.evidence && <p className="review-heard">"{u.evidence}"</p>}
+                <div className="review-item-actions">
+                  <button type="button" className="review-accept" onClick={() => onAccept(u.id)}>
+                    <Check size={16} aria-hidden="true" />
+                    Accept
+                  </button>
+                  <button type="button" className="review-discard" onClick={() => onReject(u.id)}>
+                    <X size={16} aria-hidden="true" />
+                    Discard
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
-      ))}
+      )}
       {pending.length > 1 && (
-        <div className="review-item-actions" style={{ marginTop: 4 }}>
-          <button className="accept" onClick={onAcceptAll}>
-            <CheckCheck size={15} />
-            Accept all
-          </button>
-        </div>
+        <button type="button" className="accept-all" onClick={onAcceptAll}>
+          <CheckCheck size={16} aria-hidden="true" />
+          Accept all
+        </button>
       )}
       {unmatchedNote && (
-        <div className="unmatched-note">
-          Also heard, but it didn't fit any field: {unmatchedNote}
-        </div>
+        <p className="also-heard">
+          <strong>Also heard, but it didn't fit any field:</strong> {unmatchedNote}
+        </p>
       )}
-    </div>
+    </section>
   );
 }
