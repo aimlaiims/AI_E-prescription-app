@@ -106,7 +106,7 @@ expect("ReviewPanel: buttons pass ids, not indexes", "frontend/src/components/Re
 expect("ReviewPanel: no debug 'Heard:' readout shown to user", "frontend/src/components/ReviewPanel.jsx", "lastHeard", { present: false });
 
 console.log("\nFrontend — styles, config, deps");
-for (const cls of [".dictate-button", ".retry-button", ".listening-dot", ".status-banner", ".toolbar", ".prescription-sheet", ".form-footer", ".field-control", ".mic-button"]) {
+for (const cls of [".dictate-button", ".retry-button", ".listening-dot", ".status-banner", ".toolbar", ".prescription-sheet", ".form-footer", ".field-control", ".mic-button", ".quiet-button {", ".records-dialog"]) {
   expect(`styles.css defines ${cls}`, "frontend/src/styles.css", cls);
 }
 expect("mobile sticky footer rule present", "frontend/src/styles.css", /@media \(max-width: 639px\)[\s\S]*position: fixed/);

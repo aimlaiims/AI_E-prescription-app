@@ -258,3 +258,20 @@ verify script. Runs once the repo is pushed to GitHub (it isn't yet).
   320/375/768/1440: 38/38 (no horizontal scroll, one Print button, preview fits,
   debounced search, date range sent, 44px targets on phones, Back, Esc).
 - New dev dependencies: `vitest`, `jsdom` (tests only).
+
+## 22. Final recheck before the medical-professional round (2026-09-29)
+- **First real end-to-end run** (production build, real Groq + Gemini, separate test
+  backend with a throwaway DB; Chrome's mic fed a text-to-speech recording of TESTING
+  Case 1): 8/8 fields proposed correctly (the name came back "Bhungsal" — exactly what
+  the review step is for), nothing written before Accept, save, lock, print, found in Past
+  prescriptions, stored record == screen. 17/17. Per-field "add sore throat" appended to
+  the existing complaint, 3/3.
+- **Latency:** transcription ~1s; Gemini extraction ~2s typical (4 samples 1.9–2.7s) with
+  one 26s outlier (single call, finish_reason STOP — upstream/SDK retry, not our code).
+  Disabling Gemini "thinking" is rejected by this model (400), so not an option.
+- **Regression found and fixed:** the records-browser commit deleted the `.quiet-button`
+  styles with the old "Coming soon" note, so "View past prescriptions" / "New prescription"
+  rendered as default grey buttons (live briefly). Restored; verify script now guards it.
+- Production-build browser checks: layout 28/28 (4 widths, light + dark), mics 6/6, Past
+  prescriptions 38/38. Tests: frontend 41 + 4, backend 53, verify 91/91.
+- Docs: demo checklist no longer says records aren't built; README lists features + tests.

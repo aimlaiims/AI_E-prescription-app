@@ -166,7 +166,11 @@ Gemini retries.
 - [ ] Mic permission and pop-ups granted beforehand
 - [ ] Do not burn free-tier quota rehearsing the hour before
 - [ ] Phone hotspot as a backup network
-- [ ] PC will not sleep/lock; backend, `npm run dev` and ngrok all running
+- [ ] PC will not sleep/lock; backend, the frontend and ngrok all running
+- [ ] Serving the build (`npm run preview`, :4173)? Tunnel 4173 and **re-run `npm run build`
+      after every change** — preview serves `dist/`, not the source
 - [ ] Open the ngrok link yourself first (free tier shows an interstitial page)
-- [ ] Say up front: "View old records" is not built yet
+- [ ] Use made-up patients — no real patient data until the P2 items in ROADMAP are done
 - [ ] Let one wrong proposal happen and show Discard + redictate — it demonstrates the safety net
+- [ ] Keep a log of every wrong proposal, verbatim (what was said → what was proposed): it
+      becomes the extraction test set (ROADMAP P1-5)

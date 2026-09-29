@@ -214,6 +214,20 @@ button { cursor: pointer; }
   padding: 8px 0 18px;
 }
 
+.quiet-button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.quiet-button:hover { color: var(--ink); }
+
 /* ---------- Sections + fields ---------- */
 
 .form-section {

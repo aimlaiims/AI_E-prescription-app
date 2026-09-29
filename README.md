@@ -18,8 +18,12 @@ mic ──► Groq Whisper ──► transcript ──► Gemini (forced JSON sc
   (`add …` appends, `change X to Y` edits in place, plain restatement replaces).
 - **Nothing is written to the form until the doctor accepts it** — by click or by voice
   ("accept", "accept diagnosis", "accept all").
-- Two mics: one per field, and one for the whole visit (also toggled with **Space**).
-- Save → generates a Reference ID. Print → formatted A4 preview.
+- Two mics: one per field, and one for the whole visit (also toggled with **Space**);
+  only one records at a time. Hands-free confirm while dictating is paused.
+- Save → generates a Reference ID and the prescription becomes final. Print → A4 page.
+- **View past prescriptions** — search by name or Reference ID, filter by date, preview,
+  reprint.
+- Works on phones (sticky Save/Print bar) and desktops; light and dark theme.
 
 ## Quick start (Windows / PowerShell, Python 3.11, Node 18+)
 
@@ -40,7 +44,17 @@ npm run dev                    # open http://localhost:5173
 Use **Chrome or Edge** — hands-free confirm relies on the browser's speech API.
 Microphone access needs `localhost` or HTTPS.
 
-Sharing a demo link: `ngrok http 5173` (frontend port only, never 8000).
+Sharing a demo link: `ngrok http 5173` (frontend port only, never 8000). If you serve
+the production build instead (`npm run build; npm run preview`), tunnel 4173 and rebuild
+after every change.
+
+## Tests
+
+```powershell
+cd frontend; npm test                 # node:test + Vitest (component tests)
+cd backend;  pip install -r requirements-dev.txt; python -m pytest   # APIs faked, no keys
+node scripts/verify-changes.mjs       # static check that documented changes are present
+```
 
 ## Configuration (`backend/.env`)
 
