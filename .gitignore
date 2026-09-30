@@ -1,8 +1,39 @@
-venv/
-__pycache__/
-*.pyc
+# --- Secrets and local data (never commit) ---
 .env
+.env.*
+!.env.example
 *.db
+*.db-journal
+
+# --- Dependencies and build output ---
+venv/
 node_modules/
 dist/
+__pycache__/
+*.pyc
+
+# --- Development-only docs and tools (kept locally, not part of the product) ---
+CLAUDE.md
+docs/CHANGELOG.md
+docs/ROADMAP.md
+docs/PLAN_UI_AND_LOGIN.md
+scripts/
+
+# --- Tests and CI (kept locally) ---
+backend/tests/
+backend/pytest.ini
+backend/requirements-dev.txt
 .pytest_cache/
+frontend/src/**/*.test.js
+frontend/src/**/*.test.jsx
+.github/
+coverage/
+
+# --- Editor / OS / tool clutter ---
+.claude/
+.vscode/
+.idea/
+*.log
+*.bak
+.DS_Store
+Thumbs.db

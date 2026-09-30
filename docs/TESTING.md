@@ -1,13 +1,8 @@
 # Testing
 
-Automated (run all before calling a change done; CI runs them on every push once the repo
-is on GitHub — `.github/workflows/ci.yml`):
-- `cd backend; python -m pytest` — API routes, error taxonomy, extraction parsing/filtering/
-  retries, Groq error classification, non-blocking routes. Groq/Gemini are faked and a
-  throwaway SQLite file is used; no keys or network needed. (`pip install -r requirements-dev.txt`)
-- `cd frontend; npm test` — voice-command parser, pending merge, upload naming, print page.
-- `npm run build`, the backend import check, `node scripts/verify-changes.mjs` (static).
-The manual scripts below cover what those can't: real speech, the browser, the tunnel.
+Manual test scripts: real speech, the browser, the tunnel, and how to simulate failures.
+Quick sanity checks after any change: `cd frontend; npm run build` and
+`cd backend; python -c "from app.main import app"`.
 
 Run the manual tests on the machine and browser that will be used for the demo
 (**Chrome or Edge**), including once **through the ngrok URL**.
@@ -51,15 +46,15 @@ On Chief complaints:
 6. Edge: "change ear pain to eye pain" in a 3-line value → only the matching line changes
 7. Empty field + "add fever" → behaves as a plain fill
 8. **Without accepting**, say "fever" then "add cough" on the same field → ONE pending item,
-   tagged **Updated**, value `Fever` / `Cough`; its "old" line is the real field value (P0-4)
+   tagged **Updated**, value `Fever` / `Cough`; its "old" line is the real field value
 9. Pending diagnosis + whole-visit dictation that restates diagnosis → still one diagnosis item
 
 ## 4. Voice confirm and Space
 Get 4–5 proposals pending (Case 1 works), toggle **Hands-free**.
 - [ ] "accept" → top item only
 - [ ] "accept diagnosis" → that item
-- [ ] **"accept age"** → age (fixed P0-2; was the top item)
-- [ ] **"accept exam"** → on examination (fixed P0-2)
+- [ ] **"accept age"** → age
+- [ ] **"accept exam"** → on examination
 - [ ] mumbled/nonsense field name → nothing accepted, amber "Didn't catch which item" notice
 - [ ] top item shows a **Next** tag while hands-free is on; bare "accept" acts on it
 - [ ] Hands-free on + items pending, start any mic and say "confirm diagnosis, remove sutures"
@@ -76,8 +71,8 @@ Space (whole-visit mic):
 - [ ] Nothing focused, press Space → recording starts; again → stops; page does not scroll
 - [ ] Focus in any text field, type a sentence with spaces → types normally, never toggles
 - [ ] Hold Space → one toggle, not a stream
-- [ ] **Click the mic with the mouse, then press Space** → toggles once, not twice (P0-2d)
-- [ ] **Click Print, return to the tab, press Space** → does not re-trigger Print (P0-2d)
+- [ ] **Click the mic with the mouse, then press Space** → toggles once, not twice
+- [ ] **Click Print, return to the tab, press Space** → does not re-trigger Print
 
 ## 5. Failure paths (simulate — do not wait for a real outage)
 Confirm for each: a banner or cooldown appears, **no field changes**, no service name,
@@ -92,7 +87,7 @@ status code or ".env" is visible.
 | 503 | temporarily raise `UpstreamError("x", code="unavailable")` | error banner + "Try filling in the form again" link; link works once the raise is removed |
 | Missing required fields | Save/Print with empty form | "Please fill in: …" with **field labels** |
 
-Backend-only pattern (also the seed for pytest):
+Backend-only pattern (simulate an upstream failure without a browser):
 ```python
 from fastapi.testclient import TestClient
 from unittest.mock import patch
@@ -170,7 +165,8 @@ Gemini retries.
 - [ ] Serving the build (`npm run preview`, :4173)? Tunnel 4173 and **re-run `npm run build`
       after every change** — preview serves `dist/`, not the source
 - [ ] Open the ngrok link yourself first (free tier shows an interstitial page)
-- [ ] Use made-up patients — no real patient data until the P2 items in ROADMAP are done
+- [ ] Use made-up patients — no real patient data until there is a login, encryption at
+      rest and a consent/privacy review
 - [ ] Let one wrong proposal happen and show Discard + redictate — it demonstrates the safety net
 - [ ] Keep a log of every wrong proposal, verbatim (what was said → what was proposed): it
-      becomes the extraction test set (ROADMAP P1-5)
+      becomes the material for improving the extraction prompt

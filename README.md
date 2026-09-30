@@ -4,7 +4,8 @@ Dictate a patient visit, review what was heard, save it under a Reference ID, pr
 prescription. Built for a doctor or their assistant.
 
 > **Status: working demo, not production.** No authentication, no encryption at rest.
-> Do not use with real patient data until the P2 items in `docs/ROADMAP.md` are done.
+> Do not use with real patient data until there is a login, encryption at rest, and a
+> consent/privacy review (audio goes to Groq, transcripts to Google).
 
 ## How it works
 
@@ -48,14 +49,6 @@ Sharing a demo link: `ngrok http 5173` (frontend port only, never 8000). If you 
 the production build instead (`npm run build; npm run preview`), tunnel 4173 and rebuild
 after every change.
 
-## Tests
-
-```powershell
-cd frontend; npm test                 # node:test + Vitest (component tests)
-cd backend;  pip install -r requirements-dev.txt; python -m pytest   # APIs faked, no keys
-node scripts/verify-changes.mjs       # static check that documented changes are present
-```
-
 ## Configuration (`backend/.env`)
 
 | Variable | Purpose |
@@ -70,9 +63,5 @@ node scripts/verify-changes.mjs       # static check that documented changes are
 
 | File | What it is |
 |---|---|
-| `CLAUDE.md` | Rules and commands for Claude Code |
 | `docs/ARCHITECTURE.md` | Design, data flow, API, error handling |
-| `docs/CHANGELOG.md` | What was built and how each change is verified |
-| `docs/ROADMAP.md` | Open issues, suggestions, milestones |
 | `docs/TESTING.md` | Manual test scripts and how to simulate failures |
-| `scripts/verify-changes.mjs` | `node scripts/verify-changes.mjs` — static check of the above |

@@ -1,7 +1,6 @@
 # Architecture
 
-Replaces `HANDOFF.md` (delete that file). Explains **why** the system is shaped this
-way, not only what the files do.
+Explains **why** the system is shaped this way, not only what the files do.
 
 ## 1. The problem this design answers
 
@@ -122,7 +121,7 @@ toggle is on **and** something is pending.
   "accept diagnosis accept medications accept all" is not reduced to one action.
 - Recognizer restarts are delayed 350ms (`RESTART_DELAY_MS`); a dot shows whether it is
   actually listening.
-- Parser lives in `frontend/src/voiceCommands.js` (pure, tested by `npm test`). Field
+- Parser lives in `frontend/src/voiceCommands.js` (pure functions, no React). Field
   names are matched as whole words against `FIELD_ALIASES` ("exam", "o/e", "sex", "dx"…).
   A bare command acts on the top item, marked **Next** in the panel. A command followed
   by words that name no pending field does **nothing** and shows a notice — never a
@@ -146,11 +145,11 @@ components/
   RecordsDialog.jsx  past prescriptions: debounced search, date chips + range, paging,
                    loads the full record for the preview, prints (sync window.open)
   RecordsBrowser.jsx presentational dialog: focus trap / return, roving rows, A4 preview
-                   scaled to fit, phone-only sticky Print (RecordsBrowser.test.jsx)
-dates.js           local YYYY-MM-DD helpers + filter-chip date bounds (tested)
-voiceCommands.js   parseVoiceCommands + FIELD_ALIASES (pure; voiceCommands.test.js)
-pendingUpdates.js  one-pending-per-field merge + pending-applied extraction base (pure; tested)
-printTemplate.js   buildPrintHtml(state, pid, {toolbar, letterhead}) -> standalone A4 HTML (tested)
+                   scaled to fit, phone-only sticky Print
+dates.js           local YYYY-MM-DD helpers + filter-chip date bounds
+voiceCommands.js   parseVoiceCommands + FIELD_ALIASES (pure)
+pendingUpdates.js  one-pending-per-field merge + pending-applied extraction base (pure)
+printTemplate.js   buildPrintHtml(state, pid, {toolbar, letterhead}) -> standalone A4 HTML
 messages.js        error code -> plain language
 api.js             fetch wrappers, ApiError
 fieldSpecs.js      field labels/types/required (MIRRORS backend schemas.py)
@@ -186,8 +185,9 @@ Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month na
 | GET | `/api/forms` | `?q=` (name or Reference ID, partial, case-insensitive) `&date_from=&date_to=` (YYYY-MM-DD) `&limit=` (≤100, default 50) `&offset=` → `{items[], total, has_more}`, newest visit first |
 
 There is **no update or delete endpoint**: a saved prescription is final and the form
-locks (ROADMAP P0-1).
-Routes in `voice.py` are `async def` but call synchronous SDK code (ROADMAP P1-1).
+locks after save, so a printout always matches the stored record.
+The Groq/Gemini SDK calls are blocking; `voice.py` runs them in a worker thread
+(`run_in_threadpool`) so a slow request doesn't stall the server.
 
 ## 9. Performance
 
