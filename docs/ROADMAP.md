@@ -8,6 +8,9 @@ in the code. Hypothesis = plausible, not yet demonstrated.
 Priority: **P0** wrong or unsafe behavior, fix before any further demo · **P1** should fix
 before anyone depends on it · **P2** required before real patient data · **P3** improvements.
 
+**Next planned work:** [`PLAN_UI_AND_LOGIN.md`](PLAN_UI_AND_LOGIN.md) — AIIMS look from the
+colleague's app (branch A) and real doctor login (branch B). Not started; waits for the owner.
+
 ---
 
 ## P0 — confirmed bugs
