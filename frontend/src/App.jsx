@@ -5,7 +5,6 @@ import {
   Pill,
   RotateCcw,
   Printer,
-  History,
   Loader2,
 } from "lucide-react";
 import FormField from "./components/FormField.jsx";
@@ -14,6 +13,8 @@ import ReviewPanel from "./components/ReviewPanel.jsx";
 import StatusBanner from "./components/StatusBanner.jsx";
 import SaveButton from "./components/SaveButton.jsx";
 import RecordsDialog from "./components/RecordsDialog.jsx";
+import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
+import { loadLogoDataUri, printLetterhead } from "./branding.js";
 import { FIELD_SPECS, EMPTY_STATE } from "./fieldSpecs.js";
 import { saveForm } from "./api.js";
 import {
@@ -40,6 +41,11 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(false);
+  // Logo as a data URI for the print page (a blank window can't load /aiims-logo.jpg).
+  const [logo, setLogo] = useState("");
+  useEffect(() => {
+    loadLogoDataUri().then(setLogo);
+  }, []);
   // Set by a Save/Print attempt with required fields empty; from then on the
   // missing fields are highlighted until filled (derived, so never stale).
   const [showMissing, setShowMissing] = useState(false);
@@ -236,7 +242,7 @@ export default function App() {
       setPrinting(false);
     }
 
-    const html = buildPrintHtml(state, pid);
+    const html = buildPrintHtml(state, pid, { letterhead: printLetterhead(logo) });
     previewWindow.document.open();
     previewWindow.document.write(html);
     previewWindow.document.close();
@@ -285,30 +291,17 @@ export default function App() {
   const visibleMissing = showMissing ? missingFields : [];
 
   return (
+    <div className="app-frame">
+    <AppNavbar onHistory={() => setRecordsOpen(true)} />
     <main className="clinic-desk">
       {/* Keyed by form generation: "New prescription" remounts everything
           inside, so no mic, note or retry link survives into the next form. */}
       <article className="prescription-sheet" key={formGen}>
-        <header className="sheet-header">
-          <div className="rx-mark" aria-hidden="true">
-            ℞
-          </div>
-          <div>
-            <h1>Clinical Voice Form</h1>
-            <p className="help-text">Dictate the visit, review what was heard, then save.</p>
-          </div>
-        </header>
+        <SheetLetterhead />
+        <div className="sheet-stripe" aria-hidden="true" />
 
         <div className="toolbar" role="group" aria-label="Form actions">
-          <button
-            type="button"
-            className="quiet-button"
-            onClick={() => setRecordsOpen(true)}
-            aria-haspopup="dialog"
-          >
-            <History size={16} aria-hidden="true" />
-            View past prescriptions
-          </button>
+          <p className="help-text">Dictate the visit, review what was heard, then save.</p>
           <button type="button" className="quiet-button" onClick={handleNewForm}>
             <RotateCcw size={15} aria-hidden="true" />
             New prescription
@@ -371,6 +364,10 @@ export default function App() {
           </div>
         </section>
 
+        <div className="rx-divider" aria-hidden="true">
+          <span className="rx-mark">℞</span>
+        </div>
+
         <section className="form-section">
           <h2 className="section-heading">
             <ClipboardList size={17} aria-hidden="true" />
@@ -413,7 +410,11 @@ export default function App() {
           />
         </footer>
       </article>
-      {recordsOpen && <RecordsDialog onClose={() => setRecordsOpen(false)} />}
+      {recordsOpen && (
+        <RecordsDialog letterhead={printLetterhead(logo)} onClose={() => setRecordsOpen(false)} />
+      )}
     </main>
+    <AppFooter />
+    </div>
   );
 }

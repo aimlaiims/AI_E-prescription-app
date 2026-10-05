@@ -101,9 +101,9 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 
 .letterhead { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 16px; border-bottom: 2px solid #111; }
 .brand { display: flex; flex: 1 1 auto; align-items: center; gap: 12px; min-width: 0; }
 .rx { font: 42pt/1 Georgia, serif; }
-.clinic { font: bold 18pt Georgia, serif; }
+.clinic { font: bold 15pt/1.25 Georgia, serif; }
 .doctor, .registration { margin-top: 3px; color: #444; }
-.logo { width: 46px; height: 46px; object-fit: contain; }
+.logo { width: 58px; height: 58px; object-fit: contain; }
 .meta { flex: 0 0 auto; text-align: right; font: 10pt/1.5 "Courier New", monospace; }
 .patient-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 18px; padding: 20px 0; border-bottom: 1px solid #bbb; }
 .label { display: block; margin-bottom: 4px; color: #555; font-size: 9pt; text-transform: uppercase; letter-spacing: .06em; }
@@ -137,7 +137,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 
 </style></head><body>
 ${toolbar ? '<div class="toolbar"><button type="button" onclick="window.close()">Close</button><button type="button" class="primary" onclick="window.print()">Print</button></div>' : ""}
 <div class="sheet">
-<header class="letterhead"><div class="brand">${logo}<div class="rx" aria-hidden="true">℞</div><div>${letterheadDetails}</div></div><div class="meta"><div>Reference ID: ${escapeHtml(pid)}</div><div>Printed: ${escapeHtml(printed)}</div></div></header>
+<header class="letterhead"><div class="brand">${logo || '<div class="rx" aria-hidden="true">℞</div>'}<div>${letterheadDetails}</div></div><div class="meta"><div>Reference ID: ${escapeHtml(pid)}</div><div>Printed: ${escapeHtml(printed)}</div></div></header>
 <div class="patient-row"><div><span class="label">${escapeHtml(FIELD_SPECS.patient_name.label)}</span><span class="value">${escapeHtml(orDash(text("patient_name")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.age.label)} / ${escapeHtml(FIELD_SPECS.gender.label)}</span><span class="value">${escapeHtml(orDash(text("age")))} / ${escapeHtml(orDash(text("gender")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.date.label)}</span><span class="value">${escapeHtml(orDash(formatDate(text("date"))))}</span></div></div>
 ${sections}${headLines.length ? `<section class="medications">${medsHeading}<div class="medication-lines">${headLines.join("<br>")}</div></section>` : ""}
 <div class="closing${headLines.length ? "" : " whole"}"><div class="medications-tail">${headLines.length ? "" : medsHeading}<div class="medication-lines">${tailLines.join("<br>")}</div></div>

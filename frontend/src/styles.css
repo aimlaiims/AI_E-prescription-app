@@ -1,37 +1,49 @@
-/* Design tokens. Ported from the v0 design (see docs/CHANGELOG.md §18).
-   Final brand colors/logo are coming later, so components use these tokens
-   only — never raw hex — to keep the theme loosely coupled. */
+/* Design tokens — AIIMS Raipur branding (navy + red from the institute seal),
+   layout from the v0 design. Components use these tokens only, never raw hex.
+   Every text pair is contrast-checked (>= 4.5:1; borders/focus >= 3:1).
+   Meaning is kept per token: maroon = required / recording / error, sage =
+   accept / confirmed / listening, amber = waiting for review, brand = primary. */
 :root {
   color-scheme: light;
-  /* Ink & paper — a prescription pad, not a SaaS dashboard. */
-  --ink: #1c2b3a;
-  --ink-soft: #4a5b6b;
-  /* --ink-faint is ~3.5:1 on white: fine for icons/borders, NOT for text. */
-  --ink-faint: #7c8b98;
-  --page-bg: #e9e7de;
-  --paper: #f5f4ee;
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  /* --ink-faint fails contrast for text: icons and decoration only. */
+  --ink-faint: #94a3b8;
+  --page-bg: #eef2f7;
+  --paper: #ffffff;
   --paper-raised: #ffffff;
-  --line: #d8d5cc;
-  /* Borders of inputs/selects/textareas: >= 3:1 against the page (WCAG 1.4.11). */
-  --control-line: #83817c;
-  --sheet-shadow: color-mix(in srgb, var(--ink) 8%, transparent);
+  /* Filled / read-only fields and quiet surfaces. */
+  --surface-muted: #f8fafc;
+  --line: #e2e8f0;
+  /* Borders of inputs/selects/textareas: >= 3:1 against paper (WCAG 1.4.11). */
+  --control-line: #7c8aa0;
+  --sheet-shadow: color-mix(in srgb, #0f172a 10%, transparent);
 
-  /* Clinical accents: maroon for required/alert (a pad's red glyphs), sage
-     for "listening/confirmed", amber for pending review. */
-  --maroon: #8c2f2f;
-  --maroon-soft: #f7e8e8;
-  --sage: #3f6b58;
-  --sage-soft: #e7efe9;
-  --amber: #a06a1f;
-  --amber-soft: #f4ead2;
+  /* AIIMS navy: header band, navbar, primary buttons. */
+  --brand: #1e3a8a;
+  --on-brand: #ffffff;
+  /* Brand-coloured text and icons on paper. */
+  --brand-text: #1d4ed8;
+  --brand-soft: #eff6ff;
+  --focus: #2563eb;
+  /* The seal is a JPEG on white: invisible on light paper, a grey box on dark. */
+  --watermark-opacity: 0.045;
+
+  --maroon: #b91c1c;
+  --maroon-soft: #fef2f2;
+  --sage: #047857;
+  --sage-soft: #ecfdf5;
+  --amber: #b45309;
+  --amber-soft: #fffbeb;
   /* Text on --amber-soft (plain --amber is too light for small text there). */
-  --amber-text: #8e5e1b;
+  --amber-text: #92400e;
 
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
 
-  --font-display: "Source Serif 4", Georgia, serif;
+  /* Georgia (system) for the ℞ mark and a few headings — no web font needed. */
+  --font-display: Georgia, "Times New Roman", serif;
   --font-body: "Inter", -apple-system, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -39,45 +51,59 @@
   --footer-height: 68px;
 }
 
-/* Dark theme: follows the OS unless data-theme forces one. Values from v0,
-   contrast-checked there. Keep both blocks identical. */
+/* Dark theme: follows the OS unless data-theme forces one. Keep both blocks
+   identical. The header band stays navy (it reads as the letterhead). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --ink: #e7edf2;
-    --ink-soft: #b7c3cd;
-    --ink-faint: #94a1ac;
-    --page-bg: #17212a;
-    --paper: #202c36;
-    --paper-raised: #293743;
-    --line: #3d4b57;
-    --control-line: #778189;
-    --maroon: #e28b8b;
-    --maroon-soft: #4a292d;
-    --sage: #9ac5a9;
-    --sage-soft: #294438;
-    --amber: #e4b86a;
-    --amber-soft: #493919;
-    --amber-text: #e4b86a;
+    --ink: #e2e8f0;
+    --ink-soft: #a3b0c4;
+    --ink-faint: #64748b;
+    --page-bg: #0b1220;
+    --paper: #111a2e;
+    --paper-raised: #111a2e;
+    --surface-muted: #17223a;
+    --line: #24324d;
+    --control-line: #64748b;
+    --brand: #1e3a8a;
+    --on-brand: #ffffff;
+    --brand-text: #93c5fd;
+    --brand-soft: #172554;
+    --focus: #60a5fa;
+    --watermark-opacity: 0;
+    --maroon: #f87171;
+    --maroon-soft: #3b1219;
+    --sage: #34d399;
+    --sage-soft: #062b20;
+    --amber: #f59e0b;
+    --amber-soft: #33240a;
+    --amber-text: #fcd34d;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --ink: #e7edf2;
-  --ink-soft: #b7c3cd;
-  --ink-faint: #94a1ac;
-  --page-bg: #17212a;
-  --paper: #202c36;
-  --paper-raised: #293743;
-  --line: #3d4b57;
-  --control-line: #778189;
-  --maroon: #e28b8b;
-  --maroon-soft: #4a292d;
-  --sage: #9ac5a9;
-  --sage-soft: #294438;
-  --amber: #e4b86a;
-  --amber-soft: #493919;
-  --amber-text: #e4b86a;
+  --ink: #e2e8f0;
+  --ink-soft: #a3b0c4;
+  --ink-faint: #64748b;
+  --page-bg: #0b1220;
+  --paper: #111a2e;
+  --paper-raised: #111a2e;
+  --surface-muted: #17223a;
+  --line: #24324d;
+  --control-line: #64748b;
+  --brand: #1e3a8a;
+  --on-brand: #ffffff;
+  --brand-text: #93c5fd;
+  --brand-soft: #172554;
+  --focus: #60a5fa;
+  --watermark-opacity: 0;
+  --maroon: #f87171;
+  --maroon-soft: #3b1219;
+  --sage: #34d399;
+  --sage-soft: #062b20;
+  --amber: #f59e0b;
+  --amber-soft: #33240a;
+  --amber-text: #fcd34d;
 }
 
 * { box-sizing: border-box; }
@@ -103,7 +129,7 @@ button { cursor: pointer; }
 /* One visible keyboard-focus ring for every control. Mouse clicks don't
    show it (:focus-visible). */
 :where(button, a, input, select, textarea, [tabindex]):focus-visible {
-  outline: 3px solid var(--sage);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -128,90 +154,214 @@ button { cursor: pointer; }
   }
 }
 
-/* ---------- Page + sheet ---------- */
+/* ---------- App frame: navbar, desk, footer ---------- */
+
+.app-frame {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--page-bg);
+}
+
+.app-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--brand);
+  color: var(--on-brand);
+  box-shadow: 0 2px 10px var(--sheet-shadow);
+}
+.navbar-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.navbar-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 50%;
+  background: #fff; /* the logo is a JPEG on white */
+  object-fit: contain;
+}
+.navbar-title { display: grid; line-height: 1.2; min-width: 0; }
+.navbar-name { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
+.navbar-date { font-size: 11.5px; opacity: 0.85; }
+.navbar-actions { display: flex; align-items: center; gap: 8px; }
+.navbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 6px 14px;
+  border: 1px solid color-mix(in srgb, var(--on-brand) 35%, transparent);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--on-brand);
+  font-size: 13px;
+  font-weight: 600;
+}
+.navbar-button:hover { background: color-mix(in srgb, var(--on-brand) 12%, transparent); }
+.app-navbar :focus-visible { outline-color: var(--on-brand); }
 
 /* The whole form is ONE elevated sheet of paper — deliberately not a grid of
    matching cards. Edge-to-edge under 640px (screen space is precious); from
    640px it reads as a sheet sitting on a desk. */
 .clinic-desk {
-  min-height: 100vh;
+  flex: 1;
   background: var(--page-bg);
 }
 
 .prescription-sheet {
+  /* Shared with .sheet-letterhead, which bleeds to the sheet's edges. */
+  --sheet-pad-top: 0px;
+  --sheet-pad-x: 16px;
+  position: relative;
   width: 100%;
   background: var(--paper);
-  /* Bottom padding clears the fixed mobile action bar (see .form-footer). */
-  padding: 24px 16px calc(96px + env(safe-area-inset-bottom));
+  padding: var(--sheet-pad-top) var(--sheet-pad-x) 24px;
   box-shadow: 0 12px 36px var(--sheet-shadow);
+  overflow: clip;
 }
+/* Faint institute seal behind the form, like a watermarked pad. */
+.prescription-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/aiims-logo.jpg") center 55% / min(340px, 70%) no-repeat;
+  opacity: var(--watermark-opacity);
+  pointer-events: none;
+}
+.prescription-sheet > * { position: relative; }
 
 @media (min-width: 480px) {
-  .prescription-sheet { padding-left: 28px; padding-right: 28px; }
+  .prescription-sheet { --sheet-pad-x: 28px; }
 }
 
 @media (min-width: 640px) {
   .clinic-desk { padding: 32px 16px; }
   .prescription-sheet {
+    --sheet-pad-x: 44px;
     max-width: 680px;
     margin: 0 auto;
     border: 1px solid var(--line);
     border-radius: var(--radius-md);
-    padding: 44px 52px 34px;
+    padding-bottom: 34px;
   }
 }
 
 @media (min-width: 1024px) {
-  .clinic-desk { padding: 44px 16px 56px; }
+  .clinic-desk { padding: 40px 16px 48px; }
   .prescription-sheet { max-width: 760px; }
 }
 
-/* ---------- Header + toolbar ---------- */
-
-.sheet-header {
+.app-footer {
   display: flex;
-  gap: 14px;
   align-items: center;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--line);
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  text-align: center;
+}
+.app-footer img { border-radius: 50%; background: #fff; opacity: 0.8; }
+/* Phones: keep the footer above the fixed Print / Save bar. */
+@media (max-width: 639px) {
+  .app-footer { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+}
+
+/* ---------- Letterhead band + toolbar ---------- */
+
+.sheet-letterhead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 calc(-1 * var(--sheet-pad-x));
+  padding: 18px var(--sheet-pad-x);
+  background: var(--brand);
+  color: var(--on-brand);
+}
+.letterhead-logo {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  padding: 4px;
+  border-radius: 50%;
+  background: #fff; /* JPEG on white */
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+}
+.letterhead-logo img { width: 52px; height: 52px; object-fit: contain; }
+.letterhead-text { min-width: 0; }
+.sheet-letterhead h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+.letterhead-institution {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  opacity: 0.9;
+}
+@media (min-width: 480px) {
+  .sheet-letterhead { padding-top: 22px; padding-bottom: 22px; }
+  .sheet-letterhead h1 { font-size: 24px; }
+  .letterhead-logo { width: 68px; height: 68px; }
+  .letterhead-logo img { width: 60px; height: 60px; }
+}
+
+/* Red–navy–red rule under the band, as on the printed pad. */
+.sheet-stripe {
+  height: 4px;
+  margin: 0 calc(-1 * var(--sheet-pad-x)) 0;
+  background: linear-gradient(90deg, var(--maroon), var(--focus) 50%, var(--maroon));
 }
 
 .rx-mark {
   font-family: var(--font-display);
-  font-size: 56px;
-  font-weight: 600;
-  line-height: 0.8;
-  color: var(--maroon);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--brand-text);
   flex-shrink: 0;
 }
 
-.sheet-header h1 {
-  font-family: var(--font-display);
-  font-size: 26px;
-  line-height: 1.15;
-  font-weight: 600;
-  margin: 0;
-  color: var(--ink);
+/* ℞ between patient information and the clinical sections. */
+.rx-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -6px 0 18px;
+}
+/* The ℞ line replaces the patient section's own bottom border. */
+.form-section:has(+ .rx-divider) { border-bottom: 0; margin-bottom: 0; }
+.rx-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
 }
 
 .help-text {
-  margin: 6px 0 0;
+  margin: 0;
   color: var(--ink-soft);
   font-size: 13px;
   line-height: 1.5;
 }
 
-@media (min-width: 480px) {
-  .rx-mark { font-size: 64px; }
-  .sheet-header h1 { font-size: 29px; }
-}
-
 .toolbar {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 0 18px;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 0 16px;
 }
 
 .quiet-button {
@@ -221,6 +371,7 @@ button { cursor: pointer; }
   display: inline-flex;
   gap: 7px;
   align-items: center;
+  flex-shrink: 0;
   min-height: 44px;
   padding: 8px 0;
   font-size: 13px;
@@ -242,7 +393,7 @@ button { cursor: pointer; }
   align-items: center;
   gap: 8px;
   margin: 0 0 16px;
-  color: var(--ink-soft);
+  color: var(--brand-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -303,13 +454,13 @@ textarea.field-control {
   line-height: 1.5;
 }
 
-.field-control.is-filled { background: var(--paper); }
+.field-control.is-filled { background: var(--surface-muted); }
 
 .field-control:focus,
 .field-control:focus-visible {
   outline: none;
-  border-color: var(--sage);
-  box-shadow: 0 0 0 3px var(--sage-soft);
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
 .field-control.is-missing {
@@ -335,7 +486,7 @@ select.field-control {
 .field-control[readonly],
 select.field-control:disabled {
   padding-right: 13px;
-  background: var(--paper);
+  background: var(--surface-muted);
   border-color: var(--line);
   color: var(--ink);
   opacity: 1;
@@ -375,7 +526,7 @@ select.field-control:disabled {
   color: var(--ink-soft);
   transition: background 0.15s, color 0.15s;
 }
-.mic-button:hover:not(:disabled) { color: var(--sage); background: var(--sage-soft); }
+.mic-button:hover:not(:disabled) { color: var(--brand-text); background: var(--brand-soft); }
 
 .mic-recording,
 .mic-recording:hover:not(:disabled) {
@@ -414,8 +565,8 @@ select.field-control:disabled {
   place-items: center;
   border: 0;
   border-radius: 50%;
-  color: var(--paper-raised);
-  background: var(--ink);
+  color: var(--on-brand);
+  background: var(--brand);
   transition: transform 0.1s ease;
 }
 .dictate-button:active:not(:disabled) { transform: scale(0.96); }
@@ -471,7 +622,7 @@ kbd {
   padding: 4px 0 0;
   border: 0;
   background: transparent;
-  color: var(--sage);
+  color: var(--brand-text);
   font-size: 13px;
   font-weight: 500;
   text-align: left;
@@ -855,7 +1006,7 @@ kbd {
   background: var(--paper-raised);
   color: var(--ink-soft);
 }
-.records-search:focus-within { border-color: var(--sage); box-shadow: 0 0 0 3px var(--sage-soft); }
+.records-search:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px var(--brand-soft); }
 .records-search input {
   flex: 1;
   min-width: 0;
@@ -884,9 +1035,9 @@ kbd {
   font-weight: 600;
 }
 .record-filters button.is-active {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--paper-raised);
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--on-brand);
 }
 
 .date-range {
@@ -947,8 +1098,8 @@ kbd {
 }
 .record-row:hover { background: var(--paper-raised); }
 .record-row.is-selected {
-  background: var(--sage-soft);
-  box-shadow: inset 3px 0 0 var(--sage);
+  background: var(--brand-soft);
+  box-shadow: inset 3px 0 0 var(--brand-text);
 }
 .record-row strong { font-weight: 600; overflow-wrap: anywhere; }
 .record-row code {
@@ -1000,7 +1151,7 @@ kbd {
   font-weight: 600;
   white-space: nowrap;
 }
-.records-button.primary { border-color: var(--ink); background: var(--ink); color: var(--paper-raised); }
+.records-button.primary { border-color: var(--brand); background: var(--brand); color: var(--on-brand); }
 .records-button:disabled { opacity: 0.6; cursor: progress; }
 .show-more { width: calc(100% - 16px); margin: 12px 8px 0; }
 
@@ -1119,9 +1270,9 @@ kbd {
   background: var(--paper-raised);
 }
 .action-button.primary {
-  color: var(--paper-raised);
-  border: 1px solid var(--ink);
-  background: var(--ink);
+  color: var(--on-brand);
+  border: 1px solid var(--brand);
+  background: var(--brand);
 }
 .action-button:disabled { opacity: 0.6; cursor: not-allowed; }
 

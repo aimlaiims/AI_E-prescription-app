@@ -36,6 +36,7 @@ export default function RecordsBrowser({
   onSelect,
   preview, // { status: "idle" | "loading" | "error" | "ready", record? }
   notice, // e.g. pop-up blocked when printing
+  letterhead, // institution / logo for the preview (same as the print)
   onPrint,
   onClose,
   onRetry,
@@ -295,7 +296,7 @@ export default function RecordsBrowser({
                 <iframe
                   title={`Prescription for ${record.patient_name}`}
                   className="records-frame"
-                  srcDoc={buildPrintHtml(record, record.pid, { toolbar: false })}
+                  srcDoc={buildPrintHtml(record, record.pid, { toolbar: false, letterhead })}
                 />
               </div>
             </div>

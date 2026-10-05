@@ -10,7 +10,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 
 // Owns the server side of "View past prescriptions": search (debounced),
 // date filters, paging, loading the full record for the preview, printing.
-export default function RecordsDialog({ onClose }) {
+export default function RecordsDialog({ onClose, letterhead }) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -79,7 +79,7 @@ export default function RecordsDialog({ onClose }) {
       return;
     }
     win.document.open();
-    win.document.write(buildPrintHtml(record, record.pid));
+    win.document.write(buildPrintHtml(record, record.pid, { letterhead }));
     win.document.close();
   };
 
@@ -100,6 +100,7 @@ export default function RecordsDialog({ onClose }) {
       preview={preview}
       notice={notice}
       onPrint={print}
+      letterhead={letterhead}
       onClose={onClose}
       onRetry={() => load(0)}
       onLoadMore={() => load(list.items.length)}

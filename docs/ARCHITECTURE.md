@@ -141,6 +141,7 @@ components/
   DictateBar.jsx   big round mic, Space toggle (+ kbd hint on keyboard devices), retry
   ReviewPanel.jsx  diff list, Accept/Discard/Accept all, hands-free toggle
   StatusBanner.jsx saved (Reference ID copy) / error / cooldown — presentational
+  Brand.jsx        AppNavbar (logo, date, History), SheetLetterhead (navy band), AppFooter
   SaveButton.jsx   Save prescription / Saving… / Saved (lock-after-save phases)
   RecordsDialog.jsx  past prescriptions: debounced search, date chips + range, paging,
                    loads the full record for the preview, prints (sync window.open)
@@ -154,8 +155,15 @@ messages.js        error code -> plain language
 api.js             fetch wrappers, ApiError
 fieldSpecs.js      field labels/types/required (MIRRORS backend schemas.py)
 useRecorder.js     MediaRecorder start()/stop() -> Blob promise
-styles.css         tokens + responsive layout
+branding.js        app / institution names, logo URL; logo as a data URI for printing
+styles.css         tokens (AIIMS navy + red) + responsive layout
 ```
+Branding (AIIMS Raipur, from the colleague's design): navy navbar with History, a navy
+letterhead band with the institute seal at the top of the sheet, a red–navy stripe, a faint
+seal watermark (hidden in dark mode: the logo is a JPEG on white), and a ℞ divider between
+patient information and the clinical sections. The printed page shows the seal and the
+institution name; the doctor's details join once login exists.
+
 Layout (v0 design, ported 2026-09-29): one elevated "paper sheet" — edge-to-edge under
 640px with a sticky bottom action bar; a bordered sheet from 640px; wider at 1024px.
 Patient fields are two columns from 480px. Required fields are checked in the browser
