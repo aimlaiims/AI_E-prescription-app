@@ -101,7 +101,12 @@ Failure paths never fabricate data. A response that did not finish normally
 
 ## 5. Data model
 
-`backend/app/models.py` → table `clinical_forms`:
+`backend/app/models.py`. Accounts: `doctors` (login `doctor_id` lower-case, name, email,
+qualification, specialization, registration no., scrypt hash), `auth_sessions` (token
+hash, expiry), `password_resets` (token hash, expiry, used). `migrations.py` applies
+idempotent startup steps (`create_all` can't change an existing table).
+
+Table `clinical_forms` (plus `doctor_id`, the owner):
 `id`, `pid` (unique, `RX-YYYYMMDD-XXXX`, 4 random A-Z0-9), `patient_name`, `date`,
 `age`, `gender`, `chief_complaints`, `on_examination`, `diagnosis`, `investigation`,
 `medications`, `raw_transcript_log` (all dictation transcripts, `\n---\n` separated),
@@ -185,12 +190,21 @@ Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month na
 
 | Method | Path | Notes |
 |---|---|---|
-| GET | `/api/health` | `{status, whisper_backend}` |
+| GET | `/api/health` | `{status, whisper_backend}` — the only route that needs no login |
+| POST | `/api/auth/signup` | invite code + profile + password → signed in; 403 `invalid_invite`/`signup_disabled`, 409 `conflict`, 400 `validation` |
+| POST | `/api/auth/login` | `{doctor_id, password, remember}` → profile + session cookie; 401 `invalid_credentials`, 429 after 5 failures/15 min |
+| POST | `/api/auth/logout` | ends the session |
+| GET | `/api/auth/me` | `{doctor, institution}`; 401 `unauthenticated` |
+| POST | `/api/auth/forgot` | `{email}` → always the same reply; emails a 30-minute single-use link |
+| POST | `/api/auth/reset` | `{token, password}`; ends all of that doctor's sessions |
 | POST | `/api/transcribe` | multipart `audio` → `{transcript}` |
 | POST | `/api/extract` | `{transcript, current_state, target_field?}` → `{updates[], unmatched_transcript_note}` |
 | POST | `/api/forms` | `{state, raw_transcript_log}` → `{pid, saved_at}`; 400 `validation` |
-| GET | `/api/forms/{pid}` | full record |
+| GET | `/api/forms/{pid}` | full record — own records only (another doctor's = 404) |
 | GET | `/api/forms` | `?q=` (name or Reference ID, partial, case-insensitive) `&date_from=&date_to=` (YYYY-MM-DD) `&limit=` (≤100, default 50) `&offset=` → `{items[], total, has_more}`, newest visit first |
+
+Every route except `health` and `auth/*` needs a signed-in doctor (401 `unauthenticated`
+otherwise); records are filtered to that doctor.
 
 There is **no update or delete endpoint**: a saved prescription is final and the form
 locks after save, so a printout always matches the stored record.
@@ -219,8 +233,22 @@ relative `/api`), HTTPS, auth, and a persistent host. Not built.
 
 ## 11. Security posture (be honest about it)
 
-- No authentication on any endpoint; anyone reaching the server can read/write records.
-- PID = date + 4 random chars: fine for lookup by a staff member, guessable if exposed.
+- **Doctor login** (`services/auth.py`, `security.py`, `routers/auth.py`; stdlib only):
+  - Passwords: `hashlib.scrypt` with a per-user salt, constant-time compare; an unknown
+    Doctor ID costs the same time as a wrong password.
+  - Sessions: random token in an HttpOnly, SameSite=Lax cookie (Secure over HTTPS); only
+    its SHA-256 is stored. 12 h, or 30 days with "Keep me signed in".
+  - Sign-up needs `SIGNUP_CODE`; login throttled (5 failures per ID per 15 min; 30 per IP).
+  - Password reset: emailed single-use link, 30 min, stored hashed; "forgot" never reveals
+    whether an email has an account; a reset ends every session of that doctor.
+  - CSRF: SameSite=Lax plus a same-origin check on state-changing `/api` requests. The Vite
+    proxy must keep the browser's Host (`changeOrigin: false` in `vite.config.js`) —
+    otherwise this check, reset links and HTTPS detection break.
+  - Each doctor sees only their own prescriptions; records saved before accounts existed
+    (no doctor) are visible to nobody.
+  - Throttles are in memory (reset on restart; one server only).
+- Reference ID = date + 4 random chars from `secrets`: unguessable enough for one clinic,
+  and useless without being signed in as the doctor who saved it.
 - SQLite is unencrypted and contains patient identifiers plus raw dictation transcripts.
 - API keys live only in `backend/.env` and never reach the browser. Keep `.env` out of git.
 - Web Speech audio goes to the browser vendor; Whisper audio goes to Groq; transcripts

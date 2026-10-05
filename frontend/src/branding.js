@@ -32,7 +32,5 @@ export function loadLogoDataUri() {
   return logoDataUri;
 }
 
-// Letterhead for buildPrintHtml(). Doctor fields are added with login.
-export function printLetterhead(logo) {
-  return { clinicName: BRAND.institution, logoDataUri: logo || undefined };
-}
+// The print letterhead is built from the signed-in doctor's profile: see
+// doctorLetterhead() in doctor.js.

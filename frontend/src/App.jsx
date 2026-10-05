@@ -14,13 +14,15 @@ import StatusBanner from "./components/StatusBanner.jsx";
 import SaveButton from "./components/SaveButton.jsx";
 import RecordsDialog from "./components/RecordsDialog.jsx";
 import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
-import { loadLogoDataUri, printLetterhead } from "./branding.js";
+import { BRAND, loadLogoDataUri } from "./branding.js";
+import { doctorDisplayName, doctorLetterhead } from "./doctor.js";
 import { FIELD_SPECS, EMPTY_STATE } from "./fieldSpecs.js";
 import { saveForm } from "./api.js";
 import {
   friendlyErrorMessage,
   PENDING_BEFORE_SAVE_MESSAGE,
   POPUP_BLOCKED_MESSAGE,
+  SIGN_OUT_UNSAVED_MESSAGE,
   missingFieldsMessage,
 } from "./messages.js";
 import { localToday as today } from "./dates.js";
@@ -30,7 +32,8 @@ import { mergePending, withPendingApplied } from "./pendingUpdates.js";
 // micStatus key for the whole-visit mic (per-field mics use their field key).
 const VISIT_MIC = "__visit";
 
-export default function App() {
+// `profile`: the signed-in doctor (GET /api/auth/me) — see AuthGate.jsx.
+export default function App({ profile, onSignOut }) {
   const [state, setState] = useState({ ...EMPTY_STATE, date: today() });
   const [pending, setPending] = useState([]);
   const [unmatchedNote, setUnmatchedNote] = useState("");
@@ -242,7 +245,7 @@ export default function App() {
       setPrinting(false);
     }
 
-    const html = buildPrintHtml(state, pid, { letterhead: printLetterhead(logo) });
+    const html = buildPrintHtml(state, pid, { letterhead });
     previewWindow.document.open();
     previewWindow.document.write(html);
     previewWindow.document.close();
@@ -259,6 +262,19 @@ export default function App() {
     setTranscriptLog([]);
     setSavedPid(null);
     setError("");
+  };
+
+  // Printed letterhead: institution seal + the signed-in doctor's details.
+  const letterhead = doctorLetterhead(profile, logo, BRAND.institution);
+
+  // Signing out drops the open form; don't let that happen by accident.
+  const hasUnsavedWork =
+    !locked &&
+    (pending.length > 0 ||
+      Object.entries(state).some(([k, v]) => k !== "date" && String(v ?? "").trim()));
+  const handleSignOut = () => {
+    if (hasUnsavedWork && !window.confirm(SIGN_OUT_UNSAVED_MESSAGE)) return;
+    onSignOut();
   };
 
   const micsDisabled = !!cooldownUntil;
@@ -292,12 +308,16 @@ export default function App() {
 
   return (
     <div className="app-frame">
-    <AppNavbar onHistory={() => setRecordsOpen(true)} />
+    <AppNavbar
+      onHistory={() => setRecordsOpen(true)}
+      doctorName={doctorDisplayName(profile?.doctor?.full_name)}
+      onSignOut={onSignOut && handleSignOut}
+    />
     <main className="clinic-desk">
       {/* Keyed by form generation: "New prescription" remounts everything
           inside, so no mic, note or retry link survives into the next form. */}
       <article className="prescription-sheet" key={formGen}>
-        <SheetLetterhead />
+        <SheetLetterhead profile={profile} />
         <div className="sheet-stripe" aria-hidden="true" />
 
         <div className="toolbar" role="group" aria-label="Form actions">
@@ -411,7 +431,7 @@ export default function App() {
         </footer>
       </article>
       {recordsOpen && (
-        <RecordsDialog letterhead={printLetterhead(logo)} onClose={() => setRecordsOpen(false)} />
+        <RecordsDialog letterhead={letterhead} onClose={() => setRecordsOpen(false)} />
       )}
     </main>
     <AppFooter />

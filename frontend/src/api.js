@@ -10,7 +10,20 @@ export class ApiError extends Error {
   }
 }
 
+// Fired when any request comes back "unauthenticated" (session ended or
+// expired). AuthGate listens and asks the doctor to sign in again — on top of
+// the form, so nothing typed or dictated is lost.
+export const UNAUTHENTICATED_EVENT = "cvf:unauthenticated";
+
 async function toApiError(res) {
+  const err = await parseApiError(res);
+  if (err.code === "unauthenticated" && typeof window !== "undefined") {
+    window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
+  }
+  return err;
+}
+
+async function parseApiError(res) {
   let detail = null;
   try {
     const body = await res.json();
@@ -90,3 +103,33 @@ export async function getForm(pid) {
   if (!res.ok) throw await toApiError(res);
   return res.json();
 }
+
+// --- Doctor accounts. Same-origin requests carry the HttpOnly session cookie
+// automatically; JavaScript never sees the token. ---
+
+async function postJson(path, body) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body ?? {}),
+  });
+  // A failed sign-in is "invalid_credentials", not "unauthenticated", so these
+  // never trigger the sign-in-again prompt.
+  if (!res.ok) throw await parseApiError(res);
+  return res.json();
+}
+
+// { doctor, institution } for the signed-in doctor; throws ApiError
+// "unauthenticated" when signed out (does not fire the event: expected at start).
+export async function getMe() {
+  const res = await fetch(`${BASE}/auth/me`);
+  if (!res.ok) throw await parseApiError(res);
+  return res.json();
+}
+
+export const login = (doctorId, password, remember) =>
+  postJson("/auth/login", { doctor_id: doctorId, password, remember });
+export const signup = (fields) => postJson("/auth/signup", fields);
+export const logout = () => postJson("/auth/logout");
+export const forgotPassword = (email) => postJson("/auth/forgot", { email });
+export const resetPassword = (token, password) => postJson("/auth/reset", { token, password });

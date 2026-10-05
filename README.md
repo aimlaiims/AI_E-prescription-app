@@ -3,9 +3,9 @@
 Dictate a patient visit, review what was heard, save it under a Reference ID, print a
 prescription. Built for a doctor or their assistant.
 
-> **Status: working demo, not production.** No authentication, no encryption at rest.
-> Do not use with real patient data until there is a login, encryption at rest, and a
-> consent/privacy review (audio goes to Groq, transcripts to Google).
+> **Status: demo, not production.** Doctors sign in (invite-code sign-up, email password
+> reset) and each sees only their own prescriptions. Still missing before real patient data:
+> encryption at rest and a consent/privacy review (audio goes to Groq, transcripts to Google).
 
 ## How it works
 
@@ -58,6 +58,13 @@ after every change.
 | `GEMINI_API_KEY` | Gemini field extraction |
 | `EXTRACTION_MODEL` | default `gemini-3.5-flash-lite` |
 | `DATABASE_URL` | default `sqlite:///./clinical_forms.db` |
+| `SIGNUP_CODE` | invite code needed to create an account (empty = sign-up closed) |
+| `INSTITUTION_NAME` | shown on the letterhead and printed prescriptions |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | password-reset email; empty = link printed in the backend terminal |
+| `APP_BASE_URL` | public address for links in emails (e.g. the ngrok URL) |
+
+First run: set `SIGNUP_CODE`, open the app, choose **Create an account**. Every API call
+except `/api/health` needs a signed-in doctor.
 
 ## Docs
 

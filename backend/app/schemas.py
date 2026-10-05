@@ -70,6 +70,32 @@ class SaveFormRequest(BaseModel):
     raw_transcript_log: str = ""
 
 
+class SignupRequest(BaseModel):
+    invite_code: str = ""
+    full_name: str = ""
+    doctor_id: str = ""
+    email: str = ""
+    qualification: str = ""
+    specialization: str = ""
+    registration_no: str = ""
+    password: str = ""
+
+
+class LoginRequest(BaseModel):
+    doctor_id: str = ""
+    password: str = ""
+    remember: bool = False
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = ""
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = ""
+    password: str = ""
+
+
 class SaveFormResponse(BaseModel):
     pid: str
     saved_at: str

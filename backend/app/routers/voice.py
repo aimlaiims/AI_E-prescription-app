@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from fastapi.concurrency import run_in_threadpool
 
 from ..errors import UpstreamError
@@ -10,8 +10,10 @@ from ..schemas import (
 )
 from ..services.transcription import transcribe_audio
 from ..services.extraction import extract_field_updates
+from ..security import current_doctor
 
-router = APIRouter(prefix="/api", tags=["voice"])
+# Signed-in doctors only: these calls spend the Groq/Gemini quota.
+router = APIRouter(prefix="/api", tags=["voice"], dependencies=[Depends(current_doctor)])
 
 
 def _upstream_to_http(e: UpstreamError) -> HTTPException:

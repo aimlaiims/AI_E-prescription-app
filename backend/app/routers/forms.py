@@ -7,7 +7,8 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import ClinicalForm
+from ..models import ClinicalForm, Doctor
+from ..security import current_doctor
 from ..schemas import SaveFormRequest, SaveFormResponse, REQUIRED_FIELDS, FORM_FIELD_SPECS
 
 router = APIRouter(prefix="/api/forms", tags=["forms"])
@@ -22,7 +23,11 @@ def _generate_pid() -> str:
 
 
 @router.post("", response_model=SaveFormResponse)
-def save_form(req: SaveFormRequest, db: Session = Depends(get_db)):
+def save_form(
+    req: SaveFormRequest,
+    db: Session = Depends(get_db),
+    doctor: Doctor = Depends(current_doctor),
+):
     state = req.state.model_dump()
 
     # Iterate FORM_FIELD_SPECS (ordered) rather than the REQUIRED_FIELDS set
@@ -57,7 +62,7 @@ def save_form(req: SaveFormRequest, db: Session = Depends(get_db)):
             },
         )
 
-    record = ClinicalForm(pid=pid, raw_transcript_log=req.raw_transcript_log, **state)
+    record = ClinicalForm(pid=pid, doctor_id=doctor.id, raw_transcript_log=req.raw_transcript_log, **state)
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -66,8 +71,13 @@ def save_form(req: SaveFormRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/{pid}")
-def get_form(pid: str, db: Session = Depends(get_db)):
-    record = db.query(ClinicalForm).filter(ClinicalForm.pid == pid).first()
+def get_form(pid: str, db: Session = Depends(get_db), doctor: Doctor = Depends(current_doctor)):
+    # Another doctor's record answers exactly like a missing one (no probing).
+    record = (
+        db.query(ClinicalForm)
+        .filter(ClinicalForm.pid == pid, ClinicalForm.doctor_id == doctor.id)
+        .first()
+    )
     if not record:
         raise HTTPException(
             404,
@@ -92,9 +102,10 @@ def list_forms(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
+    doctor: Doctor = Depends(current_doctor),
 ):
-    """Saved prescriptions for the records browser: newest visit first."""
-    query = db.query(ClinicalForm)
+    """The signed-in doctor's saved prescriptions: newest visit first."""
+    query = db.query(ClinicalForm).filter(ClinicalForm.doctor_id == doctor.id)
     needle = q.strip()
     if needle:
         # Case-insensitive "contains"; autoescape so % and _ are literal.

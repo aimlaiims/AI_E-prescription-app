@@ -7,6 +7,20 @@ Quick sanity checks after any change: `cd frontend; npm run build` and
 Run the manual tests on the machine and browser that will be used for the demo
 (**Chrome or Edge**), including once **through the ngrok URL**.
 
+## 0. Accounts
+- [ ] `SIGNUP_CODE` set in `backend/.env`; Create an account with it → signed in, letterhead
+      shows "Dr. <name>", qualification, registration no.
+- [ ] Wrong invite code → clear message; `SIGNUP_CODE` empty → sign-up says it's closed
+- [ ] Sign out → sign in again (Doctor ID is not case-sensitive); 5 wrong passwords → told
+      to wait
+- [ ] Forgot password → email arrives (or, without SMTP, the link is in the backend
+      terminal) → new password works, old one doesn't, the link can't be reused
+- [ ] Second doctor's account: History shows none of the first doctor's prescriptions
+- [ ] Session ends while a form is open (e.g. sign out in another tab) → sign-in box over
+      the form; after signing in the form is still there
+- [ ] Sign out with an unsaved form → asks first
+- [ ] Printed prescription: doctor's name, qualification, registration no., institution, seal
+
 ## 1. Setup checks
 - [ ] `GET /api/health` returns `{"status":"ok","whisper_backend":"groq"}`
 - [ ] Browser grants microphone permission on first use (needs `localhost` or HTTPS)

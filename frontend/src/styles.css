@@ -1291,3 +1291,230 @@ kbd {
   }
   .form-footer .action-button { flex: 1; }
 }
+
+/* ---------- Signed-in doctor in the navbar / letterhead ---------- */
+
+.navbar-doctor {
+  max-width: 22ch;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.letterhead-credentials {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.95;
+}
+@media (max-width: 639px) {
+  /* Phones: the letterhead band already names the doctor. */
+  .navbar-doctor,
+  .navbar-signout-label { display: none; }
+  .navbar-button { padding: 6px 12px; }
+}
+
+/* ---------- Sign-in screens (design from the colleague's app) ---------- */
+
+.auth-loading {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--page-bg);
+  color: var(--ink-soft);
+}
+
+.auth-page {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--page-bg);
+}
+
+/* Brand panel: desktop only. */
+.auth-brand {
+  position: relative;
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 44%;
+  max-width: 560px;
+  padding: 40px 48px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, var(--focus) 45%, transparent), transparent 60%),
+    linear-gradient(160deg, var(--brand), color-mix(in srgb, var(--brand) 70%, #000));
+  color: var(--on-brand);
+}
+@media (min-width: 1024px) {
+  .auth-brand { display: flex; }
+}
+.auth-brand-rx {
+  position: absolute;
+  top: 50%;
+  left: -24px;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: 260px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.07;
+  pointer-events: none;
+}
+/* Content above the decorative ℞ (which stays absolutely positioned). */
+.auth-brand > :not(.auth-brand-rx) { position: relative; }
+.auth-brand-top { display: flex; align-items: center; gap: 12px; }
+.auth-brand-name { font-size: 14px; font-weight: 700; letter-spacing: 0.03em; }
+.auth-brand-title { margin: 0; font-size: 34px; line-height: 1.15; font-weight: 700; }
+.auth-brand-text { max-width: 34ch; margin: 14px 0 0; font-size: 14px; line-height: 1.5; opacity: 0.85; }
+.auth-features { margin: 26px 0 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.auth-features li { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; }
+.auth-feature-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--on-brand) 15%, transparent);
+}
+.auth-brand-foot { margin: 0; font-size: 12px; opacity: 0.7; }
+
+.auth-logo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: 50%;
+  background: #fff; /* JPEG on white */
+}
+.auth-logo img { display: block; border-radius: 50%; object-fit: contain; }
+
+.auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: 0 12px 40px var(--sheet-shadow);
+}
+@media (min-width: 480px) {
+  .auth-card { padding: 34px 32px; }
+}
+.auth-card-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  color: var(--brand-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+@media (min-width: 1024px) {
+  .auth-page .auth-card-brand { display: none; } /* the brand panel shows it */
+}
+
+.auth-title { margin: 0; font-size: 24px; font-weight: 700; color: var(--ink); }
+.auth-subtitle { margin: 6px 0 20px; color: var(--ink-soft); font-size: 13.5px; line-height: 1.5; }
+
+.auth-form { display: grid; gap: 14px; }
+
+.auth-field label { display: block; margin-bottom: 6px; color: var(--ink-soft); font-size: 13px; font-weight: 500; }
+.auth-optional { font-weight: 400; }
+.auth-input-shell { position: relative; }
+.auth-input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--ink-soft); pointer-events: none; }
+.auth-input-shell input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 46px 10px 42px;
+  border: 1px solid var(--control-line);
+  border-radius: 99px;
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-size: 16px; /* no iOS zoom */
+}
+.auth-input-shell input:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+.auth-input-shell input[readonly] { color: var(--ink-soft); }
+.auth-reveal {
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+}
+.auth-hint { margin: 5px 0 0 14px; color: var(--ink-soft); font-size: 12px; }
+
+.auth-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.auth-check { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--ink-soft); font-size: 13px; }
+.auth-check input { width: 18px; height: 18px; accent-color: var(--brand); }
+
+.auth-link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-link:hover { text-decoration: underline; }
+
+.auth-submit {
+  min-height: 48px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: 15px;
+  font-weight: 700;
+}
+.auth-submit:disabled { opacity: 0.6; cursor: progress; }
+
+.auth-error,
+.auth-success {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.auth-error { border: 1px solid var(--maroon); background: var(--maroon-soft); color: var(--maroon); }
+.auth-success { border: 1px solid var(--sage); background: var(--sage-soft); color: var(--sage); }
+
+.auth-foot { margin: 18px 0 0; color: var(--ink-soft); font-size: 13px; text-align: center; }
+
+/* Session ended mid-prescription: sign in again over the (kept) form. */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+.auth-overlay-card { max-height: 100%; overflow: auto; }

@@ -1,11 +1,12 @@
-import { History } from "lucide-react";
+import { History, LogOut } from "lucide-react";
 import { BRAND } from "../branding.js";
+import { doctorCredentials, doctorDisplayName } from "../doctor.js";
 import { formatDate } from "../printTemplate.js";
 import { localToday } from "../dates.js";
 
-// Top bar: logo, product name, today's date, and History (past prescriptions).
-// The doctor's name and Logout join the right-hand side once login exists.
-export function AppNavbar({ onHistory }) {
+// Top bar: logo, product name, today's date, History (past prescriptions),
+// the signed-in doctor and Sign out.
+export function AppNavbar({ onHistory, doctorName, onSignOut }) {
   return (
     <header className="app-navbar">
       <div className="navbar-brand">
@@ -26,21 +27,38 @@ export function AppNavbar({ onHistory }) {
           <History size={15} aria-hidden="true" />
           History
         </button>
+        {doctorName && <span className="navbar-doctor">{doctorName}</span>}
+        {onSignOut && (
+          <button type="button" className="navbar-button" onClick={onSignOut} title="Sign out">
+            <LogOut size={15} aria-hidden="true" />
+            <span className="navbar-signout-label">Sign out</span>
+          </button>
+        )}
       </div>
     </header>
   );
 }
 
-// The navy letterhead band at the top of the sheet, like a printed pad.
-export function SheetLetterhead() {
+// The navy letterhead band at the top of the sheet, like a printed pad:
+// the doctor's name, qualification · specialization, registration no., and
+// the institution (from the server's settings).
+export function SheetLetterhead({ profile }) {
+  const doctor = profile?.doctor;
+  const institution = profile?.institution || BRAND.institution;
+  const name = doctorDisplayName(doctor?.full_name);
+  const credentials = doctorCredentials(doctor);
   return (
     <header className="sheet-letterhead">
       <div className="letterhead-logo">
-        <img src={BRAND.logoUrl} alt={`${BRAND.institution} logo`} width="56" height="56" />
+        <img src={BRAND.logoUrl} alt={`${institution} logo`} width="56" height="56" />
       </div>
       <div className="letterhead-text">
-        <h1>E-Prescription</h1>
-        <p className="letterhead-institution">{BRAND.institution}</p>
+        <h1>{name || "E-Prescription"}</h1>
+        {credentials && <p className="letterhead-credentials">{credentials}</p>}
+        <p className="letterhead-institution">
+          {institution}
+          {doctor?.registration_no ? ` · Reg. No. ${doctor.registration_no}` : ""}
+        </p>
       </div>
     </header>
   );

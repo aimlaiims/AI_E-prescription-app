@@ -61,8 +61,14 @@ const MESSAGES_BY_CONTEXT = {
   print: PRINT_MESSAGES,
 };
 
+// The session ended while working (expired, or signed out elsewhere). A
+// sign-in box opens on top of the form, so nothing is lost.
+export const SESSION_ENDED_MESSAGE =
+  "Your session has ended. Sign in again to continue; your prescription is kept.";
+
 export function friendlyErrorMessage(err, context = "voice") {
   const code = err?.code || "unknown";
+  if (code === "unauthenticated") return SESSION_ENDED_MESSAGE;
   if (code in MIC_MESSAGES) return MIC_MESSAGES[code];
   const messages = MESSAGES_BY_CONTEXT[context] || VOICE_MESSAGES;
   return messages[code] || messages.default;
@@ -99,4 +105,21 @@ export function noMatchMessage(fieldLabel) {
   return fieldLabel
     ? `Didn't find anything for ${fieldLabel}. Try stating it plainly and try again.`
     : "Didn't find anything that clearly fits a field. Try naming what you're describing, like \"diagnosis is...\"";
+}
+
+export const SIGN_OUT_UNSAVED_MESSAGE =
+  "This prescription isn't saved. Sign out anyway and discard it?";
+
+// Sign-in, sign-up and password-reset errors. These codes carry messages we
+// wrote ourselves for the doctor (backend/app/routers/auth.py), so they are
+// shown as they are — like save validation. Anything else (network, server)
+// gets a fixed plain-language line.
+const AUTH_CODES_SHOWN_VERBATIM = new Set([
+  "validation", "invalid_credentials", "conflict", "invalid_invite",
+  "signup_disabled", "invalid_token", "rate_limited", "unauthenticated",
+]);
+
+export function authErrorMessage(err) {
+  if (AUTH_CODES_SHOWN_VERBATIM.has(err?.code) && err.message) return err.message;
+  return "Couldn't reach the server. Please check the connection and try again.";
 }
