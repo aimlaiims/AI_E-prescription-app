@@ -19,7 +19,7 @@ __pycache__/
 CLAUDE.md
 docs/CHANGELOG.md
 docs/ROADMAP.md
-docs/PLAN_UI_AND_LOGIN.md
+docs/PLAN_*.md
 scripts/
 
 # --- Tests and CI (kept locally) ---
