@@ -1,13 +1,13 @@
 import secrets
 import string
-from datetime import datetime, date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
+from ..clock import local_today, to_local_iso
 from ..database import get_db
-from ..models import ClinicalForm, Doctor
+from ..models import ClinicalForm, Doctor, max_length
 from ..security import current_doctor
 from ..schemas import SaveFormRequest, SaveFormResponse, REQUIRED_FIELDS, FORM_FIELD_SPECS
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/forms", tags=["forms"])
 
 
 def _generate_pid() -> str:
-    stamp = date.today().strftime("%Y%m%d")
+    stamp = local_today().strftime("%Y%m%d")  # the IST date, not the server's
     # secrets, not random: Reference IDs should not be predictable.
     alphabet = string.ascii_uppercase + string.digits
     suffix = "".join(secrets.choice(alphabet) for _ in range(4))
@@ -47,6 +47,17 @@ def save_form(
             },
         )
 
+    too_long = [
+        f"{FORM_FIELD_SPECS[f]['label']} (at most {limit} characters)"
+        for f in FORM_FIELD_SPECS
+        if (limit := max_length(ClinicalForm, f)) and len(state.get(f, "")) > limit
+    ]
+    if too_long:
+        raise HTTPException(
+            400,
+            {"error_code": "validation", "message": "Please shorten " + ", ".join(too_long) + "."},
+        )
+
     # Collisions are extremely unlikely (36^4 per day), but bounded: an
     # unbounded retry loop would hang the request forever if they kept happening.
     for _ in range(10):
@@ -67,7 +78,7 @@ def save_form(
     db.commit()
     db.refresh(record)
 
-    return SaveFormResponse(pid=pid, saved_at=record.created_at.isoformat())
+    return SaveFormResponse(pid=pid, saved_at=to_local_iso(record.created_at))
 
 
 @router.get("/{pid}")
@@ -136,7 +147,7 @@ def list_forms(
                 "gender": r.gender,
                 "date": r.date,
                 "diagnosis": r.diagnosis,
-                "created_at": r.created_at.isoformat(),
+                "created_at": to_local_iso(r.created_at),
             }
             for r in records
         ],

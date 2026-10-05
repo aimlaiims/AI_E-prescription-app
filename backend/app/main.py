@@ -11,7 +11,7 @@ from .security import same_origin_guard
 
 logging.basicConfig(level=logging.INFO)
 
-# Create tables and apply idempotent schema steps (see migrations.py).
+# Bring the database schema up to date (Alembic; see migrations.py).
 migrations.run(engine)
 
 app = FastAPI(title="Clinical Voice Form API")

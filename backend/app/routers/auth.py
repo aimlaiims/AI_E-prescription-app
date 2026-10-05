@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
-from ..models import Doctor
+from ..models import Doctor, max_length
 from ..schemas import ForgotPasswordRequest, LoginRequest, ResetPasswordRequest, SignupRequest
 from ..security import SESSION_COOKIE, clear_session_cookie, current_doctor, set_session_cookie
 from ..services import auth as auth_service
@@ -15,6 +15,14 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 _DOCTOR_ID = re.compile(r"^[a-z0-9._-]{3,40}$")
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# Profile fields with a length limit in the database (doctor_id: the regex above).
+_PROFILE_LABELS = {
+    "full_name": "a full name",
+    "email": "an email address",
+    "qualification": "a qualification",
+    "specialization": "a specialization",
+    "registration_no": "a registration number",
+}
 
 
 def _error(status: int, code: str, message: str, **extra) -> HTTPException:
@@ -56,6 +64,10 @@ def signup(req: SignupRequest, request: Request, response: Response, db: Session
         problems.append("a Doctor ID of 3–40 letters, numbers, dots, dashes or underscores")
     if not _EMAIL.match(email):
         problems.append("a valid email address")
+    for field, label in _PROFILE_LABELS.items():
+        limit = max_length(Doctor, field)
+        if len(getattr(req, field).strip()) > limit:
+            problems.append(f"{label} of at most {limit} characters")
     if not (auth_service.MIN_PASSWORD_LENGTH <= len(req.password) <= auth_service.MAX_PASSWORD_LENGTH):
         problems.append(f"a password of at least {auth_service.MIN_PASSWORD_LENGTH} characters")
     if problems:

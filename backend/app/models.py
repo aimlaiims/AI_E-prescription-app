@@ -11,6 +11,13 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def max_length(model, column: str):
+    """Length limit of a text column, or None. PostgreSQL rejects longer text
+    (a server error); SQLite stores it anyway. Check before saving so both
+    databases behave the same and the user gets a clear message."""
+    return getattr(model.__table__.c[column].type, "length", None)
+
+
 class Doctor(Base):
     __tablename__ = "doctors"
 
@@ -58,16 +65,15 @@ class ClinicalForm(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     pid = Column(String(32), unique=True, index=True, nullable=False)
-    # Who saved it; each doctor only sees their own. Added to existing
-    # databases by migrations.py. NULL = saved before accounts existed.
+    # Who saved it; each doctor only sees their own. NULL = saved before
+    # accounts existed (visible to nobody).
     doctor_id = Column(Integer, ForeignKey("doctors.id"), index=True, nullable=True)
 
-    # Indexed for the records search (name contains / date range). Existing
-    # databases get these via CREATE INDEX IF NOT EXISTS in main.py, because
-    # create_all() never alters a table that already exists.
+    # Indexed for the records search (name contains / date range).
+    # Any change to a column here needs an Alembic migration (backend/alembic/).
     patient_name = Column(String(200), nullable=False, index=True)
     date = Column(String(20), nullable=False, index=True)
-    age = Column(String(10), nullable=False)
+    age = Column(String(40), nullable=False)  # e.g. "2 years 6 months"
     gender = Column(String(20), nullable=False)
 
     chief_complaints = Column(Text, nullable=False)

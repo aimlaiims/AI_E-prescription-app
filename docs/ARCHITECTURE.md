@@ -23,7 +23,7 @@ MediaRecorder ─ audio blob ───►  POST /api/transcribe ─────�
                   unmatched_note}   non-empty values)
 
 Review panel ── Accept/Discard (click or voice) ──► form state
-Save ──► POST /api/forms ──► SQLite ──► {pid}          Print ──► standalone HTML window
+Save ──► POST /api/forms ──► database ──► {pid}          Print ──► standalone HTML window
 ```
 
 The two API calls are inherently sequential (extraction needs the transcript), so total
@@ -103,14 +103,39 @@ Failure paths never fabricate data. A response that did not finish normally
 
 `backend/app/models.py`. Accounts: `doctors` (login `doctor_id` lower-case, name, email,
 qualification, specialization, registration no., scrypt hash), `auth_sessions` (token
-hash, expiry), `password_resets` (token hash, expiry, used). `migrations.py` applies
-idempotent startup steps (`create_all` can't change an existing table).
+hash, expiry), `password_resets` (token hash, expiry, used).
+
+**SQLite or PostgreSQL** (`DATABASE_URL`), same code: everything goes through
+SQLAlchemy. The schema is owned by **Alembic** (`backend/alembic/versions/`); the app runs
+`upgrade head` at startup (`app/migrations.py`). The first migration, `0001_baseline`,
+also adopts SQLite databases made before Alembic: it creates only what is missing, so
+their records are kept. Changing the schema = edit `models.py`, then
+`alembic revision --autogenerate -m "..."`, read the file, test on a copy of a real
+database.
+
+Kept the same on both databases:
+- Text columns have sizes; PostgreSQL enforces them, SQLite doesn't. Save and sign-up
+  check the sizes first (`max_length` in `models.py`) and answer `validation` with a
+  "Please shorten …" message instead of a server error.
+- SQLite runs with foreign keys on (as PostgreSQL), WAL (reads don't wait for a save)
+  and a 5 s busy timeout (two saves at once wait instead of failing).
+- Name search uses `lower(...)`, so case-insensitive on both.
+- Times are stored as naive UTC. Everything people see is **IST** (`APP_TIMEZONE`,
+  `app/clock.py`): the date in a Reference ID, `saved_at` / `created_at` in the API
+  (ISO with `+05:30`), and in the browser the form's default date, the date filters,
+  the navbar date and the "Printed" time (`dates.js` `APP_TIME_ZONE`) — regardless of the
+  timezone the server or the doctor's device is set to.
+
+`backend/tools/`: `backup_database.py` (SQLite backup API + integrity check, or
+`pg_dump`; keeps the last N) and `copy_database.py` (to an empty database, sizes checked
+first, one transaction, ids and counters carried over, counts verified).
 
 Table `clinical_forms` (plus `doctor_id`, the owner):
 `id`, `pid` (unique, `RX-YYYYMMDD-XXXX`, 4 random A-Z0-9), `patient_name`, `date`,
 `age`, `gender`, `chief_complaints`, `on_examination`, `diagnosis`, `investigation`,
 `medications`, `raw_transcript_log` (all dictation transcripts, `\n---\n` separated),
-`created_at`, `updated_at`. `age`/`date` are strings on purpose (free-form input).
+`created_at`, `updated_at`. `age`/`date` are strings on purpose (free-form input);
+`age` holds up to 40 characters ("2 years 6 months").
 Required to save: patient_name, age, gender, chief_complaints, diagnosis.
 
 Audio is **not** stored: it is held in memory, sent to Groq, discarded. Transcripts are.
@@ -249,7 +274,11 @@ relative `/api`), HTTPS, auth, and a persistent host. Not built.
   - Throttles are in memory (reset on restart; one server only).
 - Reference ID = date + 4 random chars from `secrets`: unguessable enough for one clinic,
   and useless without being signed in as the doctor who saved it.
-- SQLite is unencrypted and contains patient identifiers plus raw dictation transcripts.
+- The database is unencrypted and contains patient identifiers plus raw dictation
+  transcripts. Use disk encryption on the server (BitLocker / LUKS, or the cloud
+  provider's), and protect backups the same way.
+- Login throttles live in the app's memory, so the app runs as ONE server process even
+  on PostgreSQL. Several servers would each have their own throttles.
 - API keys live only in `backend/.env` and never reach the browser. Keep `.env` out of git.
 - Web Speech audio goes to the browser vendor; Whisper audio goes to Groq; transcripts
   go to Google. Confirm this is acceptable for the data you will handle.

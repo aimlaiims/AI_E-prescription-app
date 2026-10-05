@@ -21,6 +21,18 @@ Run the manual tests on the machine and browser that will be used for the demo
 - [ ] Sign out with an unsaved form → asks first
 - [ ] Printed prescription: doctor's name, qualification, registration no., institution, seal
 
+## 0b. Database
+- [ ] Fresh start on SQLite: the backend log says "database schema up to date (sqlite)"
+- [ ] An existing database from before this change starts fine and keeps its records
+- [ ] PostgreSQL: empty database, `DATABASE_URL=postgresql://…`, start → log says
+      "(postgresql)"; sign up, save, History, print all work
+- [ ] Age "2 years 6 months" saves; a 41-character age → "Please shorten Age (at most 40
+      characters)."
+- [ ] `python -m tools.backup_database` → a file in `backend/backups/`; restore it into a
+      spare database / copy and open a saved prescription from it
+- [ ] `python -m tools.copy_database --from … --to …` on a copy → same counts; the app
+      on the target can save a NEW prescription (ids continue after the copied ones)
+
 ## 1. Setup checks
 - [ ] `GET /api/health` returns `{"status":"ok","whisper_backend":"groq"}`
 - [ ] Browser grants microphone permission on first use (needs `localhost` or HTTPS)

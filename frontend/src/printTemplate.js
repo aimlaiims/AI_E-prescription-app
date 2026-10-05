@@ -1,4 +1,5 @@
 import { FIELD_SPECS } from "./fieldSpecs.js";
+import { appTimeParts } from "./dates.js";
 
 // Standalone A4 prescription document (opened in its own window, or shown in
 // an iframe). Design ported from the recovered v0 print-html: grayscale,
@@ -34,8 +35,10 @@ export function formatDate(isoDate) {
   return `${m[3]} ${MONTHS[Number(m[2]) - 1]} ${m[1]}`;
 }
 
-function formatDateTime(d) {
-  return `${pad2(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+// In IST, whatever timezone the printing device is set to.
+export function formatDateTime(d) {
+  const t = appTimeParts(d);
+  return `${pad2(t.day)} ${MONTHS[t.month - 1]} ${t.year}, ${pad2(t.hour)}:${pad2(t.minute)}`;
 }
 
 /**

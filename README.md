@@ -57,7 +57,8 @@ after every change.
 | `GROQ_API_KEY` | Groq speech-to-text |
 | `GEMINI_API_KEY` | Gemini field extraction |
 | `EXTRACTION_MODEL` | default `gemini-3.5-flash-lite` |
-| `DATABASE_URL` | default `sqlite:///./clinical_forms.db` |
+| `DATABASE_URL` | `sqlite:///./clinical_forms.db` (default) or `postgresql://USER:PASSWORD@HOST:5432/DBNAME` |
+| `APP_TIMEZONE` | default `Asia/Kolkata` (IST) — dates, times and Reference IDs, whatever the server's own timezone |
 | `SIGNUP_CODE` | invite code needed to create an account (empty = sign-up closed) |
 | `INSTITUTION_NAME` | shown on the letterhead and printed prescriptions |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | password-reset email; empty = link printed in the backend terminal |
@@ -65,6 +66,44 @@ after every change.
 
 First run: set `SIGNUP_CODE`, open the app, choose **Create an account**. Every API call
 except `/api/health` needs a signed-in doctor.
+
+## Database and backups
+
+SQLite (the default, one file) or PostgreSQL — chosen by `DATABASE_URL`. The app
+creates and updates the tables itself at startup (Alembic migrations in
+`backend/alembic/`); for PostgreSQL, create an empty database first.
+
+**SQLite** suits one server and a few doctors. **PostgreSQL** is the choice once data is
+real or several departments use it: managed backups and point-in-time restore,
+database users and roles, and what hospital IT usually expects.
+
+**Backups** (from `backend/`, safe while the app runs):
+
+```powershell
+python -m tools.backup_database --to D:\cvf-backups --keep 60
+```
+
+SQLite: a checked `.db` copy. PostgreSQL: a `pg_dump` file (`pg_dump` comes with
+PostgreSQL; its `bin` folder must be on PATH). Schedule it (Windows Task Scheduler or
+cron), keep the folder on **another disk or machine**, and restore one now and then —
+an untested backup is a guess:
+
+- SQLite: stop the app, copy the backup over `clinical_forms.db` (delete any
+  `clinical_forms.db-wal` / `-shm` next to it), start the app.
+- PostgreSQL: `pg_restore --clean --dbname=DBNAME FILE.dump`, with the app stopped.
+
+Never copy the SQLite file by hand while the app is running — use the tool. Don't
+put the SQLite file on a network drive.
+
+**Moving from SQLite to PostgreSQL:** stop the app, back up, create an empty
+PostgreSQL database, then
+
+```powershell
+python -m tools.copy_database --from sqlite:///./clinical_forms.db --to postgresql://USER:PASSWORD@localhost:5432/cvf
+```
+
+It checks everything first and copies in one transaction (every record or none), then
+counts. Set `DATABASE_URL` to the PostgreSQL address and start the app.
 
 ## Docs
 

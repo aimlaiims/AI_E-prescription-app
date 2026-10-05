@@ -17,6 +17,9 @@ class Settings:
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./clinical_forms.db")
 
+    # Dates and times people see (and the date in Reference IDs). Stored as UTC.
+    APP_TIMEZONE: str = os.getenv("APP_TIMEZONE", "Asia/Kolkata").strip() or "Asia/Kolkata"
+
     CORS_ORIGINS: list[str] = [
         o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
     ]
