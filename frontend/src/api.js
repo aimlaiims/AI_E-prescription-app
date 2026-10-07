@@ -3,10 +3,13 @@ const BASE = "/api";
 // Thrown for any non-2xx API response. `code` lets callers branch behavior
 // (e.g. rate_limited -> start a cooldown) instead of guessing from message text.
 export class ApiError extends Error {
-  constructor(message, code = "unknown", retryAfter = null) {
+  constructor(message, code = "unknown", retryAfter = null, detail = null) {
     super(message);
     this.code = code;
     this.retryAfter = retryAfter;
+    // The server's whole answer, for errors that carry data (e.g. the
+    // `candidates` of "possible_duplicate").
+    this.detail = detail;
   }
 }
 
@@ -35,7 +38,8 @@ async function parseApiError(res) {
     return new ApiError(
       detail.message || `Request failed (${res.status})`,
       detail.error_code || "unknown",
-      detail.retry_after_seconds ?? null
+      detail.retry_after_seconds ?? null,
+      detail
     );
   }
   return new ApiError(
@@ -78,17 +82,42 @@ export async function extractFields(transcript, currentState, targetField = null
   return res.json();
 }
 
-export async function saveForm(state, rawTranscriptLog) {
+// `link`: { patientId } (this visit belongs to that patient) or
+// { newPatient: true } (register a new patient even though a likely
+// duplicate exists). Neither: the server registers a new patient, or answers
+// "possible_duplicate" with `detail.candidates` for the doctor to choose.
+// Returns { pid, saved_at, patient }.
+export async function saveForm(state, rawTranscriptLog, link = {}) {
   const res = await fetch(`${BASE}/forms`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ state, raw_transcript_log: rawTranscriptLog }),
+    body: JSON.stringify({
+      state,
+      raw_transcript_log: rawTranscriptLog,
+      patient_id: link.patientId ?? null,
+      new_patient: !!link.newPatient,
+    }),
   });
   if (!res.ok) throw await toApiError(res);
   return res.json();
 }
-// Past prescriptions: { items, total, has_more }. Params are all optional:
-// q (name or Reference ID), date_from / date_to (YYYY-MM-DD), limit, offset.
+// The department's patients: { items } (latest first without q). q: name,
+// Patient ID (ENT-000123), OPD No. or city.
+export async function findPatients(q = "") {
+  const res = await fetch(`${BASE}/patients${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`);
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
+// { patient, visits } — every visit, newest first, as stored.
+export async function getPatientHistory(patientId) {
+  const res = await fetch(`${BASE}/patients/${encodeURIComponent(patientId)}`);
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
+// Past prescriptions of the department: { items, total, has_more }. Params are
+// all optional: q (name, Patient ID, OPD No. or Reference ID), date_from / date_to (YYYY-MM-DD), limit, offset.
 export async function listForms(params = {}) {
   const qs = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "")

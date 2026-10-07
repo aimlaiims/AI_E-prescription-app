@@ -3,6 +3,7 @@ import { Mic, Square, Loader2, ChevronDown } from "lucide-react";
 import { useRecorder } from "../useRecorder.js";
 import { transcribeAudio, extractFields } from "../api.js";
 import { EMPTY_TRANSCRIPT_MESSAGE, noMatchMessage } from "../messages.js";
+import { CITIES } from "../cities.js";
 
 export default function FormField({
   fieldKey,
@@ -133,6 +134,28 @@ export default function FormField({
             aria-describedby={describedBy}
             onChange={handleChange}
           />
+        )}
+        {spec.type === "city" && (
+          <>
+            <input
+              id={fieldKey}
+              type="text"
+              className={controlClass}
+              value={value}
+              readOnly={readOnly}
+              required={spec.required}
+              aria-invalid={missing || undefined}
+              aria-describedby={describedBy}
+              onChange={handleChange}
+              list={readOnly ? undefined : `${fieldKey}-suggestions`}
+              autoComplete="off"
+            />
+            <datalist id={`${fieldKey}-suggestions`}>
+              {CITIES.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          </>
         )}
         {spec.type === "enum" && (
           <select

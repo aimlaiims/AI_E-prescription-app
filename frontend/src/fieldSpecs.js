@@ -11,6 +11,11 @@ export const FIELD_SPECS = {
     options: ["Male", "Female", "Other"],
     required: true,
   },
+  opd_no: { label: "OPD No.", type: "text", required: false },
+  occupation: { label: "Occupation", type: "text", required: false },
+  // Free text with suggestions from cities.js (the doctors may add a place
+  // that isn't listed).
+  city: { label: "City", type: "city", required: true },
   chief_complaints: { label: "Chief complaints", type: "textarea", required: true },
   on_examination: { label: "On examination", type: "textarea", required: false },
   diagnosis: { label: "Diagnosis", type: "textarea", required: true },

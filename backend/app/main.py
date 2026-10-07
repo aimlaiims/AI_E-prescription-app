@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import migrations
 from .config import settings
 from .database import engine
-from .routers import admin, auth, voice, forms
+from .routers import admin, auth, voice, forms, patients
 from .security import same_origin_guard
 
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +28,7 @@ app.middleware("http")(same_origin_guard)
 
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(patients.router)
 app.include_router(voice.router)
 app.include_router(forms.router)
 

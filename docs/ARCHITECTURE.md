@@ -134,13 +134,28 @@ Kept the same on both databases:
 `pg_dump`; keeps the last N) and `copy_database.py` (to an empty database, sizes checked
 first, one transaction, ids and counters carried over, counts verified).
 
-Table `clinical_forms` (plus `doctor_id`, the owner, and `department_id`):
+`patients` (shared by the department): `patient_no` (per department → label
+`ENT-000123`), `opd_no` (hospital OPD number, optional, unique per department; NULL when
+unknown), name, gender, occupation, city. New numbers: max + 1, the unique constraint
+decides a clash (retried). `access_log`: doctor, patient, visit, action
+(`view_patient` / `view_visit` / `create_patient` / `create_visit` / `update_patient`),
+time — opening or writing a record, not searching.
+
+Table `clinical_forms` = one **visit** (plus `doctor_id`, `department_id`, `patient_id`,
+and its own copy of `opd_no`, `occupation`, `city` as they were that day):
 `id`, `pid` (unique, `RX-YYYYMMDD-XXXX`, 4 random A-Z0-9), `patient_name`, `date`,
 `age`, `gender`, `chief_complaints`, `on_examination`, `diagnosis`, `investigation`,
 `medications`, `raw_transcript_log` (all dictation transcripts, `\n---\n` separated),
 `created_at`, `updated_at`. `age`/`date` are strings on purpose (free-form input);
 `age` holds up to 40 characters ("2 years 6 months").
-Required to save: patient_name, age, gender, chief_complaints, diagnosis.
+Required to save: patient_name, age, gender, city, chief_complaints, diagnosis.
+
+Saving a visit (`routers/forms.py`): with `patient_id` → that patient (their record is
+updated with real changes only: not case/spacing, never by an empty field; OPD No. may
+not belong to another patient → 409 `conflict`). Without → likely duplicates (same OPD
+No.; same name, cities agree or one unknown) answer 409 `possible_duplicate` with
+`candidates`, nothing saved; `new_patient: true` registers anyway (but never with an OPD
+No. that is taken). Migration `0003` made each existing prescription its own patient.
 
 Audio is **not** stored: it is held in memory, sent to Groq, discarded. Transcripts are.
 
@@ -232,12 +247,14 @@ Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month na
 | POST | `/api/admin/doctors/{id}/password-link` | admin: set-password link (never used) or 24 h reset link |
 | POST | `/api/transcribe` | multipart `audio` → `{transcript}` |
 | POST | `/api/extract` | `{transcript, current_state, target_field?}` → `{updates[], unmatched_transcript_note}` |
-| POST | `/api/forms` | `{state, raw_transcript_log}` → `{pid, saved_at}`; 400 `validation` |
-| GET | `/api/forms/{pid}` | full record — own records only (another doctor's = 404) |
-| GET | `/api/forms` | `?q=` (name or Reference ID, partial, case-insensitive) `&date_from=&date_to=` (YYYY-MM-DD) `&limit=` (≤100, default 50) `&offset=` → `{items[], total, has_more}`, newest visit first |
+| POST | `/api/forms` | `{state, raw_transcript_log, patient_id?, new_patient?}` → `{pid, saved_at, patient}`; 400 `validation`, 409 `possible_duplicate` (+ `candidates`) / `conflict` |
+| GET | `/api/forms/{pid}` | the visit as stored (+ `patient_label`, `doctor_name`) — the department's (another department's = 404); logged |
+| GET | `/api/patients` | `?q=` name / Patient ID / OPD No. / city → `{items[]}` (summaries: label, details, visit count, last visit); latest without `q` |
+| GET | `/api/patients/{id}` | `{patient, visits[]}` newest first; logged |
+| GET | `/api/forms` | the department's; `?q=` (name, Patient ID, OPD No. or Reference ID, partial, case-insensitive) `&date_from=&date_to=` (YYYY-MM-DD) `&limit=` (≤100, default 50) `&offset=` → `{items[], total, has_more}`, newest visit first |
 
 Every route except `health` and `auth/*` needs a signed-in doctor (401 `unauthenticated`
-otherwise); records are filtered to that doctor.
+otherwise); records and patients are filtered to that doctor's **department**.
 
 There is **no update or delete endpoint**: a saved prescription is final and the form
 locks after save, so a printout always matches the stored record.
@@ -301,8 +318,9 @@ relative `/api`), HTTPS, auth, and a persistent host. Not built.
   - CSRF: SameSite=Lax plus a same-origin check on state-changing `/api` requests. The Vite
     proxy must keep the browser's Host (`changeOrigin: false` in `vite.config.js`) —
     otherwise this check, reset links and HTTPS detection break.
-  - Each doctor sees only their own prescriptions; records saved before accounts existed
-    (no doctor) are visible to nobody.
+  - Patients and prescriptions are shared within the department (client decision,
+    2026-10-06) and invisible to other departments (404, like a missing one). Every
+    opening or writing of a patient's record is written to `access_log` (who, what, when).
   - Throttles are in memory (reset on restart; one server only).
 - Reference ID = date + 4 random chars from `secrets`: unguessable enough for one clinic,
   and useless without being signed in as the doctor who saved it.

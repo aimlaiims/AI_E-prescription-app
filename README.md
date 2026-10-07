@@ -4,7 +4,8 @@ Dictate a patient visit, review what was heard, save it under a Reference ID, pr
 prescription. Built for a doctor or their assistant.
 
 > **Status: demo, not production.** Doctors sign in with email + password; the
-> department's administrator adds the accounts; each doctor sees only their own prescriptions. Still missing before real patient data:
+> department's administrator adds the accounts. Patients and their prescriptions are
+> shared by the doctors of the department (each opening is logged). Still missing before real patient data:
 > encryption at rest and a consent/privacy review (audio goes to Groq, transcripts to Google).
 
 ## How it works
@@ -83,6 +84,22 @@ emailed when SMTP is configured, otherwise shown to the administrator to pass on
 Accounts the administrator can also edit details, send a reset link, and deactivate or
 reactivate an account (deactivation signs the doctor out at once; prescriptions are kept).
 Every API call except `/api/health` needs a signed-in doctor.
+
+## Patients
+
+Each patient of the department has **our Patient ID** (`ENT-000123`, printed on every
+prescription) and, if known, the hospital's **OPD No.** (unique in the department).
+- **Find patient** (patient section): search by name, Patient ID, OPD No. or city; picking
+  one fills their details and links the visit to their history (**Past visits**).
+- Or just dictate/type: when saving, a likely duplicate (same OPD No., or same name and
+  city) asks **"Is this the same patient?"** — nothing is saved until answered. Nothing
+  is ever merged automatically.
+- Every prescription keeps its own copy of the patient's details as they were that day,
+  so a reprint always matches. A changed city/occupation/OPD No. updates the patient's
+  record for next time; an empty field never erases it.
+- Required: name, age, gender, **City** (type to get suggestions; any place may be typed).
+- All doctors of the department see its patients and prescriptions (History shows who
+  wrote each). Opening or writing a record is recorded in `access_log`.
 
 ## Database and backups
 

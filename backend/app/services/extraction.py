@@ -187,7 +187,10 @@ async def _extract(transcript: str, current_state: dict, target_field: str | Non
         "\"sex\" -> gender; \"DOB\"/\"date of birth\"/\"visit date\" -> date; "
         "\"complaints\"/\"c/o\"/\"presenting with\" -> chief_complaints; "
         "\"O/E\"/\"exam\"/\"findings\" -> on_examination; \"Dx\"/\"impression\" -> diagnosis; "
-        "\"Ix\"/\"tests\"/\"labs\" -> investigation; \"Rx\"/\"treatment\"/\"prescribe\" -> medications. "
+        "\"Ix\"/\"tests\"/\"labs\" -> investigation; \"Rx\"/\"treatment\"/\"prescribe\" -> medications; "
+        "\"OPD number\"/\"OPD no\"/\"OPD card number\" -> opd_no (letters and digits as said); "
+        "\"occupation\"/\"works as\"/\"profession\"/\"job\" -> occupation; "
+        "\"from\"/\"resident of\"/\"lives in\"/\"address\" -> city (only the city, town or village name). "
         "Terse dictation like \"name Aman Verma, age 34, sex male\" should be read as three "
         "separate field statements in sequence, not as one run-on value."
     )
@@ -224,7 +227,7 @@ units (e.g. "augmentin six two five mg" -> "Augmentin 625mg"), but do not add cl
 information that was not said.
 4. When a field already has a value (see "Current form state" above) and the field is one \
 that can hold multiple pieces of information (chief_complaints, on_examination, diagnosis, \
-investigation, medications — NOT patient_name, age, gender, or date, which are single \
+investigation, medications — NOT patient_name, age, gender, date, opd_no, occupation or city, which are single \
 values and should always simply be replaced with whatever was newly stated), decide how \
 to combine the existing value with the new transcript based on what was actually said: \
    - ADDITION language ("add ...", "also ...", "and also ...", "additionally ...") means \
@@ -264,6 +267,8 @@ instructions>", matching the style of existing entries where possible.
             # The schema is small — capping this bounds worst-case latency.
             # See ROADMAP P0-3 before raising/lowering it.
             "max_output_tokens": 1024,
+            # No tools are offered; off also silences the SDK's per-call warning.
+            "automatic_function_calling": {"disable": True},
         },
     )
     finish_reason = _finish_reason(response)

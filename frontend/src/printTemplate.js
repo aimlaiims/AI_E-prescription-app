@@ -49,11 +49,24 @@ export function formatDateTime(d) {
  * @param opts.letterhead  { clinicName?, departmentName?, doctorName?, registrationNo?, logoDataUri? }
  *                         Nothing configured -> no letterhead text at all.
  * @param opts.printedAt   override for tests; defaults to now
+ * @param opts.patientLabel  our Patient ID (e.g. ENT-000123); a stored record
+ *                         carries it as `patient_label`
  */
-export function buildPrintHtml(state, pid, { toolbar = true, letterhead = {}, printedAt } = {}) {
+export function buildPrintHtml(state, pid, { toolbar = true, letterhead = {}, printedAt, patientLabel } = {}) {
   const printed = printedAt || formatDateTime(new Date());
   const text = (k) => String(state[k] ?? "").trim();
   const orDash = (v) => v || "-";
+
+  // Patient ID, OPD No., City, Occupation — whichever are known.
+  const identity = [
+    ["Patient ID", String(patientLabel || state.patient_label || "").trim()],
+    [FIELD_SPECS.opd_no.label, text("opd_no")],
+    [FIELD_SPECS.city.label, text("city")],
+    [FIELD_SPECS.occupation.label, text("occupation")],
+  ]
+    .filter(([, v]) => v)
+    .map(([label, v]) => `<span><span class="label">${escapeHtml(label)}</span> ${escapeHtml(v)}</span>`)
+    .join("");
 
   // Empty optional sections are omitted — an empty heading wastes paper.
   const sections = ["chief_complaints", "on_examination", "diagnosis", "investigation"]
@@ -110,7 +123,9 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 
 .doctor, .registration { margin-top: 3px; color: #444; }
 .logo { width: 58px; height: 58px; object-fit: contain; }
 .meta { flex: 0 0 auto; text-align: right; font: 10pt/1.5 "Courier New", monospace; }
-.patient-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 18px; padding: 20px 0; border-bottom: 1px solid #bbb; }
+.patient-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 18px; padding: 20px 0 12px; }
+.patient-ids { display: flex; flex-wrap: wrap; gap: 6px 22px; padding-bottom: 14px; border-bottom: 1px solid #bbb; font-size: 10.5pt; }
+.patient-ids .label { display: inline; margin-right: 4px; }
 .label { display: block; margin-bottom: 4px; color: #555; font-size: 9pt; text-transform: uppercase; letter-spacing: .06em; }
 .value { font-weight: bold; overflow-wrap: anywhere; }
 .clinical-section { break-inside: avoid; padding: 14px 0; border-bottom: 1px solid #bbb; }
@@ -143,7 +158,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 
 ${toolbar ? '<div class="toolbar"><button type="button" onclick="window.close()">Close</button><button type="button" class="primary" onclick="window.print()">Print</button></div>' : ""}
 <div class="sheet">
 <header class="letterhead"><div class="brand">${logo || '<div class="rx" aria-hidden="true">℞</div>'}<div>${letterheadDetails}</div></div><div class="meta"><div>Reference ID: ${escapeHtml(pid)}</div><div>Printed: ${escapeHtml(printed)}</div></div></header>
-<div class="patient-row"><div><span class="label">${escapeHtml(FIELD_SPECS.patient_name.label)}</span><span class="value">${escapeHtml(orDash(text("patient_name")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.age.label)} / ${escapeHtml(FIELD_SPECS.gender.label)}</span><span class="value">${escapeHtml(orDash(text("age")))} / ${escapeHtml(orDash(text("gender")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.date.label)}</span><span class="value">${escapeHtml(orDash(formatDate(text("date"))))}</span></div></div>
+<div class="patient-row"><div><span class="label">${escapeHtml(FIELD_SPECS.patient_name.label)}</span><span class="value">${escapeHtml(orDash(text("patient_name")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.age.label)} / ${escapeHtml(FIELD_SPECS.gender.label)}</span><span class="value">${escapeHtml(orDash(text("age")))} / ${escapeHtml(orDash(text("gender")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.date.label)}</span><span class="value">${escapeHtml(orDash(formatDate(text("date"))))}</span></div></div><div class="patient-ids">${identity}</div>
 ${sections}${headLines.length ? `<section class="medications">${medsHeading}<div class="medication-lines">${headLines.join("<br>")}</div></section>` : ""}
 <div class="closing${headLines.length ? "" : " whole"}"><div class="medications-tail">${headLines.length ? "" : medsHeading}<div class="medication-lines">${tailLines.join("<br>")}</div></div>
 <footer class="footer"><div class="fine-print">This is a computer-generated prescription record. Reference ID ${escapeHtml(pid)} can be used to retrieve this record.</div><div class="signature"><div class="signature-line"></div><div class="signature-caption">Signature</div></div></footer></div>

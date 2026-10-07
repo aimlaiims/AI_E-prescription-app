@@ -9,6 +9,9 @@ FORM_FIELD_SPECS = {
     "date": {"label": "Date", "type": "date"},
     "age": {"label": "Age", "type": "text"},
     "gender": {"label": "Gender", "type": "enum", "options": ["Male", "Female", "Other"]},
+    "opd_no": {"label": "OPD No.", "type": "text"},
+    "occupation": {"label": "Occupation", "type": "text"},
+    "city": {"label": "City", "type": "city"},
     "chief_complaints": {"label": "Chief complaints", "type": "textarea"},
     "on_examination": {"label": "On examination", "type": "textarea"},
     "diagnosis": {"label": "Diagnosis", "type": "textarea"},
@@ -16,7 +19,7 @@ FORM_FIELD_SPECS = {
     "medications": {"label": "Medications", "type": "textarea"},
 }
 
-REQUIRED_FIELDS = {"patient_name", "age", "gender", "chief_complaints", "diagnosis"}
+REQUIRED_FIELDS = {"patient_name", "age", "gender", "city", "chief_complaints", "diagnosis"}
 
 
 class FormState(BaseModel):
@@ -24,6 +27,9 @@ class FormState(BaseModel):
     date: str = ""
     age: str = ""
     gender: str = ""
+    opd_no: str = ""
+    occupation: str = ""
+    city: str = ""
     chief_complaints: str = ""
     on_examination: str = ""
     diagnosis: str = ""
@@ -68,6 +74,16 @@ class ExtractResponse(BaseModel):
 class SaveFormRequest(BaseModel):
     state: FormState
     raw_transcript_log: str = ""
+    # The patient this visit belongs to (picked with "Find patient", or chosen
+    # when the save asked "same patient?"). None: a new patient is registered,
+    # unless likely duplicates exist and `new_patient` isn't set.
+    patient_id: Optional[int] = None
+    new_patient: bool = False
+    # The patient this visit belongs to (picked with "Find patient", or chosen
+    # when the save asked "same patient?"). None: a new patient is registered —
+    # unless likely duplicates exist and `new_patient` isn't set.
+    patient_id: Optional[int] = None
+    new_patient: bool = False
 
 
 class LoginRequest(BaseModel):

@@ -175,6 +175,21 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] OS set to "reduce motion" → no pulsing mic / dot / spinner animation
 - [ ] Print a record with 24+ medication lines → signature never alone on the last page
 
+## 6b. Patients
+- [ ] New patient: fill the form (City shows suggestions) → Save → the strip shows `ENT-…`;
+      the printout shows Patient ID, OPD No., City, Occupation
+- [ ] New prescription → **Find patient** → search by name / Patient ID / OPD No. / city →
+      **Use this patient** → details filled; Save → "2 visits"
+- [ ] Type the same name + city without Find → Save → **"Is this the same patient?"**,
+      nothing saved; **Same patient** → linked; **No, register a new patient** → new ID;
+      **Cancel** → nothing saved, form kept
+- [ ] An OPD No. that belongs to another patient → message naming that patient
+- [ ] **Past visits** → visits newest first, with the doctor; tap to expand
+- [ ] A second doctor of the department sees the patient and all visits (History shows
+      who wrote each); a doctor of another department sees none
+- [ ] Dictate "OPD number 2 0 2 6 1 0 4 5, farmer from Bilaspur" → OPD No., Occupation,
+      City proposed for review
+
 ## 7b. Past prescriptions
 - [ ] "View past prescriptions" opens the dialog; focus is inside; the page behind doesn't scroll
 - [ ] Type part of a name (or a Reference ID) → list narrows; misspelling → "No matches…"

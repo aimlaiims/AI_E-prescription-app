@@ -6,6 +6,9 @@ import {
   RotateCcw,
   Printer,
   Loader2,
+  Search,
+  History as HistoryIcon,
+  X,
 } from "lucide-react";
 import FormField from "./components/FormField.jsx";
 import DictateBar from "./components/DictateBar.jsx";
@@ -14,6 +17,7 @@ import StatusBanner from "./components/StatusBanner.jsx";
 import SaveButton from "./components/SaveButton.jsx";
 import RecordsDialog from "./components/RecordsDialog.jsx";
 import AccountsDialog from "./components/AccountsDialog.jsx";
+import { FindPatientDialog, PatientHistoryDialog, SamePatientDialog } from "./components/PatientDialogs.jsx";
 import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
 import { BRAND, loadLogoDataUri } from "./branding.js";
 import { doctorDisplayName, doctorLetterhead } from "./doctor.js";
@@ -46,6 +50,14 @@ export default function App({ profile, onSignOut }) {
   const [printing, setPrinting] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(false);
   const [accountsOpen, setAccountsOpen] = useState(false);
+  // The patient this prescription is for, once known: picked with "Find
+  // patient", chosen when the save asked "same patient?", or registered by
+  // the save. Its summary (label = our Patient ID, visit count, ...).
+  const [patient, setPatient] = useState(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // { candidates, print } while the save waits for "same patient?".
+  const [samePatient, setSamePatient] = useState(null);
   // Logo as a data URI for the print page (a blank window can't load /aiims-logo.jpg).
   const [logo, setLogo] = useState("");
   useEffect(() => {
@@ -143,7 +155,8 @@ export default function App({ profile, onSignOut }) {
   const handleSaveError = (err, context) => {
     if (err.code === "rate_limited") {
       handleApiError(err);
-    } else if (err.code === "validation") {
+    } else if (err.code === "validation" || err.code === "conflict") {
+      // "conflict": e.g. that OPD No. belongs to another patient (named) — actionable too.
       setError(err.message);
     } else {
       setError(friendlyErrorMessage(err, context));
@@ -197,18 +210,80 @@ export default function App({ profile, onSignOut }) {
     return true;
   };
 
-  const handleSave = async () => {
+  const openPrintWindow = () => {
+    const win = window.open("", "_blank");
+    if (!win) {
+      setError(POPUP_BLOCKED_MESSAGE);
+      return null;
+    }
+    win.document.write(
+      "<p style='font-family:Arial,sans-serif;padding:24px;color:#4a5b6b;'>Preparing print preview…</p>"
+    );
+    return win;
+  };
+
+  const writePrint = (win, pid, patientLabel) => {
+    win.document.open();
+    win.document.write(buildPrintHtml(state, pid, { letterhead, patientLabel }));
+    win.document.close();
+  };
+
+  // Saves this visit for `link` ({ patientId } / { newPatient: true } / the
+  // linked patient by default). If the save looks like a patient who is
+  // already registered, nothing is saved: the doctor is asked first
+  // (SamePatientDialog), then this runs again with their answer. `win`: an
+  // already-open print window (opened in the click, before any await).
+  const persist = async (link, win) => {
+    const busy = win ? setPrinting : setSaving;
+    busy(true);
+    try {
+      const res = await saveForm(state, transcriptLog.join("\n---\n"), link);
+      setSavedPid(res.pid);
+      setPatient(res.patient);
+      if (win) writePrint(win, res.pid, res.patient.label);
+    } catch (err) {
+      win?.close();
+      if (err.code === "possible_duplicate" && err.detail?.candidates?.length) {
+        setSamePatient({ candidates: err.detail.candidates, print: !!win });
+      } else {
+        handleSaveError(err, win ? "print" : "save");
+      }
+    } finally {
+      busy(false);
+    }
+  };
+
+  const linkToPatient = () => (patient ? { patientId: patient.id } : {});
+
+  const handleSave = () => {
     setError("");
     if (blockIfPending() || blockIfMissing()) return;
-    setSaving(true);
-    try {
-      const res = await saveForm(state, transcriptLog.join("\n---\n"));
-      setSavedPid(res.pid);
-    } catch (err) {
-      handleSaveError(err, "save");
-    } finally {
-      setSaving(false);
-    }
+    persist(linkToPatient());
+  };
+
+  // The doctor's answer to "same patient?" — runs in the click, so a print
+  // window can still be opened synchronously.
+  const answerSamePatient = (link) => {
+    const print = samePatient?.print;
+    setSamePatient(null);
+    const win = print ? openPrintWindow() : null;
+    if (print && !win) return;
+    persist(link, win);
+  };
+
+  // Picking an existing patient fills their details in (an explicit choice,
+  // like typing them) and links the visit to their history.
+  const pickPatient = (p) => {
+    setFindOpen(false);
+    setPatient(p);
+    setState((s) => ({
+      ...s,
+      patient_name: p.full_name,
+      gender: p.gender,
+      occupation: p.occupation,
+      city: p.city,
+      opd_no: p.opd_no,
+    }));
   };
 
   // Print saves the record first if it hasn't been saved yet (a printed
@@ -222,35 +297,13 @@ export default function App({ profile, onSignOut }) {
   const handlePrint = async () => {
     setError("");
     if (!savedPid && (blockIfPending() || blockIfMissing())) return;
-    const previewWindow = window.open("", "_blank");
-    if (!previewWindow) {
-      setError(POPUP_BLOCKED_MESSAGE);
+    const previewWindow = openPrintWindow();
+    if (!previewWindow) return;
+    if (savedPid) {
+      writePrint(previewWindow, savedPid, patient?.label);
       return;
     }
-    previewWindow.document.write(
-      "<p style='font-family:Arial,sans-serif;padding:24px;color:#4a5b6b;'>Preparing print preview…</p>"
-    );
-
-    let pid = savedPid;
-    if (!pid) {
-      setPrinting(true);
-      try {
-        const res = await saveForm(state, transcriptLog.join("\n---\n"));
-        pid = res.pid;
-        setSavedPid(pid);
-      } catch (err) {
-        previewWindow.close();
-        handleSaveError(err, "print");
-        setPrinting(false);
-        return;
-      }
-      setPrinting(false);
-    }
-
-    const html = buildPrintHtml(state, pid, { letterhead });
-    previewWindow.document.open();
-    previewWindow.document.write(html);
-    previewWindow.document.close();
+    await persist(linkToPatient(), previewWindow);
   };
 
   const handleNewForm = () => {
@@ -263,6 +316,8 @@ export default function App({ profile, onSignOut }) {
     setUnmatchedNote("");
     setTranscriptLog([]);
     setSavedPid(null);
+    setPatient(null);
+    setSamePatient(null);
     setError("");
   };
 
@@ -375,15 +430,50 @@ export default function App({ profile, onSignOut }) {
         )}
 
         <section className="form-section">
-          <h2 className="section-heading">
-            <User size={17} aria-hidden="true" />
-            <span>Patient information</span>
-          </h2>
+          <div className="patient-heading-row">
+            <h2 className="section-heading">
+              <User size={17} aria-hidden="true" />
+              <span>Patient information</span>
+            </h2>
+            {!locked && !patient && (
+              <button type="button" className="records-button" onClick={() => setFindOpen(true)} aria-haspopup="dialog">
+                <Search size={16} aria-hidden="true" />
+                Find patient
+              </button>
+            )}
+          </div>
+          {patient && (
+            <div className="patient-link" role="status">
+              <span>
+                <code>{patient.label}</code>{" "}
+                {locked
+                  ? `${patient.visit_count} visit${patient.visit_count === 1 ? "" : "s"}`
+                  : `${patient.visit_count} earlier visit${patient.visit_count === 1 ? "" : "s"} · changes below update their record when saved`}
+              </span>
+              <span className="patient-link-actions">
+                {patient.visit_count > 0 && (
+                  <button type="button" className="records-button" onClick={() => setHistoryOpen(true)} aria-haspopup="dialog">
+                    <HistoryIcon size={16} aria-hidden="true" />
+                    Past visits
+                  </button>
+                )}
+                {!locked && (
+                  <button type="button" className="records-button" onClick={() => setPatient(null)}>
+                    <X size={16} aria-hidden="true" />
+                    Not this patient
+                  </button>
+                )}
+              </span>
+            </div>
+          )}
           <div className="field-grid patient-grid">
             <FormField {...commonFieldProps("patient_name")} />
+            <FormField {...commonFieldProps("opd_no")} />
             <FormField {...commonFieldProps("date")} />
             <FormField {...commonFieldProps("age")} />
             <FormField {...commonFieldProps("gender")} />
+            <FormField {...commonFieldProps("city")} />
+            <FormField {...commonFieldProps("occupation")} />
           </div>
         </section>
 
@@ -433,6 +523,18 @@ export default function App({ profile, onSignOut }) {
           />
         </footer>
       </article>
+      {findOpen && <FindPatientDialog onPick={pickPatient} onClose={() => setFindOpen(false)} />}
+      {historyOpen && patient && (
+        <PatientHistoryDialog patientId={patient.id} onClose={() => setHistoryOpen(false)} />
+      )}
+      {samePatient && (
+        <SamePatientDialog
+          candidates={samePatient.candidates}
+          patientName={state.patient_name}
+          onChoose={answerSamePatient}
+          onClose={() => setSamePatient(null)}
+        />
+      )}
       {accountsOpen && (
         <AccountsDialog
           onClose={() => setAccountsOpen(false)}

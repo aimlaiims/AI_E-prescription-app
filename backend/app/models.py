@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey, true
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey, UniqueConstraint, true
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -86,7 +86,59 @@ class PasswordReset(Base):
     purpose = Column(String(20), nullable=False, default="reset", server_default="reset")
 
 
+class Patient(Base):
+    """A patient of one department, shared by all its doctors. Two IDs:
+    our own (`label`, e.g. ENT-000123, printed on every prescription) and,
+    if known, the hospital's OPD number (unique within the department)."""
+
+    __tablename__ = "patients"
+    __table_args__ = (
+        UniqueConstraint("department_id", "patient_no", name="uq_patients_department_patient_no"),
+        UniqueConstraint("department_id", "opd_no", name="uq_patients_department_opd_no"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), index=True, nullable=False)
+    patient_no = Column(Integer, nullable=False)  # 1, 2, 3 … per department
+    opd_no = Column(String(40), nullable=True)  # NULL when not known (never "")
+    full_name = Column(String(200), nullable=False, index=True)
+    gender = Column(String(20), nullable=False)
+    occupation = Column(String(120), nullable=False, default="", server_default="")
+    city = Column(String(120), nullable=False, default="", server_default="")
+    created_by = Column(Integer, ForeignKey("doctors.id"), nullable=True)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+    department = relationship(Department, lazy="joined")
+
+    @property
+    def label(self) -> str:
+        return patient_label(self.department.code if self.department else "P", self.patient_no)
+
+
+def patient_label(department_code: str, patient_no: int) -> str:
+    return f"{department_code}-{patient_no:06d}"
+
+
+class AccessLog(Base):
+    """Who opened or wrote which patient's record, and when. Department-wide
+    access to health data must be traceable."""
+
+    __tablename__ = "access_log"
+
+    id = Column(Integer, primary_key=True)
+    at = Column(DateTime, default=_utcnow, nullable=False, index=True)
+    doctor_id = Column(Integer, ForeignKey("doctors.id"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True, index=True)
+    form_id = Column(Integer, ForeignKey("clinical_forms.id"), nullable=True)
+    # view_patient | view_visit | create_patient | create_visit | update_patient
+    action = Column(String(30), nullable=False)
+
+
 class ClinicalForm(Base):
+    """One visit (a prescription) of a patient. Keeps its own copy of the
+    patient details as they were on that day: a reprint always matches."""
+
     __tablename__ = "clinical_forms"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -95,6 +147,7 @@ class ClinicalForm(Base):
     # accounts existed (visible to nobody).
     doctor_id = Column(Integer, ForeignKey("doctors.id"), index=True, nullable=True)
     department_id = Column(Integer, ForeignKey("departments.id"), index=True, nullable=True)
+    patient_id = Column(Integer, ForeignKey("patients.id"), index=True, nullable=True)
 
     # Indexed for the records search (name contains / date range).
     # Any change to a column here needs an Alembic migration (backend/alembic/).
@@ -102,6 +155,9 @@ class ClinicalForm(Base):
     date = Column(String(20), nullable=False, index=True)
     age = Column(String(40), nullable=False)  # e.g. "2 years 6 months"
     gender = Column(String(20), nullable=False)
+    opd_no = Column(String(40), nullable=False, default="", server_default="")
+    occupation = Column(String(120), nullable=False, default="", server_default="")
+    city = Column(String(120), nullable=False, default="", server_default="")
 
     chief_complaints = Column(Text, nullable=False)
     on_examination = Column(Text, default="")
@@ -114,3 +170,7 @@ class ClinicalForm(Base):
 
     created_at = Column(DateTime, default=_utcnow)
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+ClinicalForm.patient = relationship(Patient, lazy="joined")
+ClinicalForm.doctor = relationship(Doctor, lazy="joined")

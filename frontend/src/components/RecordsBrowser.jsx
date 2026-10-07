@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, CalendarDays, Printer, Search, X } from "lucide-react";
 import { buildPrintHtml, formatDate } from "../printTemplate.js";
+import { doctorDisplayName } from "../doctor.js";
 
 // "View past prescriptions" dialog. Presentational: RecordsDialog.jsx owns the
 // server calls (search, filters, paging) and passes the results in, already
@@ -186,7 +187,9 @@ export default function RecordsBrowser({
               >
                 <strong>{r.patient_name}</strong>
                 <span className="record-meta">
-                  {[r.age, r.gender].filter(Boolean).join(" · ")}
+                  {[r.patient_label, r.age, r.gender, r.doctor_name && doctorDisplayName(r.doctor_name)]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
                 <span className="record-diagnosis">{r.diagnosis}</span>
                 <code>{r.pid}</code>
@@ -231,7 +234,7 @@ export default function RecordsBrowser({
             <input
               value={query}
               onChange={(e) => onQuery(e.target.value)}
-              placeholder="Search by name or Reference ID"
+              placeholder="Name, Patient ID, OPD No. or Reference ID"
               type="search"
               autoComplete="off"
             />
