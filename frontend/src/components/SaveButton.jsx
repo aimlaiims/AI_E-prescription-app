@@ -15,7 +15,14 @@ export default function SaveButton({ phase, onSave, disabled }) {
       disabled={disabled || busy || phase === "saved"}
     >
       <Icon size={17} className={busy ? "spin" : undefined} aria-hidden="true" />
-      {label}
+      {label === "Save prescription" ? (
+        // "prescription" can be hidden on the narrowest phones (styles.css).
+        <span>
+          Save<span className="save-word"> prescription</span>
+        </span>
+      ) : (
+        label
+      )}
     </button>
   );
 }

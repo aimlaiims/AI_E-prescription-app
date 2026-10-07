@@ -8,6 +8,7 @@ import {
   Loader2,
   Search,
   NotebookPen,
+  ListChecks,
   History as HistoryIcon,
   X,
 } from "lucide-react";
@@ -71,6 +72,10 @@ export default function App({ profile, onSignOut }) {
   // right item even when several updates are dispatched in one batch — see
   // handleVoiceUpdates and the multi-command voice parsing in ReviewPanel.
   const nextPendingId = useRef(0);
+  // Set when a dictation brings new proposals: the review panel is then
+  // scrolled into view if it isn't on screen (on a tablet the doctor may have
+  // dictated into a field far below it).
+  const revealReview = useRef(false);
 
   // A saved prescription is final (ROADMAP P0-1, "lock after save"): no
   // typing, no dictation, no review. Print then always matches the stored
@@ -120,6 +125,7 @@ export default function App({ profile, onSignOut }) {
     // A per-field request can still be in flight when Save completes; its
     // result must not reopen a finalized record.
     if (lockedRef.current) return;
+    if (updates.length || note) revealReview.current = true;
     setError(""); // a working voice request supersedes an earlier failure
     if (transcript) setTranscriptLog((prev) => [...prev, transcript]);
     if (note) setUnmatchedNote(note);
@@ -193,6 +199,26 @@ export default function App({ profile, onSignOut }) {
       setError((prev) => (prev === PENDING_BEFORE_SAVE_MESSAGE ? "" : prev));
     }
   }, [pending.length]);
+
+  const showReviewPanel = () => {
+    const panel = document.querySelector(".review-panel");
+    if (!panel) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    panel.scrollIntoView?.({ block: "start", behavior: reduce ? "auto" : "smooth" });
+    panel.querySelector(".review-accept, .accept-all")?.focus({ preventScroll: true });
+  };
+
+  useEffect(() => {
+    if (!revealReview.current) return;
+    revealReview.current = false;
+    const panel = document.querySelector(".review-panel");
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const footer = document.querySelector(".form-footer")?.getBoundingClientRect();
+    const bottomLimit = footer && footer.top < window.innerHeight ? footer.top : window.innerHeight;
+    // Its top (heading + first proposal) must be visible; otherwise bring it in.
+    if (r.top < 0 || r.top + 120 > bottomLimit) showReviewPanel();
+  });
 
   const blockIfPending = () => {
     if (!pending.length) return false;
@@ -512,18 +538,31 @@ export default function App({ profile, onSignOut }) {
         </section>
 
         <footer className="form-footer">
+          {pending.length > 0 && (
+            <button
+              type="button"
+              className="action-button secondary review-jump"
+              onClick={showReviewPanel}
+              aria-label={`Review ${pending.length} proposed change${pending.length === 1 ? "" : "s"}`}
+            >
+              <ListChecks size={17} aria-hidden="true" />
+              <span className="review-jump-label">Review</span>
+              <span className="review-jump-count">{pending.length}</span>
+            </button>
+          )}
           <button
             type="button"
             className="action-button secondary"
             onClick={handlePrint}
             disabled={printing || saving}
+            aria-label={printing ? "Preparing…" : "Print"}
           >
             {printing ? (
               <Loader2 size={17} className="spin" aria-hidden="true" />
             ) : (
               <Printer size={17} aria-hidden="true" />
             )}
-            {printing ? "Preparing…" : "Print"}
+            <span className="print-label">{printing ? "Preparing…" : "Print"}</span>
           </button>
           <SaveButton
             phase={saving ? "saving" : locked ? "saved" : "unsaved"}

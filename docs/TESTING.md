@@ -197,6 +197,14 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] Dictate "OPD number 2 0 2 6 1 0 4 5, farmer from Bilaspur" → OPD No., Occupation,
       City proposed for review
 
+## 7a. Tablet (Android, portrait and landscape)
+- [ ] Save / Print stay at the bottom of the screen while scrolling the long form
+- [ ] Dictate into a low field (e.g. Diagnosis) → the review panel comes into view by
+      itself; scroll away → **Review N** in the bottom bar brings it back
+- [ ] Tap a low field (Advice) → the on-screen keyboard never hides it or the bar
+- [ ] Rotate the tablet while the form is open → nothing is lost, nothing overlaps
+- [ ] Phone 320–375 px with proposals waiting: Review, Print, Save fit in one row
+
 ## 7b. Past prescriptions
 - [ ] "View past prescriptions" opens the dialog; focus is inside; the page behind doesn't scroll
 - [ ] Type part of a name (or a Reference ID) → list narrows; misspelling → "No matches…"

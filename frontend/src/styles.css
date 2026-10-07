@@ -1739,3 +1739,42 @@ kbd {
 .visit-details p { margin: 0; white-space: pre-line; }
 .visit-ref { color: var(--ink-soft); font-size: 13px; }
 .patient-dialog-body .records-search { margin: 0; }
+
+
+/* ---------- Tablets (and PCs): Save / Print always within reach ---------- */
+
+/* Phones have the fixed bottom bar (above). From 640px the footer sticks to
+   the bottom of the screen while the long form scrolls under it. */
+@media (min-width: 640px) {
+  .form-footer {
+    position: sticky;
+    z-index: 5;
+    bottom: 0;
+    margin: 0 calc(-1 * var(--sheet-pad-x));
+    padding: 12px var(--sheet-pad-x) calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+  }
+}
+/* "Review 2": waiting proposals, one tap to the review panel. */
+.review-jump { margin-right: auto; }
+.review-jump-count {
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--amber-text);
+  font-size: 13px;
+}
+/* Phones: three buttons don't fit with labels — while "Review" is shown,
+   it and Print become icon buttons (their names stay for screen readers). */
+@media (max-width: 479px) {
+  .review-jump { flex: 0 0 auto !important; }
+  .review-jump-label { display: none; }
+  .form-footer:has(.review-jump) .print-label { display: none; }
+  .form-footer:has(.review-jump) .action-button.secondary:not(.review-jump) { flex: 0 0 auto; min-width: 52px; }
+}
+@media (max-width: 359px) {
+  .form-footer:has(.review-jump) .save-word { display: none; }
+}
+.review-panel { scroll-margin-top: 16px; }
