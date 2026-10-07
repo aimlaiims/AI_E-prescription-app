@@ -59,6 +59,11 @@ after every change.
 | `EXTRACTION_MODEL` | default `gemini-3.5-flash-lite` |
 | `DATABASE_URL` | `sqlite:///./clinical_forms.db` (default) or `postgresql://USER:PASSWORD@HOST:5432/DBNAME` |
 | `APP_TIMEZONE` | default `Asia/Kolkata` (IST) — dates, times and Reference IDs, whatever the server's own timezone |
+| `GROQ_MAX_IN_FLIGHT` / `GEMINI_MAX_IN_FLIGHT` | voice calls in progress at once per provider (default 8); more wait in a fair queue |
+| `GROQ_PER_MINUTE` / `GEMINI_PER_MINUTE` | calls started per minute (0 = no limit); set just below your plan's limit |
+| `VOICE_QUEUE_WAIT_SECONDS` | longest wait before "many people are using voice input" (default 15) |
+| `TRANSCRIBE_TIMEOUT_SECONDS` / `EXTRACT_TIMEOUT_SECONDS` | longest one call may take (default 30) |
+| `VOICE_MAX_PER_USER` / `MAX_AUDIO_MB` | voice requests per user at once (3); largest recording (10 MB) |
 | `SIGNUP_CODE` | invite code needed to create an account (empty = sign-up closed) |
 | `INSTITUTION_NAME` | shown on the letterhead and printed prescriptions |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | password-reset email; empty = link printed in the backend terminal |

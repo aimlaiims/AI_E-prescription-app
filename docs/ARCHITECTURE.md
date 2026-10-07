@@ -86,7 +86,9 @@ SDK exception ─► UpstreamError(code, retry_after)        backend/app/errors.
 | code | HTTP | meaning | UI behavior |
 |---|---|---|---|
 | `rate_limited` | 429 | quota hit; carries retry-after (defaults: Groq 20s, Gemini 30s) | **app-wide cooldown**: every mic disabled, countdown banner |
-| `unavailable` | 503 | provider overloaded; Gemini already retried server-side | error banner; Retry link |
+| `unavailable` | 503 | provider overloaded (Gemini already retried server-side), or a call passed its deadline | error banner; Retry link |
+| `busy` | 503 | OUR queue for the provider is full — many people dictating at once; nothing was sent upstream | "Many people are using voice input right now…" banner |
+| `audio_too_long` | 413 | recording over `MAX_AUDIO_MB` | "Please dictate in shorter parts" |
 | `auth` | 502 | missing/invalid API key | generic "not set up correctly" message |
 | `unknown` | 502 | anything else | generic message |
 | `validation` | 400 | required fields missing (`forms.py`) | shown **verbatim** ("Please fill in: …") |
@@ -233,8 +235,25 @@ otherwise); records are filtered to that doctor.
 
 There is **no update or delete endpoint**: a saved prescription is final and the form
 locks after save, so a printout always matches the stored record.
-The Groq/Gemini SDK calls are blocking; `voice.py` runs them in a worker thread
-(`run_in_threadpool`) so a slow request doesn't stall the server.
+Voice calls are **async all the way** (`AsyncGroq`, Gemini `client.aio`): waiting for a
+provider, for a retry, or for a turn in the queue holds no thread, so other requests
+carry on.
+
+### Many users at once (`services/limits.py`)
+- Per provider: at most `*_MAX_IN_FLIGHT` calls in progress; the rest wait **first come,
+  first served**. Optional `*_PER_MINUTE` budget, set just below the provider plan's
+  limit, so a burst waits briefly here instead of being refused there (429s should then
+  be rare; when they happen, the existing cooldown applies).
+- Wait capped at `VOICE_QUEUE_WAIT_SECONDS` → `busy`. Each call, once started, has a
+  deadline (`*_TIMEOUT_SECONDS`, Gemini's retries included) → `unavailable`.
+- At most `VOICE_MAX_PER_USER` voice requests per user at once; recordings over
+  `MAX_AUDIO_MB` are refused before anything is sent.
+- Local Whisper (CPU): one recording at a time, in a worker thread.
+- Saves: the database's unique constraint decides Reference ID clashes (two saves at
+  the same instant) → retried with a new ID. Two sign-ups with the same ID/email at once
+  → 409.
+- All of this lives in the app's memory, like the login throttles: **one server
+  process**. On one process, async comfortably serves tens of simultaneous users.
 
 ## 9. Performance
 

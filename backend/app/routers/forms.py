@@ -3,6 +3,7 @@ import string
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..clock import local_today, to_local_iso
@@ -58,12 +59,20 @@ def save_form(
             {"error_code": "validation", "message": "Please shorten " + ", ".join(too_long) + "."},
         )
 
-    # Collisions are extremely unlikely (36^4 per day), but bounded: an
-    # unbounded retry loop would hang the request forever if they kept happening.
+    # The database's unique constraint is the real guard: two saves at the same
+    # instant could both pass a "does this ID exist?" check. On a clash, roll
+    # back and draw a new ID. Clashes are extremely unlikely (36^4 per day),
+    # but bounded: an endless loop would hang the request if they kept happening.
     for _ in range(10):
-        pid = _generate_pid()
-        if not db.query(ClinicalForm).filter(ClinicalForm.pid == pid).first():
+        record = ClinicalForm(
+            pid=_generate_pid(), doctor_id=doctor.id, raw_transcript_log=req.raw_transcript_log, **state
+        )
+        db.add(record)
+        try:
+            db.commit()
             break
+        except IntegrityError:
+            db.rollback()
     else:
         raise HTTPException(
             503,
@@ -72,13 +81,9 @@ def save_form(
                 "message": "Couldn't create a unique Reference ID. Please try saving again.",
             },
         )
-
-    record = ClinicalForm(pid=pid, doctor_id=doctor.id, raw_transcript_log=req.raw_transcript_log, **state)
-    db.add(record)
-    db.commit()
     db.refresh(record)
 
-    return SaveFormResponse(pid=pid, saved_at=to_local_iso(record.created_at))
+    return SaveFormResponse(pid=record.pid, saved_at=to_local_iso(record.created_at))
 
 
 @router.get("/{pid}")

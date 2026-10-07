@@ -1,6 +1,7 @@
 import re
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -87,7 +88,11 @@ def signup(req: SignupRequest, request: Request, response: Response, db: Session
         password_hash=auth_service.hash_password(req.password),
     )
     db.add(doctor)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:  # the same ID/email registered a moment ago, in parallel
+        db.rollback()
+        raise _error(409, "conflict", "That Doctor ID or email is already registered. Try signing in instead.")
     db.refresh(doctor)
 
     token, expires = auth_service.create_session(db, doctor, remember=False)

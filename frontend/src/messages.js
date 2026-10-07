@@ -14,6 +14,11 @@ const VOICE_MESSAGES = {
     "Voice input isn't responding at the moment. Please try again in a moment, or fill this in by typing.",
   auth:
     "Voice input isn't set up correctly on this device. Please let whoever manages this software know.",
+  // Our own queue is full (many people dictating at once); nothing was lost.
+  busy:
+    "Many people are using voice input right now. Please try again in a few seconds, or fill this in by typing.",
+  audio_too_long:
+    "That recording is too long. Please dictate in shorter parts.",
   default:
     "Something interrupted voice input. Please try again, or fill this in by typing.",
 };

@@ -112,6 +112,9 @@ status code or ".env" is visible.
 | Rate limit (UI) | temporarily add `raise UpstreamError("x", code="rate_limited", retry_after=12)` at the top of `extract()` in `voice.py` | amber banner, **all** mics disabled, countdown, mics return at 0 |
 | 503 | temporarily raise `UpstreamError("x", code="unavailable")` | error banner + "Try filling in the form again" link; link works once the raise is removed |
 | Missing required fields | Save/Print with empty form | "Please fill in: …" with **field labels** |
+| Many people at once | in `.env`: `GEMINI_MAX_IN_FLIGHT=1`, `VOICE_QUEUE_WAIT_SECONDS=1`; restart; dictate from two devices/tabs (two accounts) at the same moment | one gets the result, the other "Many people are using voice input right now…"; **no field changes** |
+| Hung provider | `EXTRACT_TIMEOUT_SECONDS=0.5`, restart, dictate | "isn't responding" banner within a second; no field changes |
+| Long recording | `MAX_AUDIO_MB=0.05`, restart, dictate for ~10 s | "That recording is too long. Please dictate in shorter parts." |
 
 Backend-only pattern (simulate an upstream failure without a browser):
 ```python

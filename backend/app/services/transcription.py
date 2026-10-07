@@ -9,6 +9,7 @@ letting a raw SDK exception (or worse, a malformed/partial API response)
 propagate — a rate-limited or degraded API should be visibly rate-limited or
 degraded to the caller, never mistaken for a real (if odd) transcript.
 """
+import asyncio
 import io
 import logging
 import time
@@ -16,6 +17,7 @@ from functools import lru_cache
 
 from ..config import settings
 from ..errors import UpstreamError
+from . import limits
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +34,16 @@ MEDICAL_VOCAB_HINT = (
 )
 
 
-def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> str:
+async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> str:
+    """Waits its turn in the shared queue (limits.py), then transcribes."""
     if settings.WHISPER_BACKEND == "groq":
-        return _transcribe_groq(audio_bytes, filename)
+        async with limits.groq.slot():
+            async with limits.deadline(settings.TRANSCRIBE_TIMEOUT_SECONDS, "Groq transcription"):
+                return await _transcribe_groq(audio_bytes, filename)
     elif settings.WHISPER_BACKEND == "local":
-        return _transcribe_local(audio_bytes, filename)
+        # CPU work on this machine: in a worker thread, one recording at a time.
+        async with limits.local_whisper.slot():
+            return await asyncio.to_thread(_transcribe_local, audio_bytes, filename)
     else:
         raise UpstreamError(
             f"Unknown WHISPER_BACKEND: {settings.WHISPER_BACKEND}", code="unknown"
@@ -55,23 +62,26 @@ def _retry_after_from_headers(response) -> float | None:
         return None
 
 
-def _transcribe_groq(audio_bytes: bytes, filename: str) -> str:
+async def _transcribe_groq(audio_bytes: bytes, filename: str) -> str:
     import groq as groq_sdk
-    from groq import Groq
 
     if not settings.GROQ_API_KEY:
         raise UpstreamError("GROQ_API_KEY is not set in .env", code="auth")
 
-    client = Groq(api_key=settings.GROQ_API_KEY)
     t0 = time.perf_counter()
     try:
-        result = client.audio.transcriptions.create(
-            file=(filename, io.BytesIO(audio_bytes)),
-            model="whisper-large-v3",
-            prompt=MEDICAL_VOCAB_HINT,
-            response_format="text",
-            temperature=0.0,
-        )
+        # One retry for a dropped connection / 5xx; the overall deadline is
+        # enforced around this call (limits.deadline).
+        async with groq_sdk.AsyncGroq(
+            api_key=settings.GROQ_API_KEY, max_retries=1, timeout=settings.TRANSCRIBE_TIMEOUT_SECONDS
+        ) as client:
+            result = await client.audio.transcriptions.create(
+                file=(filename, io.BytesIO(audio_bytes)),
+                model="whisper-large-v3",
+                prompt=MEDICAL_VOCAB_HINT,
+                response_format="text",
+                temperature=0.0,
+            )
     except groq_sdk.RateLimitError as e:
         raise UpstreamError(
             "Groq is rate-limiting transcription requests (429). The free tier "
@@ -90,6 +100,8 @@ def _transcribe_groq(audio_bytes: bytes, filename: str) -> str:
             "Try again shortly.",
             code="unavailable",
         ) from e
+    except groq_sdk.APITimeoutError as e:
+        raise UpstreamError("Groq transcription timed out.", code="unavailable") from e
     except groq_sdk.APIConnectionError as e:
         raise UpstreamError(
             "Could not reach Groq — check your internet connection.",

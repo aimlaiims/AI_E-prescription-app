@@ -20,6 +20,7 @@ CLAUDE.md
 docs/CHANGELOG.md
 docs/ROADMAP.md
 docs/PLAN_*.md
+docs/client-input/
 scripts/
 
 # --- Tests and CI (kept locally) ---

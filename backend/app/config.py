@@ -17,6 +17,24 @@ class Settings:
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./clinical_forms.db")
 
+    # --- Many users at once (voice) ---
+    # Calls in progress at the same time, per provider; more wait in a fair queue.
+    GROQ_MAX_IN_FLIGHT: int = int(os.getenv("GROQ_MAX_IN_FLIGHT", "8"))
+    GEMINI_MAX_IN_FLIGHT: int = int(os.getenv("GEMINI_MAX_IN_FLIGHT", "8"))
+    # Calls started per minute, per provider (0 = no limit here). Set a little below
+    # the plan's limit so requests wait briefly here instead of being refused there.
+    GROQ_PER_MINUTE: int = int(os.getenv("GROQ_PER_MINUTE", "0"))
+    GEMINI_PER_MINUTE: int = int(os.getenv("GEMINI_PER_MINUTE", "0"))
+    # Longest wait in the queue before "many people are dictating" is shown.
+    VOICE_QUEUE_WAIT_SECONDS: float = float(os.getenv("VOICE_QUEUE_WAIT_SECONDS", "15"))
+    # Longest a single call may take once started (includes Gemini's retries).
+    TRANSCRIBE_TIMEOUT_SECONDS: float = float(os.getenv("TRANSCRIBE_TIMEOUT_SECONDS", "30"))
+    EXTRACT_TIMEOUT_SECONDS: float = float(os.getenv("EXTRACT_TIMEOUT_SECONDS", "30"))
+    # Voice requests one signed-in user may have in progress at once.
+    VOICE_MAX_PER_USER: int = int(os.getenv("VOICE_MAX_PER_USER", "3"))
+    # Largest recording accepted (about 40 minutes of speech at 10 MB).
+    MAX_AUDIO_MB: float = float(os.getenv("MAX_AUDIO_MB", "10"))
+
     # Dates and times people see (and the date in Reference IDs). Stored as UTC.
     APP_TIMEZONE: str = os.getenv("APP_TIMEZONE", "Asia/Kolkata").strip() or "Asia/Kolkata"
 

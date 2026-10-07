@@ -21,6 +21,7 @@ Design choices that specifically target the two failure modes described
    the transcript grounds it. This is shown to the doctor in the review UI,
    so ungrounded guesses are easy to spot and reject.
 """
+import asyncio
 import json
 import logging
 import time
@@ -31,6 +32,7 @@ from google.genai import errors as genai_errors
 from ..config import settings
 from ..errors import UpstreamError
 from ..schemas import FORM_FIELD_SPECS
+from . import limits
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +108,7 @@ def _retry_after_from_genai_error(e) -> float | None:
         return None
 
 
-def _generate_with_retry(client: genai.Client, **kwargs):
+async def _generate_with_retry(client: genai.Client, **kwargs):
     """
     Gemini's free tier can return 503 UNAVAILABLE under load — this is transient,
     not a code bug, and usually clears within a few seconds, so ServerError gets
@@ -118,7 +120,7 @@ def _generate_with_retry(client: genai.Client, **kwargs):
     last_exc = None
     for attempt in range(_MAX_RETRIES):
         try:
-            return client.models.generate_content(**kwargs)
+            return await client.aio.models.generate_content(**kwargs)
         except genai_errors.ClientError as e:
             if e.code == 429:
                 raise UpstreamError(
@@ -138,7 +140,7 @@ def _generate_with_retry(client: genai.Client, **kwargs):
         except genai_errors.ServerError as e:
             last_exc = e
             if attempt < _MAX_RETRIES - 1:
-                time.sleep(_BASE_DELAY_SECONDS * (2 ** attempt))
+                await asyncio.sleep(_BASE_DELAY_SECONDS * (2 ** attempt))
                 continue
     raise UpstreamError(
         "Gemini is temporarily overloaded (503) after 3 retries. This is common "
@@ -160,9 +162,17 @@ def _finish_reason(response) -> str | None:
     return getattr(reason, "name", str(reason))
 
 
-def extract_field_updates(
+async def extract_field_updates(
     transcript: str, current_state: dict, target_field: str | None = None
 ) -> dict:
+    """Waits its turn in the shared queue (limits.py); the deadline covers
+    Gemini's retries too."""
+    async with limits.gemini.slot():
+        async with limits.deadline(settings.EXTRACT_TIMEOUT_SECONDS, "Gemini extraction"):
+            return await _extract(transcript, current_state, target_field)
+
+
+async def _extract(transcript: str, current_state: dict, target_field: str | None) -> dict:
 
     allowed_fields = _allowed_fields(target_field)
     field_descriptions = "\n".join(
@@ -242,7 +252,7 @@ instructions>", matching the style of existing entries where possible.
 
     client = _get_client()
     t0 = time.perf_counter()
-    response = _generate_with_retry(
+    response = await _generate_with_retry(
         client,
         model=settings.EXTRACTION_MODEL,
         contents=f'Transcript:\n"""{transcript}"""',

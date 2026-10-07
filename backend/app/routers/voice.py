@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
-from fastapi.concurrency import run_in_threadpool
 
+from ..config import settings
 from ..errors import UpstreamError
+from ..models import Doctor
 from ..schemas import (
     TranscribeResponse,
     ExtractRequest,
@@ -10,6 +11,7 @@ from ..schemas import (
 )
 from ..services.transcription import transcribe_audio
 from ..services.extraction import extract_field_updates
+from ..services import limits
 from ..security import current_doctor
 
 # Signed-in doctors only: these calls spend the Groq/Gemini quota.
@@ -25,9 +27,24 @@ def _upstream_to_http(e: UpstreamError) -> HTTPException:
     return HTTPException(status_code=e.http_status(), detail=detail)
 
 
+async def _read_limited(audio: UploadFile) -> bytes:
+    """The recording, refused early if it is over MAX_AUDIO_MB (never read whole)."""
+    limit = int(settings.MAX_AUDIO_MB * 1024 * 1024)
+    data = await audio.read(limit + 1)
+    if len(data) > limit:
+        raise HTTPException(
+            413,
+            {
+                "error_code": "audio_too_long",
+                "message": "That recording is too long. Please dictate in shorter parts.",
+            },
+        )
+    return data
+
+
 @router.post("/transcribe", response_model=TranscribeResponse)
-async def transcribe(audio: UploadFile = File(...)):
-    audio_bytes = await audio.read()
+async def transcribe(audio: UploadFile = File(...), doctor: Doctor = Depends(current_doctor)):
+    audio_bytes = await _read_limited(audio)
     if not audio_bytes:
         raise HTTPException(
             400,
@@ -37,27 +54,25 @@ async def transcribe(audio: UploadFile = File(...)):
             },
         )
     try:
-        # The Groq/Gemini SDK calls (and the Gemini retry sleeps) are blocking;
-        # run them in a worker thread so one slow request doesn't stall every
-        # other request on the server (ROADMAP P1-1).
-        text = await run_in_threadpool(
-            transcribe_audio, audio_bytes, filename=audio.filename or "audio.webm"
-        )
+        # Async all the way down: waiting for Groq/Gemini (or for a turn in the
+        # queue, services/limits.py) holds no thread, so other requests go on.
+        with limits.per_user.hold(doctor.id):
+            text = await transcribe_audio(audio_bytes, filename=audio.filename or "audio.webm")
     except UpstreamError as e:
         raise _upstream_to_http(e)
     return TranscribeResponse(transcript=text)
 
 
 @router.post("/extract", response_model=ExtractResponse)
-async def extract(req: ExtractRequest):
+async def extract(req: ExtractRequest, doctor: Doctor = Depends(current_doctor)):
     current_state = req.current_state.model_dump()
     try:
-        result = await run_in_threadpool(
-            extract_field_updates,
-            transcript=req.transcript,
-            current_state=current_state,
-            target_field=req.target_field,
-        )
+        with limits.per_user.hold(doctor.id):
+            result = await extract_field_updates(
+                transcript=req.transcript,
+                current_state=current_state,
+                target_field=req.target_field,
+            )
     except UpstreamError as e:
         raise _upstream_to_http(e)
 

@@ -15,6 +15,9 @@ Codes:
   "auth"         — bad/missing API key. This is a configuration problem, not
                    something retrying will fix.
   "unknown"      — anything else (network error, unexpected response shape).
+  "busy"         — OUR OWN queue for the provider is full (many people dictating at
+                   once, services/limits.py); nothing was sent upstream. Try again in
+                   a few seconds; carries `retry_after`.
 """
 
 
@@ -28,6 +31,7 @@ class UpstreamError(Exception):
         return {
             "rate_limited": 429,
             "unavailable": 503,
+            "busy": 503,
             # 502 (not 401/403) because from the caller's (frontend's) point of
             # view, *our* server misconfigured its upstream credentials — this
             # isn't the frontend's own auth failing.
