@@ -138,6 +138,7 @@ def visit(form: ClinicalForm) -> dict:
         "diagnosis": form.diagnosis,
         "investigation": form.investigation or "",
         "medications": form.medications or "",
+        "advice": form.advice or "",
         "raw_transcript_log": form.raw_transcript_log or "",
         "created_at": to_local_iso(form.created_at) if form.created_at else None,
     }

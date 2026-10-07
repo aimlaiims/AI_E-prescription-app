@@ -175,6 +175,13 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] OS set to "reduce motion" → no pulsing mic / dot / spinner animation
 - [ ] Print a record with 24+ medication lines → signature never alone on the last page
 
+## 6a. Advice
+- [ ] Type or dictate Advice ("advise steam inhalation, review after two weeks") → it goes
+      to Advice, not Medications; "add …" appends a line
+- [ ] Printout: Advice under the medicines; with long medicines + advice the signature is
+      never alone on the last page (the last Advice lines go with it)
+- [ ] Past visits shows Advice
+
 ## 6b. Patients
 - [ ] New patient: fill the form (City shows suggestions) → Save → the strip shows `ENT-…`;
       the printout shows Patient ID, OPD No., City, Occupation

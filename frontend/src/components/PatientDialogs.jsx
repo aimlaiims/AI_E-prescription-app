@@ -149,7 +149,7 @@ export function SamePatientDialog({ candidates, patientName, onChoose, onClose }
   );
 }
 
-const VISIT_SECTIONS = ["chief_complaints", "on_examination", "diagnosis", "investigation", "medications"];
+const VISIT_SECTIONS = ["chief_complaints", "on_examination", "diagnosis", "investigation", "medications", "advice"];
 
 export function PatientHistoryDialog({ patientId, onClose }) {
   const [data, setData] = useState({ status: "loading" });

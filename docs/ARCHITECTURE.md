@@ -145,7 +145,9 @@ Table `clinical_forms` = one **visit** (plus `doctor_id`, `department_id`, `pati
 and its own copy of `opd_no`, `occupation`, `city` as they were that day):
 `id`, `pid` (unique, `RX-YYYYMMDD-XXXX`, 4 random A-Z0-9), `patient_name`, `date`,
 `age`, `gender`, `chief_complaints`, `on_examination`, `diagnosis`, `investigation`,
-`medications`, `raw_transcript_log` (all dictation transcripts, `\n---\n` separated),
+`medications`, `advice` (free text after the medicines, including the follow-up —
+there is no separate follow-up field), `raw_transcript_log` (all dictation transcripts,
+`\n---\n` separated),
 `created_at`, `updated_at`. `age`/`date` are strings on purpose (free-form input);
 `age` holds up to 40 characters ("2 years 6 months").
 Required to save: patient_name, age, gender, city, chief_complaints, diagnosis.

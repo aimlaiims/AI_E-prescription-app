@@ -90,6 +90,34 @@ export function buildPrintHtml(state, pid, { toolbar = true, letterhead = {}, pr
   const tailLines = medLines.slice(headLines.length);
   const medsHeading = `<h2>℞ ${escapeHtml(FIELD_SPECS.medications.label)}</h2>`;
 
+  // Without Advice: the last medicine lines travel with the signature.
+  // With Advice: the medicines print as one whole box (it may split across
+  // pages) and the last Advice lines travel with the signature instead.
+  const advice = text("advice");
+  let middle;
+  if (!advice) {
+    middle =
+      (headLines.length
+        ? `<section class="medications">${medsHeading}<div class="medication-lines">${headLines.join("<br>")}</div></section>`
+        : "") +
+      `
+<div class="closing${headLines.length ? "" : " whole"}"><div class="medications-tail">${
+        headLines.length ? "" : medsHeading
+      }<div class="medication-lines">${tailLines.join("<br>")}</div></div>`;
+  } else {
+    const adviceHeading = `<h2>${escapeHtml(FIELD_SPECS.advice.label)}</h2>`;
+    const adviceLines = advice.split(/\r?\n/).map(escapeHtml);
+    const adviceHead = adviceLines.slice(0, Math.max(0, adviceLines.length - TAIL_LINES));
+    const adviceTail = adviceLines.slice(adviceHead.length);
+    middle =
+      `<section class="medications complete">${medsHeading}<div class="medication-lines">${medLines.join("<br>")}</div></section>` +
+      (adviceHead.length ? `<section class="advice">${adviceHeading}<p>${adviceHead.join("<br>")}</p></section>` : "") +
+      `
+<div class="closing"><section class="advice-tail${adviceHead.length ? " continued" : ""}">${
+        adviceHead.length ? "" : adviceHeading
+      }<p>${adviceTail.join("<br>")}</p></section>`;
+  }
+
   const logo = letterhead.logoDataUri
     ? `<img class="logo" src="${escapeHtml(letterhead.logoDataUri)}" alt="Clinic logo">`
     : "";
@@ -141,6 +169,12 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 
 .closing { break-inside: avoid; page-break-inside: avoid; }
 .medications-tail { padding: 0 12px 12px; border: 1px solid #111; border-top: 0; }
 .closing.whole .medications-tail { margin-top: 16px; padding-top: 12px; border-top: 1px solid #111; }
+.medications.complete { padding-bottom: 12px; border-bottom: 1px solid #111; }
+/* Advice: plain text under the medicines; its last lines sit in .closing. */
+.advice, .advice-tail { padding-top: 14px; }
+.advice-tail.continued { padding-top: 0; }
+.advice h2, .advice-tail h2 { margin: 0 0 6px; font: bold 9pt Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; break-after: avoid; }
+.advice p, .advice-tail p { margin: 0; overflow-wrap: anywhere; }
 .footer { display: flex; justify-content: space-between; gap: 28px; align-items: end; margin-top: 20px; font-size: 8.5pt; }
 .fine-print { max-width: 65%; color: #555; }
 .signature { width: 150px; text-align: center; }
@@ -159,8 +193,7 @@ ${toolbar ? '<div class="toolbar"><button type="button" onclick="window.close()"
 <div class="sheet">
 <header class="letterhead"><div class="brand">${logo || '<div class="rx" aria-hidden="true">℞</div>'}<div>${letterheadDetails}</div></div><div class="meta"><div>Reference ID: ${escapeHtml(pid)}</div><div>Printed: ${escapeHtml(printed)}</div></div></header>
 <div class="patient-row"><div><span class="label">${escapeHtml(FIELD_SPECS.patient_name.label)}</span><span class="value">${escapeHtml(orDash(text("patient_name")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.age.label)} / ${escapeHtml(FIELD_SPECS.gender.label)}</span><span class="value">${escapeHtml(orDash(text("age")))} / ${escapeHtml(orDash(text("gender")))}</span></div><div><span class="label">${escapeHtml(FIELD_SPECS.date.label)}</span><span class="value">${escapeHtml(orDash(formatDate(text("date"))))}</span></div></div><div class="patient-ids">${identity}</div>
-${sections}${headLines.length ? `<section class="medications">${medsHeading}<div class="medication-lines">${headLines.join("<br>")}</div></section>` : ""}
-<div class="closing${headLines.length ? "" : " whole"}"><div class="medications-tail">${headLines.length ? "" : medsHeading}<div class="medication-lines">${tailLines.join("<br>")}</div></div>
+${sections}${middle}
 <footer class="footer"><div class="fine-print">This is a computer-generated prescription record. Reference ID ${escapeHtml(pid)} can be used to retrieve this record.</div><div class="signature"><div class="signature-line"></div><div class="signature-caption">Signature</div></div></footer></div>
 </div>
 </body></html>`;

@@ -164,6 +164,7 @@ class ClinicalForm(Base):
     diagnosis = Column(Text, nullable=False)
     investigation = Column(Text, default="")
     medications = Column(Text, default="")
+    advice = Column(Text, nullable=False, default="", server_default="")  # incl. follow-up
 
     # Full raw transcripts kept for audit / re-parsing if extraction was wrong
     raw_transcript_log = Column(Text, default="")

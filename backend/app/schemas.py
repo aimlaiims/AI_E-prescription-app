@@ -17,6 +17,8 @@ FORM_FIELD_SPECS = {
     "diagnosis": {"label": "Diagnosis", "type": "textarea"},
     "investigation": {"label": "Investigation", "type": "textarea"},
     "medications": {"label": "Medications", "type": "textarea"},
+    # Free text after the medicines; follow-up goes here too ("review after 2 weeks").
+    "advice": {"label": "Advice", "type": "textarea"},
 }
 
 REQUIRED_FIELDS = {"patient_name", "age", "gender", "city", "chief_complaints", "diagnosis"}
@@ -35,6 +37,7 @@ class FormState(BaseModel):
     diagnosis: str = ""
     investigation: str = ""
     medications: str = ""
+    advice: str = ""
 
 
 class TranscribeResponse(BaseModel):

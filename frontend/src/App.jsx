@@ -7,6 +7,7 @@ import {
   Printer,
   Loader2,
   Search,
+  NotebookPen,
   History as HistoryIcon,
   X,
 } from "lucide-react";
@@ -500,6 +501,14 @@ export default function App({ profile, onSignOut }) {
             <span>Medications</span>
           </h2>
           <FormField {...commonFieldProps("medications")} />
+        </section>
+
+        <section className="form-section">
+          <h2 className="section-heading">
+            <NotebookPen size={17} aria-hidden="true" />
+            <span>Advice</span>
+          </h2>
+          <FormField {...commonFieldProps("advice")} />
         </section>
 
         <footer className="form-footer">

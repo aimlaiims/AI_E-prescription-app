@@ -21,6 +21,8 @@ export const FIELD_SPECS = {
   diagnosis: { label: "Diagnosis", type: "textarea", required: true },
   investigation: { label: "Investigation", type: "textarea", required: false },
   medications: { label: "Medications", type: "textarea", required: false },
+  // Free text after the medicines; follow-up goes here too ("review after 2 weeks").
+  advice: { label: "Advice", type: "textarea", required: false },
 };
 
 export const EMPTY_STATE = Object.fromEntries(
