@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey, true
+from sqlalchemy.orm import relationship
 
 from .database import Base
 
@@ -18,20 +19,43 @@ def max_length(model, column: str):
     return getattr(model.__table__.c[column].type, "length", None)
 
 
+class Department(Base):
+    """An OPD department (ENT first). Doctors and prescriptions belong to one."""
+
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True)
+    code = Column(String(20), unique=True, nullable=False)  # "ENT"
+    name = Column(String(120), nullable=False)  # printed: "ENT Department"
+    created_at = Column(DateTime, default=_utcnow)
+
+
+ROLES = ("doctor", "admin")
+
+
 class Doctor(Base):
+    """A user account. Signs in with email + password. Added by the
+    department's admin (role "admin"), who may also write prescriptions."""
+
     __tablename__ = "doctors"
 
     id = Column(Integer, primary_key=True)
-    # Login name, stored lower-case (case-insensitive login).
-    doctor_id = Column(String(40), unique=True, index=True, nullable=False)
     full_name = Column(String(120), nullable=False)
+    # Sign-in name and reset address; stored lower-case.
     email = Column(String(254), unique=True, index=True, nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), index=True, nullable=True)
+    role = Column(String(20), nullable=False, default="doctor", server_default="doctor")
+    # Deactivated: can't sign in; their prescriptions are kept.
+    is_active = Column(Boolean, nullable=False, default=True, server_default=true())
     qualification = Column(String(120), default="")   # e.g. "MBBS, MD"
     specialization = Column(String(120), default="")  # e.g. "General Medicine"
     registration_no = Column(String(60), default="")  # medical council reg. no.
     # "scrypt$n$r$p$<salt b64>$<hash b64>" — never the password itself.
+    # NO_PASSWORD until the doctor opens their set-password link.
     password_hash = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=_utcnow)
+
+    department = relationship(Department, lazy="joined")
 
 
 class AuthSession(Base):
@@ -48,7 +72,8 @@ class AuthSession(Base):
 
 
 class PasswordReset(Base):
-    """One-time password-reset link (token hashed, short-lived, single use)."""
+    """One-time password link (token hashed, single use): "reset" (forgot
+    password / sent by the admin) or "invite" (new account sets its first)."""
 
     __tablename__ = "password_resets"
 
@@ -58,6 +83,7 @@ class PasswordReset(Base):
     created_at = Column(DateTime, default=_utcnow)
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)
+    purpose = Column(String(20), nullable=False, default="reset", server_default="reset")
 
 
 class ClinicalForm(Base):
@@ -68,6 +94,7 @@ class ClinicalForm(Base):
     # Who saved it; each doctor only sees their own. NULL = saved before
     # accounts existed (visible to nobody).
     doctor_id = Column(Integer, ForeignKey("doctors.id"), index=True, nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), index=True, nullable=True)
 
     # Indexed for the records search (name contains / date range).
     # Any change to a column here needs an Alembic migration (backend/alembic/).

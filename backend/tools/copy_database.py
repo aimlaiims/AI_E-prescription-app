@@ -24,6 +24,10 @@ from app import migrations, models  # noqa: F401  (registers the tables)
 from app.database import Base, make_engine, normalize_url
 
 BATCH = 500
+# Rows the migrations themselves insert (e.g. "ENT Department"): a freshly
+# migrated target has them, so they don't make it "not empty"; they are
+# replaced by the source's own rows during the copy.
+SEED_TABLES = {"departments"}
 
 
 def _redact(url: str) -> str:
@@ -60,7 +64,8 @@ def copy(source_url: str, target_url: str) -> dict:
         tables = Base.metadata.sorted_tables  # parents before children (foreign keys)
         migrations.run(target)  # empty target -> current schema; never touches the source
         with target.connect() as conn:
-            filled = [t.name for t in tables if conn.execute(select(func.count()).select_from(t)).scalar()]
+            filled = [t.name for t in tables if t.name not in SEED_TABLES
+                      and conn.execute(select(func.count()).select_from(t)).scalar()]
         if filled:
             raise SystemExit(f"The target already has records ({', '.join(filled)}). It must be empty.")
 
@@ -71,6 +76,9 @@ def copy(source_url: str, target_url: str) -> dict:
 
         counts = {}
         with source.connect() as src, target.begin() as dst:
+            for table in reversed(tables):
+                if table.name in SEED_TABLES:
+                    dst.execute(table.delete())
             for table in tables:
                 counts[table.name] = 0
                 result = src.execute(select(table).order_by(*table.primary_key.columns))

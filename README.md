@@ -3,8 +3,8 @@
 Dictate a patient visit, review what was heard, save it under a Reference ID, print a
 prescription. Built for a doctor or their assistant.
 
-> **Status: demo, not production.** Doctors sign in (invite-code sign-up, email password
-> reset) and each sees only their own prescriptions. Still missing before real patient data:
+> **Status: demo, not production.** Doctors sign in with email + password; the
+> department's administrator adds the accounts; each doctor sees only their own prescriptions. Still missing before real patient data:
 > encryption at rest and a consent/privacy review (audio goes to Groq, transcripts to Google).
 
 ## How it works
@@ -64,13 +64,25 @@ after every change.
 | `VOICE_QUEUE_WAIT_SECONDS` | longest wait before "many people are using voice input" (default 15) |
 | `TRANSCRIBE_TIMEOUT_SECONDS` / `EXTRACT_TIMEOUT_SECONDS` | longest one call may take (default 30) |
 | `VOICE_MAX_PER_USER` / `MAX_AUDIO_MB` | voice requests per user at once (3); largest recording (10 MB) |
-| `SIGNUP_CODE` | invite code needed to create an account (empty = sign-up closed) |
+| `INVITE_LINK_DAYS` | how long a new account's set-password link works (default 7) |
 | `INSTITUTION_NAME` | shown on the letterhead and printed prescriptions |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | password-reset email; empty = link printed in the backend terminal |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | set-password and reset emails; empty = the administrator is shown each link to pass on (forgot-password links go to the backend terminal) |
 | `APP_BASE_URL` | public address for links in emails (e.g. the ngrok URL) |
 
-First run: set `SIGNUP_CODE`, open the app, choose **Create an account**. Every API call
-except `/api/health` needs a signed-in doctor.
+**First run — accounts.** There is no self sign-up. Create the department's first
+administrator once, on the server (it asks for a password):
+
+```powershell
+cd backend
+python -m tools.create_admin --email hod.ent@example.org --name "Full Name"
+```
+
+The administrator signs in and opens **Accounts** (navbar) to add each doctor (name,
+email, qualification, registration no.). Each new doctor gets a **set-password link** —
+emailed when SMTP is configured, otherwise shown to the administrator to pass on. From
+Accounts the administrator can also edit details, send a reset link, and deactivate or
+reactivate an account (deactivation signs the doctor out at once; prescriptions are kept).
+Every API call except `/api/health` needs a signed-in doctor.
 
 ## Database and backups
 

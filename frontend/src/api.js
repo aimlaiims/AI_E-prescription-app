@@ -119,7 +119,7 @@ async function postJson(path, body) {
   return res.json();
 }
 
-// { doctor, institution } for the signed-in doctor; throws ApiError
+// { doctor, department, institution } for the signed-in doctor; throws ApiError
 // "unauthenticated" when signed out (does not fire the event: expected at start).
 export async function getMe() {
   const res = await fetch(`${BASE}/auth/me`);
@@ -127,9 +127,28 @@ export async function getMe() {
   return res.json();
 }
 
-export const login = (doctorId, password, remember) =>
-  postJson("/auth/login", { doctor_id: doctorId, password, remember });
-export const signup = (fields) => postJson("/auth/signup", fields);
+export const login = (email, password, remember) =>
+  postJson("/auth/login", { email, password, remember });
 export const logout = () => postJson("/auth/logout");
 export const forgotPassword = (email) => postJson("/auth/forgot", { email });
 export const resetPassword = (token, password) => postJson("/auth/reset", { token, password });
+
+// --- Accounts, for the department's administrator (backend/app/routers/admin.py).
+// Errors go through toApiError: an ended session brings up the sign-in box. ---
+
+async function adminRequest(method, path, body) {
+  const res = await fetch(`${BASE}/admin${path}`, {
+    method,
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
+export const listAccounts = () => adminRequest("GET", "/doctors");
+export const addAccount = (fields) => adminRequest("POST", "/doctors", fields);
+export const editAccount = (id, fields) => adminRequest("PATCH", `/doctors/${id}`, fields);
+export const deactivateAccount = (id) => adminRequest("POST", `/doctors/${id}/deactivate`);
+export const activateAccount = (id) => adminRequest("POST", `/doctors/${id}/activate`);
+export const sendPasswordLink = (id) => adminRequest("POST", `/doctors/${id}/password-link`);

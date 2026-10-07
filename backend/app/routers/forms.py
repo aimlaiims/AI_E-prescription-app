@@ -65,7 +65,8 @@ def save_form(
     # but bounded: an endless loop would hang the request if they kept happening.
     for _ in range(10):
         record = ClinicalForm(
-            pid=_generate_pid(), doctor_id=doctor.id, raw_transcript_log=req.raw_transcript_log, **state
+            pid=_generate_pid(), doctor_id=doctor.id, department_id=doctor.department_id,
+            raw_transcript_log=req.raw_transcript_log, **state
         )
         db.add(record)
         try:

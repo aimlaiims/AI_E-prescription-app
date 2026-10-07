@@ -59,6 +59,13 @@ def current_doctor(request: Request, db: Session = Depends(get_db)) -> Doctor:
     return doctor
 
 
+def current_admin(doctor: Doctor = Depends(current_doctor)) -> Doctor:
+    """The signed-in user, if they are their department's administrator."""
+    if doctor.role != "admin":
+        raise HTTPException(403, {"error_code": "forbidden", "message": "Only the administrator can do this."})
+    return doctor
+
+
 _UNSAFE = {"POST", "PUT", "PATCH", "DELETE"}
 
 

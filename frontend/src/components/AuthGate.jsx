@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import App from "../App.jsx";
-import { AuthLayout, ForgotForm, LoginForm, ResetForm, SignupForm } from "./AuthScreens.jsx";
+import { AuthLayout, ForgotForm, LoginForm, ResetForm } from "./AuthScreens.jsx";
 import { UNAUTHENTICATED_EVENT, getMe, logout } from "../api.js";
 import { SESSION_ENDED_MESSAGE } from "../messages.js";
 
@@ -12,11 +12,13 @@ import { SESSION_ENDED_MESSAGE } from "../messages.js";
 // mounted, so nothing typed or dictated is lost. Only the same doctor can
 // continue it; "sign in as someone else" discards it.
 export default function AuthGate() {
-  // Read once (a pure initializer: StrictMode runs it twice), then removed from
-  // the address bar by the effect below — it's a single-use secret.
-  const [resetToken] = useState(readResetToken);
+  // A password link: ?reset=… (reset) or ?setup=… (new account, from the
+  // administrator). Read once (a pure initializer: StrictMode runs it twice),
+  // then removed from the address bar by the effect below — a single-use secret.
+  const [link] = useState(readPasswordLink);
+  const resetToken = link?.token;
   useEffect(() => {
-    if (resetToken) clearResetToken();
+    if (resetToken) clearPasswordLink();
   }, [resetToken]);
   const [status, setStatus] = useState(resetToken ? "signed-out" : "checking");
   const [profile, setProfile] = useState(null);
@@ -75,12 +77,9 @@ export default function AuthGate() {
   if (status === "signed-out") {
     return (
       <AuthLayout>
-        {view === "signup" && <SignupForm onSignedIn={signedIn} onLogin={toLogin} />}
         {view === "forgot" && <ForgotForm onLogin={toLogin} />}
-        {view === "reset" && <ResetForm token={resetToken} onDone={toLogin} />}
-        {view === "login" && (
-          <LoginForm onSignedIn={signedIn} onSignup={() => setView("signup")} onForgot={() => setView("forgot")} />
-        )}
+        {view === "reset" && <ResetForm token={resetToken} mode={link.mode} onDone={toLogin} />}
+        {view === "login" && <LoginForm onSignedIn={signedIn} onForgot={() => setView("forgot")} />}
       </AuthLayout>
     );
   }
@@ -93,7 +92,7 @@ export default function AuthGate() {
           <div className="auth-card auth-overlay-card">
             <LoginForm
               titleId="reauth-title"
-              lockedDoctorId={profile?.doctor?.doctor_id}
+              lockedEmail={profile?.doctor?.email}
               notice={SESSION_ENDED_MESSAGE}
               onSignedIn={signedIn}
               onSwitchUser={signOut}
@@ -105,16 +104,20 @@ export default function AuthGate() {
   );
 }
 
-function readResetToken() {
+function readPasswordLink() {
   if (typeof window === "undefined") return null;
-  return new URLSearchParams(window.location.search).get("reset");
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("setup")) return { token: params.get("setup"), mode: "setup" };
+  if (params.get("reset")) return { token: params.get("reset"), mode: "reset" };
+  return null;
 }
 
 // The token is single-use; keep it out of the address bar and history.
-function clearResetToken() {
+function clearPasswordLink() {
   const url = new URL(window.location.href);
-  if (url.searchParams.has("reset")) {
+  if (url.searchParams.has("reset") || url.searchParams.has("setup")) {
     url.searchParams.delete("reset");
+    url.searchParams.delete("setup");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
   }
 }

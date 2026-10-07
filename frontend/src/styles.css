@@ -1518,3 +1518,112 @@ kbd {
   background: color-mix(in srgb, var(--ink) 55%, transparent);
 }
 .auth-overlay-card { max-height: 100%; overflow: auto; }
+
+/* ---------- Accounts (department administrator) ---------- */
+
+.accounts-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+  outline: none;
+}
+@media (min-width: 768px) {
+  .accounts-dialog {
+    width: min(860px, 100%);
+    height: min(900px, 100%);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    box-shadow: 0 24px 64px var(--sheet-shadow);
+  }
+}
+.accounts-subtitle { margin: 2px 0 0; color: var(--ink-soft); font-size: 14px; }
+.accounts-body {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 8px 16px 24px;
+  overflow-y: auto;
+}
+.accounts-add { justify-self: start; }
+
+.accounts-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper-raised);
+}
+.accounts-form h3 { margin: 0; font-size: 17px; }
+@media (min-width: 768px) {
+  .accounts-form { grid-template-columns: 1fr 1fr; column-gap: 16px; }
+  .accounts-form h3,
+  .accounts-form-actions { grid-column: 1 / -1; }
+}
+.accounts-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--control-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px; /* no zoom-on-focus on tablets/phones */
+}
+.accounts-input:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px var(--brand-soft); }
+.accounts-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+.accounts-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.account-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+}
+.account-card.is-inactive { background: var(--surface-muted); }
+.account-card.is-inactive .account-name { color: var(--ink-soft); }
+/* Buttons beside the details only when there is room (landscape tablet, PC);
+   in portrait they go underneath, so names and numbers never squeeze. */
+@media (min-width: 1024px) {
+  .account-card { grid-template-columns: 1fr auto; align-items: center; }
+}
+.account-main { min-width: 0; }
+.account-main p { margin: 0; }
+.account-name { font-weight: 600; font-size: 16px; }
+.account-you { color: var(--ink-soft); font-weight: 400; }
+.account-email,
+.account-meta { color: var(--ink-soft); font-size: 14px; overflow-wrap: break-word; }
+.account-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px !important; }
+.account-badges:empty { display: none; }
+.account-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.account-badge.is-warning { background: var(--maroon-soft); color: var(--maroon); }
+.account-badge.is-pending { background: var(--amber-soft); color: var(--amber-text); }
+.account-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.accounts-link {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-sm);
+  background: var(--amber-soft);
+  color: var(--ink);
+  font-size: 14px;
+}
+.accounts-link p { margin: 0; }
+.accounts-link-row { display: flex; gap: 8px; }
+.accounts-link-row .accounts-input { flex: 1 1 auto; min-width: 0; font-family: var(--font-mono); }

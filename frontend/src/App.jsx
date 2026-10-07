@@ -13,6 +13,7 @@ import ReviewPanel from "./components/ReviewPanel.jsx";
 import StatusBanner from "./components/StatusBanner.jsx";
 import SaveButton from "./components/SaveButton.jsx";
 import RecordsDialog from "./components/RecordsDialog.jsx";
+import AccountsDialog from "./components/AccountsDialog.jsx";
 import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
 import { BRAND, loadLogoDataUri } from "./branding.js";
 import { doctorDisplayName, doctorLetterhead } from "./doctor.js";
@@ -44,6 +45,7 @@ export default function App({ profile, onSignOut }) {
   const [saving, setSaving] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [recordsOpen, setRecordsOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
   // Logo as a data URI for the print page (a blank window can't load /aiims-logo.jpg).
   const [logo, setLogo] = useState("");
   useEffect(() => {
@@ -310,6 +312,7 @@ export default function App({ profile, onSignOut }) {
     <div className="app-frame">
     <AppNavbar
       onHistory={() => setRecordsOpen(true)}
+      onAccounts={profile?.doctor?.role === "admin" ? () => setAccountsOpen(true) : undefined}
       doctorName={doctorDisplayName(profile?.doctor?.full_name)}
       onSignOut={onSignOut && handleSignOut}
     />
@@ -430,6 +433,13 @@ export default function App({ profile, onSignOut }) {
           />
         </footer>
       </article>
+      {accountsOpen && (
+        <AccountsDialog
+          onClose={() => setAccountsOpen(false)}
+          currentEmail={profile?.doctor?.email}
+          departmentName={profile?.department?.name}
+        />
+      )}
       {recordsOpen && (
         <RecordsDialog letterhead={letterhead} onClose={() => setRecordsOpen(false)} />
       )}

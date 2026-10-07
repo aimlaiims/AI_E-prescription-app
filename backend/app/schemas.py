@@ -70,21 +70,20 @@ class SaveFormRequest(BaseModel):
     raw_transcript_log: str = ""
 
 
-class SignupRequest(BaseModel):
-    invite_code: str = ""
+class LoginRequest(BaseModel):
+    email: str = ""
+    password: str = ""
+    remember: bool = False
+
+
+class DoctorFields(BaseModel):
+    """An account's details, as the admin enters them."""
     full_name: str = ""
-    doctor_id: str = ""
     email: str = ""
     qualification: str = ""
     specialization: str = ""
     registration_no: str = ""
-    password: str = ""
-
-
-class LoginRequest(BaseModel):
-    doctor_id: str = ""
-    password: str = ""
-    remember: bool = False
+    role: str = "doctor"
 
 
 class ForgotPasswordRequest(BaseModel):

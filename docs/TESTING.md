@@ -8,24 +8,30 @@ Run the manual tests on the machine and browser that will be used for the demo
 (**Chrome or Edge**), including once **through the ngrok URL**.
 
 ## 0. Accounts
-- [ ] `SIGNUP_CODE` set in `backend/.env`; Create an account with it → signed in, letterhead
-      shows "Dr. <name>", qualification, registration no.
-- [ ] Wrong invite code → clear message; `SIGNUP_CODE` empty → sign-up says it's closed
-- [ ] Sign out → sign in again (Doctor ID is not case-sensitive); 5 wrong passwords → told
-      to wait
+- [ ] `python -m tools.create_admin --email … --name …` → sign in with that email; the
+      navbar shows **Accounts**; letterhead shows "ENT Department · …"
+- [ ] Accounts → Add a doctor → without SMTP the set-password link is shown (Copy works);
+      with SMTP it arrives by email and is NOT shown
+- [ ] The link (on another device/tablet) → "Set your password" → sign in with the email
+      (not case-sensitive) → no Accounts button for a doctor
+- [ ] There is no "Create an account" anywhere; 5 wrong passwords → told to wait
+- [ ] Deactivate a doctor (asks first) → their open app asks them to sign in, which says
+      the account is deactivated; Reactivate → they can sign in, their prescriptions are there
+- [ ] The administrator can't deactivate themself or remove the last administrator role
 - [ ] Forgot password → email arrives (or, without SMTP, the link is in the backend
       terminal) → new password works, old one doesn't, the link can't be reused
 - [ ] Second doctor's account: History shows none of the first doctor's prescriptions
 - [ ] Session ends while a form is open (e.g. sign out in another tab) → sign-in box over
       the form; after signing in the form is still there
 - [ ] Sign out with an unsaved form → asks first
-- [ ] Printed prescription: doctor's name, qualification, registration no., institution, seal
+- [ ] Printed prescription: doctor's name, qualification, registration no., institution,
+      "ENT Department", seal
 
 ## 0b. Database
 - [ ] Fresh start on SQLite: the backend log says "database schema up to date (sqlite)"
 - [ ] An existing database from before this change starts fine and keeps its records
 - [ ] PostgreSQL: empty database, `DATABASE_URL=postgresql://…`, start → log says
-      "(postgresql)"; sign up, save, History, print all work
+      "(postgresql)"; create the admin, sign in, save, History, print all work
 - [ ] Age "2 years 6 months" saves; a 41-character age → "Please shorten Age (at most 40
       characters)."
 - [ ] `python -m tools.backup_database` → a file in `backend/backups/`; restore it into a

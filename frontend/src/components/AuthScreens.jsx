@@ -1,21 +1,7 @@
 import { useState } from "react";
-import {
-  BadgeCheck,
-  Eye,
-  EyeOff,
-  GraduationCap,
-  IdCard,
-  KeyRound,
-  Lock,
-  Mail,
-  Mic,
-  ShieldCheck,
-  Sparkles,
-  Stethoscope,
-  User,
-} from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Mic, ShieldCheck, Sparkles } from "lucide-react";
 import { BRAND } from "../branding.js";
-import { forgotPassword, login, resetPassword, signup } from "../api.js";
+import { forgotPassword, login, resetPassword } from "../api.js";
 import { authErrorMessage } from "../messages.js";
 
 // Sign-in screens. Design from the colleague's app (brand panel + card);
@@ -129,10 +115,10 @@ function SubmitButton({ busy, children, busyLabel }) {
   );
 }
 
-// `lockedDoctorId`: re-sign-in after a session ended mid-prescription — only
+// `lockedEmail`: re-sign-in after a session ended mid-prescription — only
 // the same doctor may continue that form.
-export function LoginForm({ onSignedIn, onSignup, onForgot, lockedDoctorId, onSwitchUser, notice, titleId }) {
-  const [doctorId, setDoctorId] = useState(lockedDoctorId || "");
+export function LoginForm({ onSignedIn, onForgot, lockedEmail, onSwitchUser, notice, titleId }) {
+  const [email, setEmail] = useState(lockedEmail || "");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
@@ -141,13 +127,13 @@ export function LoginForm({ onSignedIn, onSignup, onForgot, lockedDoctorId, onSw
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!doctorId.trim() || !password) {
-      setError("Please enter your Doctor ID and password.");
+    if (!email.trim() || !password) {
+      setError("Please enter your email and password.");
       return;
     }
     setBusy(true);
     try {
-      onSignedIn(await login(doctorId.trim(), password, remember));
+      onSignedIn(await login(email.trim(), password, remember));
     } catch (err) {
       setError(authErrorMessage(err));
       setBusy(false);
@@ -163,12 +149,14 @@ export function LoginForm({ onSignedIn, onSignup, onForgot, lockedDoctorId, onSw
       <form onSubmit={submit} className="auth-form" noValidate>
         <ErrorNote message={error} />
         <Field
-          icon={User}
-          label="Doctor ID"
-          value={doctorId}
-          onChange={setDoctorId}
+          icon={Mail}
+          label="Email"
+          type="email"
+          inputMode="email"
+          value={email}
+          onChange={setEmail}
           autoComplete="username"
-          readOnly={!!lockedDoctorId}
+          readOnly={!!lockedEmail}
           autoCapitalize="none"
           spellCheck="false"
         />
@@ -179,10 +167,10 @@ export function LoginForm({ onSignedIn, onSignup, onForgot, lockedDoctorId, onSw
           value={password}
           onChange={setPassword}
           autoComplete="current-password"
-          autoFocus={!!lockedDoctorId}
+          autoFocus={!!lockedEmail}
         />
         <div className="auth-row">
-          {!lockedDoctorId && (
+          {!lockedEmail && (
             <label className="auth-check">
               <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
               Keep me signed in for 30 days
@@ -198,7 +186,7 @@ export function LoginForm({ onSignedIn, onSignup, onForgot, lockedDoctorId, onSw
           Sign in
         </SubmitButton>
       </form>
-      {lockedDoctorId ? (
+      {lockedEmail ? (
         <p className="auth-foot">
           Not you?{" "}
           <button type="button" className="auth-link" onClick={onSwitchUser}>
@@ -207,70 +195,8 @@ export function LoginForm({ onSignedIn, onSignup, onForgot, lockedDoctorId, onSw
           (the open prescription will be discarded).
         </p>
       ) : (
-        <p className="auth-foot">
-          New here?{" "}
-          <button type="button" className="auth-link" onClick={onSignup}>
-            Create an account
-          </button>
-        </p>
+        <p className="auth-foot">No account yet? Your department's administrator adds it and sends you a link.</p>
       )}
-    </>
-  );
-}
-
-const EMPTY_SIGNUP = {
-  invite_code: "", full_name: "", doctor_id: "", email: "",
-  qualification: "", specialization: "", registration_no: "", password: "", confirm: "",
-};
-
-export function SignupForm({ onSignedIn, onLogin }) {
-  const [f, setF] = useState(EMPTY_SIGNUP);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const set = (key) => (value) => setF((prev) => ({ ...prev, [key]: value }));
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setError("");
-    if (f.password !== f.confirm) {
-      setError("The two passwords don't match.");
-      return;
-    }
-    setBusy(true);
-    try {
-      const { confirm, ...fields } = f;
-      onSignedIn(await signup(fields));
-    } catch (err) {
-      setError(authErrorMessage(err));
-      setBusy(false);
-    }
-  };
-
-  return (
-    <>
-      <h2 className="auth-title">Create an account</h2>
-      <p className="auth-subtitle">You need the invite code from your administrator.</p>
-      <form onSubmit={submit} className="auth-form" noValidate>
-        <ErrorNote message={error} />
-        <Field icon={KeyRound} label="Invite code" value={f.invite_code} onChange={set("invite_code")} autoComplete="off" />
-        <Field icon={User} label="Full name" value={f.full_name} onChange={set("full_name")} autoComplete="name" hint='As it should appear on prescriptions, e.g. "Anika Rao" (we add "Dr.").' />
-        <Field icon={IdCard} label="Doctor ID" value={f.doctor_id} onChange={set("doctor_id")} autoComplete="username" autoCapitalize="none" spellCheck="false" hint="What you'll sign in with, e.g. a_rao." />
-        <Field icon={Mail} label="Email" type="email" value={f.email} onChange={set("email")} autoComplete="email" hint="Used only for password reset links." />
-        <Field icon={GraduationCap} label="Qualification" value={f.qualification} onChange={set("qualification")} required={false} hint="e.g. MBBS, MD" />
-        <Field icon={Stethoscope} label="Specialization" value={f.specialization} onChange={set("specialization")} required={false} />
-        <Field icon={BadgeCheck} label="Registration no." value={f.registration_no} onChange={set("registration_no")} required={false} hint="Medical council registration, printed on prescriptions." />
-        <Field icon={Lock} label="Password" type="password" value={f.password} onChange={set("password")} autoComplete="new-password" hint="At least 8 characters." />
-        <Field icon={Lock} label="Confirm password" type="password" value={f.confirm} onChange={set("confirm")} autoComplete="new-password" />
-        <SubmitButton busy={busy} busyLabel="Creating account…">
-          Create account
-        </SubmitButton>
-      </form>
-      <p className="auth-foot">
-        Already have an account?{" "}
-        <button type="button" className="auth-link" onClick={onLogin}>
-          Sign in
-        </button>
-      </p>
     </>
   );
 }
@@ -324,7 +250,9 @@ export function ForgotForm({ onLogin }) {
   );
 }
 
-export function ResetForm({ token, onDone }) {
+// mode "reset" (forgot password / admin's reset link) or "setup" (a new
+// account's first password, from the administrator's link).
+export function ResetForm({ token, mode = "reset", onDone }) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [done, setDone] = useState("");
@@ -350,7 +278,7 @@ export function ResetForm({ token, onDone }) {
 
   return (
     <>
-      <h2 className="auth-title">Choose a new password</h2>
+      <h2 className="auth-title">{mode === "setup" ? "Set your password" : "Choose a new password"}</h2>
       {done ? (
         <>
           <p className="auth-success" role="status">

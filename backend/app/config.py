@@ -43,8 +43,9 @@ class Settings:
     ]
 
     # --- Doctor accounts ---
-    # Sign-up needs this invite code. Unset/empty -> sign-up is disabled.
-    SIGNUP_CODE: str = os.getenv("SIGNUP_CODE", "").strip()
+    # Accounts are added by the department's admin (no self sign-up). The
+    # emailed set-password link for a new account works this many days.
+    INVITE_LINK_DAYS: int = int(os.getenv("INVITE_LINK_DAYS", "7"))
     SESSION_HOURS: int = int(os.getenv("SESSION_HOURS", "12"))
     REMEMBER_DAYS: int = int(os.getenv("REMEMBER_DAYS", "30"))
     # "auto": Secure cookie when the page is served over HTTPS (e.g. ngrok),

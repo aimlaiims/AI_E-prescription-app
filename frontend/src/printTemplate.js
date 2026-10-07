@@ -46,7 +46,7 @@ export function formatDateTime(d) {
  * @param pid    Reference ID
  * @param opts.toolbar     Close/Print buttons on screen (hidden when printing).
  *                         Off for an embedded preview.
- * @param opts.letterhead  { clinicName?, doctorName?, registrationNo?, logoDataUri? }
+ * @param opts.letterhead  { clinicName?, departmentName?, doctorName?, registrationNo?, logoDataUri? }
  *                         Nothing configured -> no letterhead text at all.
  * @param opts.printedAt   override for tests; defaults to now
  */
@@ -82,6 +82,7 @@ export function buildPrintHtml(state, pid, { toolbar = true, letterhead = {}, pr
     : "";
   const letterheadDetails = [
     letterhead.clinicName && `<div class="clinic">${escapeHtml(letterhead.clinicName)}</div>`,
+    letterhead.departmentName && `<div class="department">${escapeHtml(letterhead.departmentName)}</div>`,
     letterhead.doctorName && `<div class="doctor">${escapeHtml(letterhead.doctorName)}</div>`,
     letterhead.registrationNo &&
       `<div class="registration">${escapeHtml(letterhead.registrationNo)}</div>`,
@@ -105,6 +106,7 @@ body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; line-height: 
 .brand { display: flex; flex: 1 1 auto; align-items: center; gap: 12px; min-width: 0; }
 .rx { font: 42pt/1 Georgia, serif; }
 .clinic { font: bold 15pt/1.25 Georgia, serif; }
+.department { margin-top: 2px; font-weight: 600; }
 .doctor, .registration { margin-top: 3px; color: #444; }
 .logo { width: 58px; height: 58px; object-fit: contain; }
 .meta { flex: 0 0 auto; text-align: right; font: 10pt/1.5 "Courier New", monospace; }

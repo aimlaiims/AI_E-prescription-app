@@ -15,7 +15,7 @@ export function doctorCredentials(doctor) {
     .join(" · ");
 }
 
-// Letterhead for buildPrintHtml(): institution, doctor + credentials, reg. no.
+// Letterhead for buildPrintHtml(): institution, department, doctor + credentials, reg. no.
 export function doctorLetterhead(profile, logoDataUri, fallbackInstitution) {
   const doctor = profile?.doctor;
   const name = doctorDisplayName(doctor?.full_name);
@@ -23,6 +23,7 @@ export function doctorLetterhead(profile, logoDataUri, fallbackInstitution) {
   const reg = String(doctor?.registration_no ?? "").trim();
   return {
     clinicName: profile?.institution || fallbackInstitution || undefined,
+    departmentName: String(profile?.department?.name ?? "").trim() || undefined,
     doctorName: [name, credentials].filter(Boolean).join(", ") || undefined,
     registrationNo: reg ? `Reg. No. ${reg}` : undefined,
     logoDataUri: logoDataUri || undefined,

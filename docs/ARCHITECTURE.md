@@ -103,9 +103,11 @@ Failure paths never fabricate data. A response that did not finish normally
 
 ## 5. Data model
 
-`backend/app/models.py`. Accounts: `doctors` (login `doctor_id` lower-case, name, email,
-qualification, specialization, registration no., scrypt hash), `auth_sessions` (token
-hash, expiry), `password_resets` (token hash, expiry, used).
+`backend/app/models.py`. `departments` (code `ENT`, name "ENT Department" — printed);
+accounts: `doctors` (email = sign-in name, lower-case; name, qualification,
+specialization, registration no., scrypt hash or "no password yet", `role` doctor/admin,
+`is_active`, department), `auth_sessions` (token hash, expiry), `password_resets` (token
+hash, expiry, used, `purpose` reset/invite).
 
 **SQLite or PostgreSQL** (`DATABASE_URL`), same code: everything goes through
 SQLAlchemy. The schema is owned by **Alembic** (`backend/alembic/versions/`); the app runs
@@ -116,8 +118,8 @@ their records are kept. Changing the schema = edit `models.py`, then
 database.
 
 Kept the same on both databases:
-- Text columns have sizes; PostgreSQL enforces them, SQLite doesn't. Save and sign-up
-  check the sizes first (`max_length` in `models.py`) and answer `validation` with a
+- Text columns have sizes; PostgreSQL enforces them, SQLite doesn't. Save and account
+  details check the sizes first (`max_length` in `models.py`) and answer `validation` with a
   "Please shorten …" message instead of a server error.
 - SQLite runs with foreign keys on (as PostgreSQL), WAL (reads don't wait for a save)
   and a 5 s busy timeout (two saves at once wait instead of failing).
@@ -132,7 +134,7 @@ Kept the same on both databases:
 `pg_dump`; keeps the last N) and `copy_database.py` (to an empty database, sizes checked
 first, one transaction, ids and counters carried over, counts verified).
 
-Table `clinical_forms` (plus `doctor_id`, the owner):
+Table `clinical_forms` (plus `doctor_id`, the owner, and `department_id`):
 `id`, `pid` (unique, `RX-YYYYMMDD-XXXX`, 4 random A-Z0-9), `patient_name`, `date`,
 `age`, `gender`, `chief_complaints`, `on_examination`, `diagnosis`, `investigation`,
 `medications`, `raw_transcript_log` (all dictation transcripts, `\n---\n` separated),
@@ -218,12 +220,16 @@ Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month na
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/health` | `{status, whisper_backend}` — the only route that needs no login |
-| POST | `/api/auth/signup` | invite code + profile + password → signed in; 403 `invalid_invite`/`signup_disabled`, 409 `conflict`, 400 `validation` |
-| POST | `/api/auth/login` | `{doctor_id, password, remember}` → profile + session cookie; 401 `invalid_credentials`, 429 after 5 failures/15 min |
+| POST | `/api/auth/login` | `{email, password, remember}` → profile + session cookie; 401 `invalid_credentials`, 403 `account_disabled` (only with the right password), 429 after 5 failures/15 min |
 | POST | `/api/auth/logout` | ends the session |
-| GET | `/api/auth/me` | `{doctor, institution}`; 401 `unauthenticated` |
+| GET | `/api/auth/me` | `{doctor (incl. role), department, institution}`; 401 `unauthenticated` |
 | POST | `/api/auth/forgot` | `{email}` → always the same reply; emails a 30-minute single-use link |
-| POST | `/api/auth/reset` | `{token, password}`; ends all of that doctor's sessions |
+| POST | `/api/auth/reset` | `{token, password}` — reset link or new account's set-password link; ends all of that doctor's sessions |
+| GET | `/api/admin/doctors` | admin only: the department's accounts |
+| POST | `/api/admin/doctors` | admin: add `{full_name, email, qualification, specialization, registration_no, role}` → `{doctor, emailed, link?, valid_for}` (link only if not emailed); 409 `conflict` |
+| PATCH | `/api/admin/doctors/{id}` | admin: edit details / role (the department keeps ≥ 1 active admin) |
+| POST | `/api/admin/doctors/{id}/deactivate` · `/activate` | admin: deactivation ends sessions and unused links; not yourself |
+| POST | `/api/admin/doctors/{id}/password-link` | admin: set-password link (never used) or 24 h reset link |
 | POST | `/api/transcribe` | multipart `audio` → `{transcript}` |
 | POST | `/api/extract` | `{transcript, current_state, target_field?}` → `{updates[], unmatched_transcript_note}` |
 | POST | `/api/forms` | `{state, raw_transcript_log}` → `{pid, saved_at}`; 400 `validation` |
@@ -250,8 +256,8 @@ carry on.
   `MAX_AUDIO_MB` are refused before anything is sent.
 - Local Whisper (CPU): one recording at a time, in a worker thread.
 - Saves: the database's unique constraint decides Reference ID clashes (two saves at
-  the same instant) → retried with a new ID. Two sign-ups with the same ID/email at once
-  → 409.
+  the same instant) → retried with a new ID. Two accounts added with the same email at
+  once → 409.
 - All of this lives in the app's memory, like the login throttles: **one server
   process**. On one process, async comfortably serves tens of simultaneous users.
 
@@ -278,11 +284,18 @@ relative `/api`), HTTPS, auth, and a persistent host. Not built.
 ## 11. Security posture (be honest about it)
 
 - **Doctor login** (`services/auth.py`, `security.py`, `routers/auth.py`; stdlib only):
-  - Passwords: `hashlib.scrypt` with a per-user salt, constant-time compare; an unknown
-    Doctor ID costs the same time as a wrong password.
+  - Sign in with email + password. Passwords: `hashlib.scrypt` with a per-user salt,
+    constant-time compare; an unknown email (or an account whose password isn't set yet)
+    costs the same time as a wrong password.
   - Sessions: random token in an HttpOnly, SameSite=Lax cookie (Secure over HTTPS); only
     its SHA-256 is stored. 12 h, or 30 days with "Keep me signed in".
-  - Sign-up needs `SIGNUP_CODE`; login throttled (5 failures per ID per 15 min; 30 per IP).
+  - No self sign-up: the department's **administrator** (`role = admin`) adds accounts;
+    each gets a single-use set-password link (`INVITE_LINK_DAYS`, stored hashed). Roles
+    are checked on the server (`current_admin`); an admin only reaches their own
+    department's accounts and sees no prescriptions through `/api/admin`.
+  - Deactivated accounts can't sign in (told so only after the right password), lose
+    their sessions and unused links at once; their records are kept.
+  - Login throttled (5 failures per email per 15 min; 30 per IP).
   - Password reset: emailed single-use link, 30 min, stored hashed; "forgot" never reveals
     whether an email has an account; a reset ends every session of that doctor.
   - CSRF: SameSite=Lax plus a same-origin check on state-changing `/api` requests. The Vite
