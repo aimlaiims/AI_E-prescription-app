@@ -32,7 +32,7 @@ from google.genai import errors as genai_errors
 from ..config import settings
 from ..errors import UpstreamError
 from ..schemas import FORM_FIELD_SPECS
-from . import limits
+from . import limits, vocabulary
 
 logger = logging.getLogger(__name__)
 
@@ -163,16 +163,17 @@ def _finish_reason(response) -> str | None:
 
 
 async def extract_field_updates(
-    transcript: str, current_state: dict, target_field: str | None = None
+    transcript: str, current_state: dict, target_field: str | None = None, department_code: str | None = None
 ) -> dict:
     """Waits its turn in the shared queue (limits.py); the deadline covers
-    Gemini's retries too."""
+    Gemini's retries too. `department_code`: whose preferred names to use
+    (vocabulary.py)."""
     async with limits.gemini.slot():
         async with limits.deadline(settings.EXTRACT_TIMEOUT_SECONDS, "Gemini extraction"):
-            return await _extract(transcript, current_state, target_field)
+            return await _extract(transcript, current_state, target_field, department_code)
 
 
-async def _extract(transcript: str, current_state: dict, target_field: str | None) -> dict:
+async def _extract(transcript: str, current_state: dict, target_field: str | None, department_code: str | None = None) -> dict:
 
     allowed_fields = _allowed_fields(target_field)
     field_descriptions = "\n".join(
@@ -220,13 +221,19 @@ Current form state (JSON): {json.dumps(current_state)}
 
 {synonym_hint}
 
+{vocabulary.prompt_section(department_code, target_field)}
+
 Rules:
 1. {scope_instruction}
 2. Never invent a value that is not stated or clearly implied by the transcript. If you \
 are not confident, leave the field out rather than guessing.
 3. Correct obvious speech-to-text errors in medical terminology, drug names, and dosage \
 units (e.g. "augmentin six two five mg" -> "Augmentin 625mg"), but do not add clinical \
-information that was not said.
+information that was not said. Only correct a medicine name when the heard words clearly \
+sound like that medicine. If you cannot tell which medicine was meant, NEVER substitute a \
+different or similar-sounding drug: keep the words as heard and add " [?]" after them \
+(e.g. "Tablets in a horizon 25 mg at night" -> "Tab. in a horizon [?] 25mg — at night"), so \
+the doctor sees it needs checking.
 4. When a field already has a value (see "Current form state" above) and the field is one \
 that can hold multiple pieces of information (chief_complaints, on_examination, diagnosis, \
 investigation, medications, advice — NOT patient_name, age, gender, date, opd_no, occupation or city, which are single \

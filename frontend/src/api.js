@@ -59,9 +59,12 @@ export function audioFileName(blob) {
   return "clip.webm";
 }
 
-export async function transcribeAudio(blob) {
+// `field`: the field whose mic recorded it (its words help speech-to-text);
+// none for the whole-visit mic.
+export async function transcribeAudio(blob, field) {
   const form = new FormData();
   form.append("audio", blob, audioFileName(blob));
+  if (field) form.append("field", field);
   const res = await fetch(`${BASE}/transcribe`, { method: "POST", body: form });
   if (!res.ok) throw await toApiError(res);
   const data = await res.json();
@@ -101,6 +104,14 @@ export async function saveForm(state, rawTranscriptLog, link = {}) {
   if (!res.ok) throw await toApiError(res);
   return res.json();
 }
+// The department's common terms for typing suggestions:
+// { diagnoses: [{ name, group, aliases }], medications: [...] }.
+export async function getVocabulary() {
+  const res = await fetch(`${BASE}/vocabulary`);
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
 // The department's patients: { items } (latest first without q). q: name,
 // Patient ID (ENT-000123), OPD No. or city.
 export async function findPatients(q = "") {

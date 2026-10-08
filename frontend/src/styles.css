@@ -1778,3 +1778,45 @@ kbd {
   .form-footer:has(.review-jump) .save-word { display: none; }
 }
 .review-panel { scroll-margin-top: 16px; }
+
+
+/* ---------- Typing suggestions (Diagnosis, Medications) ---------- */
+
+.term-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.term-chip {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 14px;
+  border: 1px solid var(--brand-soft);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-soft) 40%, var(--paper));
+  color: var(--brand-text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.term-chip:hover { border-color: var(--brand-text); }
+.term-chip:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+
+/* A proposal a code check doubts (e.g. a medicine name that wasn't clearly heard). */
+.review-check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--maroon);
+  border-radius: var(--radius-sm);
+  background: var(--maroon-soft);
+  color: var(--maroon);
+  font-size: 14px;
+  font-weight: 600;
+}
+.review-check svg { flex: 0 0 auto; margin-top: 2px; }

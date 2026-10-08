@@ -43,3 +43,12 @@ export function mergePending(prev, incoming, realState, makeId) {
   }));
   return [...kept, ...added];
 }
+
+// "Accept all": everything except items a check doubts (`check` set, e.g. a
+// medicine name that wasn't clearly heard) — those are accepted one by one.
+export function splitForAcceptAll(pending) {
+  return {
+    accept: pending.filter((u) => !u.check),
+    keep: pending.filter((u) => u.check),
+  };
+}

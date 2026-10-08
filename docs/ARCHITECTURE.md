@@ -35,6 +35,24 @@ transcription layer is where invented words come from. A short vocabulary hint
 (`MEDICAL_VOCAB_HINT`) biases decoding toward drug names/dose units without rewriting.
 `WHISPER_BACKEND=local` swaps in faster-whisper (less tested).
 
+### Department terms (`services/vocabulary.py`, `app/vocabulary/<CODE>.json`)
+- `GET /api/vocabulary` → the doctor's department's lists, for typing suggestions
+  (`frontend/src/suggest.js`, `TermSuggestions.jsx`; tapping is the doctor's own input).
+- Whisper hint (`whisper_hint`): a field mic gets its own list's hard words (8+ letters,
+  abbreviations; Whisper reads only ~224 tokens), the whole-visit mic both in turn; the
+  app sends the mic's field with the recording. Other fields keep the general hint.
+- Gemini (`prompt_section`): only the dictated field's list, with a rule tested on real
+  dictations: the names may only correct how a NAME is written; side, detail, strength,
+  form, dose stay as dictated (a bare "write it as listed" dropped "right side" and
+  swapped "central perforation" for the listed wording).
+- **Unheard-medicine check** (`services/heard_check.py`) — in code, not in the prompt:
+  each new medicine line's drug name is compared with the transcript (best match over
+  1–4 consecutive words; aliases count). Below 0.6, or marked `[?]` by the model → the
+  update gets `check`; the review panel shows it, and Accept all / voice "Accept" skip it.
+  Why: with a mis-heard name ("Cinnarizine" → "Tablets and Arisen") Gemini put in a
+  different real drug ("Betahistine 25mg") even when told not to. Substitutions scored
+  0.40–0.53, genuine corrections 0.60–1.00.
+
 ### Step 2 — extract with a forced schema
 `backend/app/services/extraction.py`. Gemini receives the transcript **and the current
 form state**, and must answer through `RESPONSE_SCHEMA`:

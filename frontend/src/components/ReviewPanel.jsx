@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, X, CheckCheck, Headphones } from "lucide-react";
+import { Check, X, CheckCheck, Headphones, TriangleAlert } from "lucide-react";
 import { FIELD_SPECS } from "../fieldSpecs.js";
 import { parseVoiceCommands, NO_TARGET_MESSAGE } from "../voiceCommands.js";
 import { HANDS_FREE_UNAVAILABLE_MESSAGE } from "../messages.js";
+
+const CHECK_BY_HAND_MESSAGE = "That one needs a look first: check it and tap Accept.";
 
 const SpeechRecognitionImpl =
   typeof window !== "undefined"
@@ -79,8 +81,11 @@ export default function ReviewPanel({
       setVoiceNotice(unmatched ? NO_TARGET_MESSAGE : "");
       for (const cmd of commands) {
         if (cmd.action === "acceptAll") onAcceptAll();
-        else if (cmd.action === "accept") onAccept(cmd.id);
-        else if (cmd.action === "reject") onReject(cmd.id);
+        else if (cmd.action === "accept") {
+          // A doubtful item ("Check …") is never accepted without a look.
+          if (pending.find((u) => u.id === cmd.id)?.check) setVoiceNotice(CHECK_BY_HAND_MESSAGE);
+          else onAccept(cmd.id);
+        } else if (cmd.action === "reject") onReject(cmd.id);
       }
     };
 
@@ -235,6 +240,12 @@ export default function ReviewPanel({
                   {u.new_value}
                 </p>
                 {u.evidence && <p className="review-heard">"{u.evidence}"</p>}
+                {u.check && (
+                  <p className="review-check" role="note">
+                    <TriangleAlert size={16} aria-hidden="true" />
+                    <span>{u.check} Tap Accept only if it is right.</span>
+                  </p>
+                )}
                 <div className="review-item-actions">
                   <button type="button" className="review-accept" onClick={() => onAccept(u.id)}>
                     <Check size={16} aria-hidden="true" />
@@ -250,11 +261,14 @@ export default function ReviewPanel({
           })}
         </div>
       )}
-      {pending.length > 1 && (
+      {pending.length > 1 && pending.some((u) => !u.check) && (
         <button type="button" className="accept-all" onClick={onAcceptAll}>
           <CheckCheck size={16} aria-hidden="true" />
           Accept all
         </button>
+      )}
+      {pending.length > 1 && pending.some((u) => u.check) && (
+        <p className="hands-free-hint">Items marked for checking are not included in Accept all.</p>
       )}
       {unmatchedNote && (
         <p className="also-heard">

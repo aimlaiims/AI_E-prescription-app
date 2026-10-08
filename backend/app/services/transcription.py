@@ -34,16 +34,19 @@ MEDICAL_VOCAB_HINT = (
 )
 
 
-async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm") -> str:
-    """Waits its turn in the shared queue (limits.py), then transcribes."""
+async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm", hint: str | None = None) -> str:
+    """Waits its turn in the shared queue (limits.py), then transcribes.
+    `hint`: vocabulary nudge for Whisper (vocabulary.whisper_hint); None ->
+    the general MEDICAL_VOCAB_HINT."""
+    hint = hint or MEDICAL_VOCAB_HINT
     if settings.WHISPER_BACKEND == "groq":
         async with limits.groq.slot():
             async with limits.deadline(settings.TRANSCRIBE_TIMEOUT_SECONDS, "Groq transcription"):
-                return await _transcribe_groq(audio_bytes, filename)
+                return await _transcribe_groq(audio_bytes, filename, hint)
     elif settings.WHISPER_BACKEND == "local":
         # CPU work on this machine: in a worker thread, one recording at a time.
         async with limits.local_whisper.slot():
-            return await asyncio.to_thread(_transcribe_local, audio_bytes, filename)
+            return await asyncio.to_thread(_transcribe_local, audio_bytes, filename, hint)
     else:
         raise UpstreamError(
             f"Unknown WHISPER_BACKEND: {settings.WHISPER_BACKEND}", code="unknown"
@@ -62,7 +65,7 @@ def _retry_after_from_headers(response) -> float | None:
         return None
 
 
-async def _transcribe_groq(audio_bytes: bytes, filename: str) -> str:
+async def _transcribe_groq(audio_bytes: bytes, filename: str, hint: str = MEDICAL_VOCAB_HINT) -> str:
     import groq as groq_sdk
 
     if not settings.GROQ_API_KEY:
@@ -78,7 +81,7 @@ async def _transcribe_groq(audio_bytes: bytes, filename: str) -> str:
             result = await client.audio.transcriptions.create(
                 file=(filename, io.BytesIO(audio_bytes)),
                 model="whisper-large-v3",
-                prompt=MEDICAL_VOCAB_HINT,
+                prompt=hint,
                 response_format="text",
                 temperature=0.0,
             )
@@ -132,7 +135,7 @@ def _get_local_model():
     )
 
 
-def _transcribe_local(audio_bytes: bytes, filename: str) -> str:
+def _transcribe_local(audio_bytes: bytes, filename: str, hint: str = MEDICAL_VOCAB_HINT) -> str:
     try:
         model = _get_local_model()
     except Exception as e:
@@ -143,7 +146,7 @@ def _transcribe_local(audio_bytes: bytes, filename: str) -> str:
     try:
         segments, _info = model.transcribe(
             io.BytesIO(audio_bytes),
-            initial_prompt=MEDICAL_VOCAB_HINT,
+            initial_prompt=hint,
             temperature=0.0,
             vad_filter=True,
         )

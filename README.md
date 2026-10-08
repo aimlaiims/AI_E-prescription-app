@@ -101,6 +101,21 @@ prescription) and, if known, the hospital's **OPD No.** (unique in the departmen
 - All doctors of the department see its patients and prescriptions (History shows who
   wrote each). Opening or writing a record is recorded in `access_log`.
 
+## Department terms (diagnoses, medicines)
+
+`backend/app/vocabulary/ENT.json` holds the ENT Department's common diagnoses and
+medicines (from the doctors), with their groups and abbreviations. They are used for:
+- **suggestions while typing** in Diagnosis and Medications (tap one to complete the line);
+- **dictation:** Whisper gets the field's hard words as a hint, and Gemini gets the list as
+  preferred spellings — it may correct a name ("amoxyclav" → Amoxicillin–clavulanate) but
+  keeps every other dictated word (side, strength, dose…);
+- a **safety check:** a proposed medicine whose name doesn't sound like anything that was
+  said is marked **"Check the medicine"** in the review panel, and Accept all / voice
+  "Accept" leave it for the doctor to accept by hand.
+
+To change the lists, edit the file and restart the backend. Another department = another
+file named by its code (e.g. `EYE.json`).
+
 ## Database and backups
 
 SQLite (the default, one file) or PostgreSQL — chosen by `DATABASE_URL`. The app

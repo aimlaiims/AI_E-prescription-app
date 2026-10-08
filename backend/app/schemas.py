@@ -67,6 +67,9 @@ class FieldUpdate(BaseModel):
     # short reason the model grounded this in the transcript, shown to the doctor
     # so a rejected/accepted update is auditable, not a black box.
     evidence: str = ""
+    # Set when a code check doubts the proposal (heard_check.py): shown as a
+    # warning; such an item is never accepted by "Accept all" or by voice.
+    check: str = ""
 
 
 class ExtractResponse(BaseModel):

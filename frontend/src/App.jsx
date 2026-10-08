@@ -24,7 +24,7 @@ import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
 import { BRAND, loadLogoDataUri } from "./branding.js";
 import { doctorDisplayName, doctorLetterhead } from "./doctor.js";
 import { FIELD_SPECS, EMPTY_STATE } from "./fieldSpecs.js";
-import { saveForm } from "./api.js";
+import { getVocabulary, saveForm } from "./api.js";
 import {
   friendlyErrorMessage,
   PENDING_BEFORE_SAVE_MESSAGE,
@@ -34,7 +34,10 @@ import {
 } from "./messages.js";
 import { localToday as today } from "./dates.js";
 import { buildPrintHtml } from "./printTemplate.js";
-import { mergePending, withPendingApplied } from "./pendingUpdates.js";
+import { mergePending, splitForAcceptAll, withPendingApplied } from "./pendingUpdates.js";
+
+// Fields with typing suggestions, and which department list they use.
+const SUGGESTIONS = { diagnosis: "diagnoses", medications: "medications" };
 
 // micStatus key for the whole-visit mic (per-field mics use their field key).
 const VISIT_MIC = "__visit";
@@ -60,6 +63,12 @@ export default function App({ profile, onSignOut }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   // { candidates, print } while the save waits for "same patient?".
   const [samePatient, setSamePatient] = useState(null);
+  // The department's terms for typing suggestions (Diagnosis, Medications);
+  // without them the fields simply have no suggestions.
+  const [vocabulary, setVocabulary] = useState(null);
+  useEffect(() => {
+    getVocabulary().then(setVocabulary).catch(() => {});
+  }, []);
   // Logo as a data URI for the print page (a blank window can't load /aiims-logo.jpg).
   const [logo, setLogo] = useState("");
   useEffect(() => {
@@ -185,9 +194,12 @@ export default function App({ profile, onSignOut }) {
     setPending((prev) => prev.filter((u) => u.id !== id));
   };
 
+  // Items marked "check" (a doubtful medicine name) are left for the doctor
+  // to accept one by one.
   const handleAcceptAll = () => {
-    pending.forEach(applyUpdate);
-    setPending([]);
+    const { accept } = splitForAcceptAll(pending);
+    accept.forEach(applyUpdate);
+    setPending((prev) => splitForAcceptAll(prev).keep);
   };
 
   // Unreviewed proposals would otherwise be silently left out of a record
@@ -386,6 +398,8 @@ export default function App({ profile, onSignOut }) {
     otherMicRecording: otherMicRecording(key),
     readOnly: locked,
     missing: showMissing && missingFields.includes(key),
+    suggestions: SUGGESTIONS[key] ? vocabulary?.[SUGGESTIONS[key]] : undefined,
+    suggestTrailingSpace: key === "medications",
   });
 
   const visibleMissing = showMissing ? missingFields : [];

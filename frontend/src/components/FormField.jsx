@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Mic, Square, Loader2, ChevronDown } from "lucide-react";
 import { useRecorder } from "../useRecorder.js";
 import { transcribeAudio, extractFields } from "../api.js";
 import { EMPTY_TRANSCRIPT_MESSAGE, noMatchMessage } from "../messages.js";
 import { CITIES } from "../cities.js";
+import { applyTerm, currentLine, matchTerms } from "../suggest.js";
+import TermSuggestions from "./TermSuggestions.jsx";
 
 export default function FormField({
   fieldKey,
@@ -19,8 +21,34 @@ export default function FormField({
   otherMicRecording,
   readOnly,
   missing,
+  // Department terms for typing suggestions (textarea fields only), and
+  // whether a chosen term is followed by a space (medicines: the strength).
+  suggestions,
+  suggestTrailingSpace = false,
 }) {
   const { isRecording, start, stop } = useRecorder();
+
+  // Typing suggestions: shown while the field has focus and the caret's line
+  // matches department terms.
+  const textareaRef = useRef(null);
+  const [caret, setCaret] = useState(null); // null = not focused / hidden
+  const suggested =
+    suggestions && caret !== null && !readOnly
+      ? matchTerms(suggestions, currentLine(value, caret).fragment)
+      : [];
+  const trackCaret = (e) => setCaret(e.target.selectionStart);
+  const pickTerm = (term) => {
+    const next = applyTerm(value, caret ?? value.length, term, { trailingSpace: suggestTrailingSpace });
+    onChange(fieldKey, next.value);
+    setCaret(null); // hidden until typing again
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(next.caret, next.caret);
+      }
+    });
+  };
 
   // If the form locks (saved) while this mic is recording, switch the mic
   // off and throw the audio away — a finalized record takes no more input.
@@ -46,7 +74,7 @@ export default function FormField({
       setNote(null);
       const blob = await stop();
       try {
-        const transcript = await transcribeAudio(blob);
+        const transcript = await transcribeAudio(blob, fieldKey);
         if (!transcript.trim()) {
           setNote(EMPTY_TRANSCRIPT_MESSAGE);
           return;
@@ -112,6 +140,7 @@ export default function FormField({
         {spec.type === "textarea" && (
           <textarea
             id={fieldKey}
+            ref={textareaRef}
             className={controlClass}
             value={value}
             readOnly={readOnly}
@@ -119,7 +148,13 @@ export default function FormField({
             required={spec.required}
             aria-invalid={missing || undefined}
             aria-describedby={describedBy}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (suggestions) trackCaret(e);
+            }}
+            onKeyUp={suggestions ? (e) => (e.key === "Escape" ? setCaret(null) : trackCaret(e)) : undefined}
+            onClick={suggestions ? trackCaret : undefined}
+            onBlur={suggestions ? () => setCaret(null) : undefined}
           />
         )}
         {(spec.type === "text" || spec.type === "date") && (
@@ -209,6 +244,7 @@ export default function FormField({
           </button>
         )}
       </div>
+      <TermSuggestions fieldLabel={spec.label} terms={suggested} onPick={pickTerm} />
       {missing && (
         <p className="field-message" id={messageId}>
           Please add {spec.label.toLowerCase()}.

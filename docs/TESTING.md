@@ -197,6 +197,16 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] Dictate "OPD number 2 0 2 6 1 0 4 5, farmer from Bilaspur" → OPD No., Occupation,
       City proposed for review
 
+## 6c. Department terms
+- [ ] Medications: type "Tab. amox" → chips Amoxicillin, Amoxicillin–clavulanate; tap one →
+      "Tab. Amoxicillin–clavulanate " and the keyboard stays open; go on with "625 mg …"
+- [ ] Diagnosis: type "bppv" → the full name is offered; Escape hides the chips
+- [ ] Dictate a medicine unclearly (or a name not on the list) → if the proposal names a
+      drug that wasn't said, it shows **"Check the medicine"**; Accept all leaves it;
+      hands-free "Accept" says it needs a look; its own Accept button works
+- [ ] Dictate "BPPV right side" into Diagnosis → "Benign paroxysmal positional vertigo
+      (BPPV) right side" (the side is kept)
+
 ## 7a. Tablet (Android, portrait and landscape)
 - [ ] Save / Print stay at the bottom of the screen while scrolling the long form
 - [ ] Dictate into a low field (e.g. Diagnosis) → the review panel comes into view by

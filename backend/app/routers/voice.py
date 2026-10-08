@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, Form, UploadFile, File, HTTPException
 
 from ..config import settings
 from ..errors import UpstreamError
@@ -11,7 +11,8 @@ from ..schemas import (
 )
 from ..services.transcription import transcribe_audio
 from ..services.extraction import extract_field_updates
-from ..services import limits
+from ..services import heard_check, limits, vocabulary
+from ..schemas import FORM_FIELD_SPECS
 from ..security import current_doctor
 
 # Signed-in doctors only: these calls spend the Groq/Gemini quota.
@@ -43,7 +44,11 @@ async def _read_limited(audio: UploadFile) -> bytes:
 
 
 @router.post("/transcribe", response_model=TranscribeResponse)
-async def transcribe(audio: UploadFile = File(...), doctor: Doctor = Depends(current_doctor)):
+async def transcribe(
+    audio: UploadFile = File(...),
+    field: str | None = Form(None),  # the mic's field; none = whole-visit mic
+    doctor: Doctor = Depends(current_doctor),
+):
     audio_bytes = await _read_limited(audio)
     if not audio_bytes:
         raise HTTPException(
@@ -57,7 +62,11 @@ async def transcribe(audio: UploadFile = File(...), doctor: Doctor = Depends(cur
         # Async all the way down: waiting for Groq/Gemini (or for a turn in the
         # queue, services/limits.py) holds no thread, so other requests go on.
         with limits.per_user.hold(doctor.id):
-            text = await transcribe_audio(audio_bytes, filename=audio.filename or "audio.webm")
+            hint = vocabulary.whisper_hint(
+                doctor.department.code if doctor.department else None,
+                field if field in FORM_FIELD_SPECS else None,
+            )
+            text = await transcribe_audio(audio_bytes, filename=audio.filename or "audio.webm", hint=hint)
     except UpstreamError as e:
         raise _upstream_to_http(e)
     return TranscribeResponse(transcript=text)
@@ -72,9 +81,20 @@ async def extract(req: ExtractRequest, doctor: Doctor = Depends(current_doctor))
                 transcript=req.transcript,
                 current_state=current_state,
                 target_field=req.target_field,
+                department_code=doctor.department.code if doctor.department else None,
             )
     except UpstreamError as e:
         raise _upstream_to_http(e)
+
+    department = doctor.department.code if doctor.department else None
+    medicines = vocabulary.load(department)["medications"]
+
+    def check(u) -> str:
+        if u["field"] != "medications":
+            return ""
+        flagged = heard_check.unclear_medicines(
+            u["new_value"], current_state.get("medications", ""), req.transcript, medicines)
+        return heard_check.check_note(flagged)
 
     updates = [
         FieldUpdate(
@@ -82,6 +102,7 @@ async def extract(req: ExtractRequest, doctor: Doctor = Depends(current_doctor))
             old_value=current_state.get(u["field"], ""),
             new_value=u["new_value"],
             evidence=u.get("evidence", ""),
+            check=check(u),
         )
         for u in result.get("updates", [])
     ]
