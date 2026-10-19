@@ -4,7 +4,7 @@ import { useRecorder } from "../useRecorder.js";
 import { transcribeAudio, extractFields } from "../api.js";
 import { friendlyErrorMessage, EMPTY_TRANSCRIPT_MESSAGE, noMatchMessage } from "../messages.js";
 
-const IDLE_STATUS = "Tap the mic or press Space and describe the visit.";
+const IDLE_STATUS = "Tap the mic and describe the visit.";
 const PAUSED_STATUS = "Voice input is paused for a moment — see the note above.";
 
 export default function DictateBar({
@@ -43,7 +43,7 @@ export default function DictateBar({
       onVoiceUpdates(result.updates, transcript, result.unmatched_transcript_note);
       setStatus(
         result.updates.length
-          ? `Found ${result.updates.length} detail${result.updates.length > 1 ? "s" : ""} to review below.`
+          ? `Found ${result.updates.length} detail${result.updates.length > 1 ? "s" : ""} to review.`
           : noMatchMessage()
       );
     } catch (err) {
@@ -91,7 +91,7 @@ export default function DictateBar({
         setStatus(friendlyErrorMessage(err));
         return;
       }
-      setStatus("Listening. Describe the visit, then tap the mic or press Space to stop.");
+      setStatus("Describe the visit, then tap the mic to stop.");
     }
   };
 
@@ -149,6 +149,7 @@ export default function DictateBar({
       <Mic size={23} aria-hidden="true" />
     );
 
+  // Lives in the bottom dock (App.jsx), always within reach.
   return (
     <div className={`dictate-bar dictate-${state}`}>
       <button
@@ -163,17 +164,31 @@ export default function DictateBar({
       </button>
       <div className="dictate-copy">
         <div className="dictate-title">
-          <strong>Dictate the whole visit</strong>
+          <strong>{state === "recording" ? "Listening…" : "Dictate the visit"}</strong>
           {/* Shown only where there is a keyboard (see styles.css). */}
           <kbd>Space</kbd>
+          {/* Moves only while the mic is actually open (never when idle). */}
+          {state === "recording" && (
+            <span className="dictate-wave" aria-hidden="true">
+              {Array.from({ length: 12 }, (_, i) => (
+                <span key={i} />
+              ))}
+            </span>
+          )}
         </div>
-        <div className="dictate-status" aria-live="polite">
+        <div className="dictate-status" aria-live="polite" title={status}>
           {status}
         </div>
         {lastTranscript && !busy && (
-          <button type="button" className="retry-button" onClick={handleRetry} disabled={disabled}>
+          <button
+            type="button"
+            className="retry-button"
+            onClick={handleRetry}
+            disabled={disabled}
+            aria-label="Try filling in the prescription again. No need to redictate."
+          >
             <RefreshCw size={14} aria-hidden="true" />
-            Try filling in the prescription again. No need to redictate.
+            Try again (no need to redictate)
           </button>
         )}
       </div>

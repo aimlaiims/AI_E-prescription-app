@@ -127,7 +127,7 @@ status code or ".env" is visible.
 | Bad Groq key | set `GROQ_API_KEY=x` | same |
 | Network off | disable Wi-Fi mid-dictation | generic "interrupted" message + retry link if transcript existed |
 | Rate limit (UI) | temporarily add `raise UpstreamError("x", code="rate_limited", retry_after=12)` at the top of `extract()` in `voice.py` | amber banner, **all** mics disabled, countdown, mics return at 0 |
-| 503 | temporarily raise `UpstreamError("x", code="unavailable")` | error banner + "Try filling in the form again" link; link works once the raise is removed |
+| 503 | temporarily raise `UpstreamError("x", code="unavailable")` | error banner + "Try again (no need to redictate)" in the dock; works once the raise is removed |
 | Missing required fields | Save/Print with empty form | "Please fill in: …" with **field labels** |
 | Many people at once | in `.env`: `GEMINI_MAX_IN_FLIGHT=1`, `VOICE_QUEUE_WAIT_SECONDS=1`; restart; dictate from two devices/tabs (two accounts) at the same moment | one gets the result, the other "Many people are using voice input right now…"; **no field changes** |
 | Hung provider | `EXTRACT_TIMEOUT_SECONDS=0.5`, restart, dictate | "isn't responding" banner within a second; no field changes |
@@ -175,10 +175,15 @@ Automated once for the v0 port (2026-09-29, real Chrome, API stubbed): no horizo
 scroll and all tap targets ≥ 44px at 320/375/768/1440 in six states (empty, recording,
 review with Next + Updated, missing fields, cooldown, locked), light + dark. Re-check
 by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
-- [ ] 375: edge-to-edge, sticky Print/Save bar, last field not hidden behind it, patient
-      fields stack, no horizontal scroll, inputs do not zoom on focus (iOS)
-- [ ] 768/1280: bordered sheet, footer inline at the bottom of the sheet
-- [ ] Dictate bar, banners and review panel wrap cleanly
+- [ ] 375: the mic dock floats at the bottom; Print / Save at the end of the form are
+      not hidden behind it; patient fields stack; no horizontal scroll; inputs do not
+      zoom on focus (iOS)
+- [ ] Phone turned sideways: slim navbar and doctor's card, the form starts on screen
+      after sign-in (not scrolled down), fields in three columns
+- [ ] 768/1280: doctor's card + white pad, patient fields in three columns
+- [ ] Dock: "Listening…" with moving bars only while recording; status text, banners
+      and review panel wrap cleanly; after Save the dock is gone
+- [ ] Logos (navbar, doctor's card, sign-in, page footer): a round seal, no square corners
 - [ ] Tap targets ≥ 44px; recording state (maroon pulse) and processing spinner visible
 - [ ] Save with empty required fields → red outlines + "Please add …"; they clear as you type
 - [ ] Press Enter in Patient name → nothing is saved
@@ -219,12 +224,13 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
       (BPPV) right side" (the side is kept)
 
 ## 7a. Tablet (Android, portrait and landscape)
-- [ ] Save / Print stay at the bottom of the screen while scrolling the long form
+- [ ] The mic stays at the bottom of the screen while scrolling; Print / Save are at the
+      end of the form
 - [ ] Dictate into a low field (e.g. Diagnosis) → the review panel comes into view by
-      itself; scroll away → **Review N** in the bottom bar brings it back
+      itself; scroll away → **Review N** in the dock brings it back
 - [ ] Tap a low field (Advice) → the on-screen keyboard never hides it or the bar
 - [ ] Rotate the tablet while the form is open → nothing is lost, nothing overlaps
-- [ ] Phone 320–375 px with proposals waiting: Review, Print, Save fit in one row
+- [ ] Phone 320–375 px with proposals waiting: mic, its status and Review fit in the dock
 
 ## 7b. Past prescriptions
 - [ ] "View past prescriptions" opens the dialog; focus is inside; the page behind doesn't scroll

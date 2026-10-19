@@ -127,7 +127,7 @@ export default function FormField({
   const handleChange = (e) => onChange(fieldKey, e.target.value);
 
   return (
-    <div className={`field-wrap ${spec.type === "textarea" ? "is-textarea" : ""}`}>
+    <div className={`field-wrap field-${fieldKey} ${spec.type === "textarea" ? "is-textarea" : ""}`}>
       <label htmlFor={fieldKey}>
         {spec.label}
         {spec.required && (

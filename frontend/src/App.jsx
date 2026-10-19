@@ -226,7 +226,7 @@ export default function App({ profile, onSignOut }) {
     const panel = document.querySelector(".review-panel");
     if (!panel) return;
     const r = panel.getBoundingClientRect();
-    const footer = document.querySelector(".form-footer")?.getBoundingClientRect();
+    const footer = document.querySelector(".voice-dock")?.getBoundingClientRect();
     const bottomLimit = footer && footer.top < window.innerHeight ? footer.top : window.innerHeight;
     // Its top (heading + first proposal) must be visible; otherwise bring it in.
     if (r.top < 0 || r.top + 120 > bottomLimit) showReviewPanel();
@@ -419,6 +419,8 @@ export default function App({ profile, onSignOut }) {
         <SheetLetterhead profile={profile} />
         <div className="sheet-stripe" aria-hidden="true" />
 
+        {/* The writing pad: a white card under the doctor's card. */}
+        <div className="sheet-pad">
         <div className="toolbar" role="group" aria-label="Form actions">
           <p className="help-text">Dictate the visit, review what was heard, then save.</p>
           <button type="button" className="quiet-button" onClick={handleNewForm}>
@@ -444,17 +446,6 @@ export default function App({ profile, onSignOut }) {
 
         {!locked && (
           <>
-            <DictateBar
-              formState={extractionBase}
-              onVoiceUpdates={handleVoiceUpdates}
-              onVoiceError={handleApiError}
-              onRecordingChange={(recording) =>
-                setMicStatus(VISIT_MIC, recording ? "recording" : null)
-              }
-              disabled={micsDisabled}
-              otherMicRecording={otherMicRecording(VISIT_MIC)}
-            />
-
             <ReviewPanel
               pending={pending}
               unmatchedNote={unmatchedNote}
@@ -527,7 +518,7 @@ export default function App({ profile, onSignOut }) {
             <ClipboardList size={17} aria-hidden="true" />
             <span>Clinical assessment</span>
           </h2>
-          <div className="field-grid">
+          <div className="field-grid clinical-grid">
             <FormField {...commonFieldProps("chief_complaints")} />
             <FormField {...commonFieldProps("on_examination")} />
             <FormField {...commonFieldProps("diagnosis")} />
@@ -551,19 +542,8 @@ export default function App({ profile, onSignOut }) {
           <FormField {...commonFieldProps("advice")} />
         </section>
 
+        {/* Print / Save at the end of the form, like signing a paper pad. */}
         <footer className="form-footer">
-          {pending.length > 0 && (
-            <button
-              type="button"
-              className="action-button secondary review-jump"
-              onClick={showReviewPanel}
-              aria-label={`Review ${pending.length} proposed change${pending.length === 1 ? "" : "s"}`}
-            >
-              <ListChecks size={17} aria-hidden="true" />
-              <span className="review-jump-label">Review</span>
-              <span className="review-jump-count">{pending.length}</span>
-            </button>
-          )}
           <button
             type="button"
             className="action-button secondary"
@@ -584,6 +564,37 @@ export default function App({ profile, onSignOut }) {
             disabled={printing}
           />
         </footer>
+        </div>
+
+        {/* The whole-visit mic floats at the bottom of the screen, always
+            within reach while the form scrolls; "Review N" beside it when
+            proposals wait. Gone once the prescription is saved. */}
+        {!locked && (
+          <div className="voice-dock">
+            <DictateBar
+              formState={extractionBase}
+              onVoiceUpdates={handleVoiceUpdates}
+              onVoiceError={handleApiError}
+              onRecordingChange={(recording) =>
+                setMicStatus(VISIT_MIC, recording ? "recording" : null)
+              }
+              disabled={micsDisabled}
+              otherMicRecording={otherMicRecording(VISIT_MIC)}
+            />
+            {pending.length > 0 && (
+              <button
+                type="button"
+                className="action-button secondary review-jump"
+                onClick={showReviewPanel}
+                aria-label={`Review ${pending.length} proposed change${pending.length === 1 ? "" : "s"}`}
+              >
+                <ListChecks size={17} aria-hidden="true" />
+                <span className="review-jump-label">Review</span>
+                <span className="review-jump-count">{pending.length}</span>
+              </button>
+            )}
+          </div>
+        )}
       </article>
       {findOpen && <FindPatientDialog onPick={pickPatient} onClose={() => setFindOpen(false)} />}
       {historyOpen && patient && (

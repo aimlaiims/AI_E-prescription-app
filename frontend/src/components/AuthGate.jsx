@@ -46,6 +46,10 @@ export default function AuthGate() {
   }, []);
 
   const signedIn = (p) => {
+    // A fresh sign-in starts at the top of the form (on a short phone screen
+    // the sign-in page is scrolled to its button). Signing in again over an
+    // open form (session ended) keeps the doctor's place.
+    if (statusRef.current !== "signed-in") window.scrollTo?.(0, 0);
     setProfile(p);
     setStatus("signed-in");
     setSessionEnded(false);

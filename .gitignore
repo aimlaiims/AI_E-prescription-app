@@ -16,6 +16,7 @@ __pycache__/
 *.pyc
 
 # --- Development-only docs and tools (kept locally, not part of the product) ---
+design-reference/
 CLAUDE.md
 docs/CHANGELOG.md
 docs/ROADMAP.md

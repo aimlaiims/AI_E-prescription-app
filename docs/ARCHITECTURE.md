@@ -234,9 +234,17 @@ seal watermark (hidden in dark mode: the logo is a JPEG on white), and a ℞ div
 patient information and the clinical sections. The printed page shows the seal and the
 institution name; the doctor's details join once login exists.
 
-Layout (v0 design, ported 2026-09-29): one elevated "paper sheet" — edge-to-edge under
-640px with a sticky bottom action bar; a bordered sheet from 640px; wider at 1024px.
-Patient fields are two columns from 480px. Required fields are checked in the browser
+Layout (2026-10-19, from the owner's reference design): the doctor's card (navy
+letterhead) above the writing pad (a white card with the faint seal), up to 900px wide.
+A **voice dock** floats at the bottom on every screen size: the whole-visit mic and its
+status (sound-wave bars only while recording), plus Review N when proposals wait; gone
+once saved. `.app-frame` keeps room under the content for it. Print / Save sit at the end
+of the form (owner's choice, 2026-10-19). Logos show just the round seal (the JPEG has
+the motto under it; `object-fit: cover; object-position: top`). Patient
+fields: one column on phones, two from 480px, three from 768px (Name | OPD No. | Date);
+Diagnosis | Investigation side by side from 768px. Phones sideways (landscape, height
+≤ 500px) get a slim navbar, a one-line doctor's card and a slimmer dock. Inter is bundled
+(`@fontsource/inter`), no request to Google Fonts. Required fields are checked in the browser
 before Save/Print (red outline + "Please add …"; the banner is derived from the form, so
 it clears as fields fill); the backend still validates. There is deliberately no `<form>`
 submit — Enter must never save (and so lock) a prescription.

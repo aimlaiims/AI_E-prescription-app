@@ -26,6 +26,16 @@
   --brand-text: #1d4ed8;
   --brand-soft: #eff6ff;
   --focus: #2563eb;
+  /* Bright blue for the dock's mic and Save (white text: 5.2:1). */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --on-accent: #ffffff;
+  /* Recording, on the navy dock in both themes (white icon: 4.8:1). */
+  --record: #dc2626;
+  /* Sound-wave bars while recording: blue -> teal -> violet. */
+  --wave-1: #60a5fa;
+  --wave-2: #2dd4bf;
+  --wave-3: #a78bfa;
   /* The seal is a JPEG on white: invisible on light paper, a grey box on dark. */
   --watermark-opacity: 0.045;
 
@@ -38,9 +48,12 @@
   /* Text on --amber-soft (plain --amber is too light for small text there). */
   --amber-text: #92400e;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  /* Soft "pad on a desk" shadow; the dock floats higher. */
+  --pad-shadow: 0 20px 45px -12px rgb(15 23 42 / 0.10), 0 1px 3px rgb(15 23 42 / 0.05);
+  --dock-shadow: 0 16px 36px -4px rgb(15 23 42 / 0.28);
 
   /* Georgia (system) for the ℞ mark and a few headings — no web font needed. */
   --font-display: Georgia, "Times New Roman", serif;
@@ -182,10 +195,18 @@ button { cursor: pointer; }
   padding: 2px;
   border-radius: 50%;
   background: #fff; /* the logo is a JPEG on white */
-  object-fit: contain;
+  object-fit: cover; /* just the round seal, not the motto below it */
+  object-position: top;
 }
 .navbar-title { display: grid; line-height: 1.2; min-width: 0; }
-.navbar-name { font-size: 14px; font-weight: 700; letter-spacing: 0.02em; }
+.navbar-name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .navbar-date { font-size: 11.5px; opacity: 0.85; }
 .navbar-actions { display: flex; align-items: center; gap: 8px; }
 .navbar-button {
@@ -193,38 +214,46 @@ button { cursor: pointer; }
   align-items: center;
   gap: 6px;
   min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
   padding: 6px 14px;
-  border: 1px solid color-mix(in srgb, var(--on-brand) 35%, transparent);
-  border-radius: 99px;
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--on-brand) 18%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--on-brand) 10%, transparent);
   color: var(--on-brand);
   font-size: 13px;
   font-weight: 600;
 }
-.navbar-button:hover { background: color-mix(in srgb, var(--on-brand) 12%, transparent); }
+.navbar-button:hover { background: color-mix(in srgb, var(--on-brand) 18%, transparent); }
 .app-navbar :focus-visible { outline-color: var(--on-brand); }
 
-/* The whole form is ONE elevated sheet of paper — deliberately not a grid of
-   matching cards. Edge-to-edge under 640px (screen space is precious); from
-   640px it reads as a sheet sitting on a desk. */
+/* The sheet is two cards on the desk: the doctor's card (navy letterhead)
+   and the writing pad (white, with the faint seal). Narrow side margins on
+   phones, where screen space is precious. */
 .clinic-desk {
   flex: 1;
+  padding: 10px 10px 0;
   background: var(--page-bg);
 }
 
 .prescription-sheet {
-  /* Shared with .sheet-letterhead, which bleeds to the sheet's edges. */
-  --sheet-pad-top: 0px;
+  /* Inner side padding of both cards. */
   --sheet-pad-x: 16px;
-  position: relative;
   width: 100%;
+  margin: 0 auto;
+}
+
+.sheet-pad {
+  position: relative;
+  padding: 2px var(--sheet-pad-x) 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
   background: var(--paper);
-  padding: var(--sheet-pad-top) var(--sheet-pad-x) 24px;
-  box-shadow: 0 12px 36px var(--sheet-shadow);
+  box-shadow: var(--pad-shadow);
   overflow: clip;
 }
 /* Faint institute seal behind the form, like a watermarked pad. */
-.prescription-sheet::before {
+.sheet-pad::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -232,27 +261,19 @@ button { cursor: pointer; }
   opacity: var(--watermark-opacity);
   pointer-events: none;
 }
-.prescription-sheet > * { position: relative; }
+.sheet-pad > * { position: relative; }
 
 @media (min-width: 480px) {
-  .prescription-sheet { --sheet-pad-x: 28px; }
+  .prescription-sheet { --sheet-pad-x: 24px; }
 }
 
 @media (min-width: 640px) {
-  .clinic-desk { padding: 32px 16px; }
-  .prescription-sheet {
-    --sheet-pad-x: 44px;
-    max-width: 680px;
-    margin: 0 auto;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-md);
-    padding-bottom: 34px;
-  }
+  .clinic-desk { padding: 24px 16px 0; }
+  .prescription-sheet { --sheet-pad-x: 32px; max-width: 900px; }
 }
 
 @media (min-width: 1024px) {
-  .clinic-desk { padding: 40px 16px 48px; }
-  .prescription-sheet { max-width: 760px; }
+  .clinic-desk { padding: 32px 24px 0; }
 }
 
 .app-footer {
@@ -267,11 +288,7 @@ button { cursor: pointer; }
   font-size: 11.5px;
   text-align: center;
 }
-.app-footer img { border-radius: 50%; background: #fff; opacity: 0.8; }
-/* Phones: keep the footer above the fixed Print / Save bar. */
-@media (max-width: 639px) {
-  .app-footer { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
-}
+.app-footer img { border-radius: 50%; background: #fff; opacity: 0.8; object-fit: cover; object-position: top; }
 
 /* ---------- Letterhead band + toolbar ---------- */
 
@@ -279,8 +296,8 @@ button { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 0 calc(-1 * var(--sheet-pad-x));
-  padding: 18px var(--sheet-pad-x);
+  padding: 16px var(--sheet-pad-x);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   background: var(--brand);
   color: var(--on-brand);
 }
@@ -295,7 +312,15 @@ button { cursor: pointer; }
   background: #fff; /* JPEG on white */
   box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
 }
-.letterhead-logo img { width: 52px; height: 52px; object-fit: contain; }
+/* The JPEG is the round seal with the motto underneath: show just the seal
+   (it fills the image's top square), so the circle holds a circle. */
+.letterhead-logo img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+}
 .letterhead-text { min-width: 0; }
 .sheet-letterhead h1 {
   margin: 0;
@@ -317,11 +342,13 @@ button { cursor: pointer; }
   .letterhead-logo img { width: 60px; height: 60px; }
 }
 
-/* Red–navy–red rule under the band, as on the printed pad. */
+/* Red–navy–red rule closing the doctor's card, as on the printed pad. */
 .sheet-stripe {
   height: 4px;
-  margin: 0 calc(-1 * var(--sheet-pad-x)) 0;
+  margin: 0 0 14px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
   background: linear-gradient(90deg, var(--maroon), var(--focus) 50%, var(--maroon));
+  box-shadow: var(--pad-shadow);
 }
 
 .rx-mark {
@@ -394,12 +421,12 @@ button { cursor: pointer; }
   gap: 8px;
   margin: 0 0 16px;
   color: var(--brand-text);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.section-heading svg { color: var(--maroon); flex-shrink: 0; }
+.section-heading svg { color: var(--brand-text); flex-shrink: 0; }
 
 .required-legend {
   font-size: 12px;
@@ -407,20 +434,33 @@ button { cursor: pointer; }
   margin: -8px 0 20px;
 }
 
-.field-grid { display: grid; gap: 16px; }
+.field-grid { display: grid; gap: 14px; }
 
+/* Patient details. Phones (portrait): one column — in two, Date and Gender
+   don't fit beside their mic. From 480px: the name on its own row, then pairs
+   (OPD No. | Date, Age | Gender, City | Occupation). From 768px: three
+   columns (Name | OPD No. | Date, Age | Gender | City, Occupation). */
 @media (min-width: 480px) {
   .patient-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .patient-grid .field-patient_name { grid-column: 1 / -1; }
+}
+@media (min-width: 768px) {
+  .patient-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .patient-grid .field-patient_name { grid-column: auto; }
+  /* Diagnosis | Investigation side by side. */
+  .clinical-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinical-grid .field-chief_complaints,
+  .clinical-grid .field-on_examination { grid-column: 1 / -1; }
 }
 
 .field-wrap { min-width: 0; }
 
 .field-wrap label {
   display: block;
-  color: var(--ink-soft);
+  color: var(--ink);
   font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 7px;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .required {
@@ -544,60 +584,100 @@ select.field-control:disabled {
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- Dictate bar (whole-visit mic) ---------- */
+/* ---------- Dictate (whole-visit mic), inside the bottom dock ---------- */
 
 .dictate-bar {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px;
-  margin: 0 0 22px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--paper-raised);
+  gap: 12px;
 }
 
 .dictate-button {
-  flex: 0 0 56px;
-  width: 56px;
-  height: 56px;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
   border: 0;
   border-radius: 50%;
-  color: var(--on-brand);
-  background: var(--brand);
-  transition: transform 0.1s ease;
+  color: var(--on-accent);
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  transition: transform 0.1s ease, background 0.15s;
 }
-.dictate-button:active:not(:disabled) { transform: scale(0.96); }
-.dictate-recording .dictate-button {
-  background: var(--maroon);
-  animation: pulse 2s ease-in-out infinite;
+.dictate-button:hover:not(:disabled) { background: var(--accent-hover); }
+.dictate-button:active:not(:disabled) { transform: scale(0.95); }
+.dictate-recording .dictate-button,
+.dictate-recording .dictate-button:hover:not(:disabled) {
+  background: var(--record);
+  animation: dock-pulse 1.8s ease-in-out infinite;
 }
 .dictate-processing .dictate-button {
   color: var(--amber-text);
   background: var(--amber-soft);
   cursor: progress;
 }
-.dictate-paused .dictate-button { opacity: 0.35; cursor: not-allowed; }
+.dictate-paused .dictate-button { opacity: 0.45; cursor: not-allowed; }
+@keyframes dock-pulse {
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--record) 35%, transparent); }
+}
 
-.dictate-copy { min-width: 0; }
+.dictate-copy { flex: 1; min-width: 0; }
 
 .dictate-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--ink);
+  min-width: 0;
+  color: var(--on-brand);
   font-size: 14px;
+  line-height: 1.3;
+}
+.dictate-title strong {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dictate-status {
-  color: var(--ink-soft);
-  font-size: 13px;
-  line-height: 1.45;
-  margin-top: 3px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--on-brand) 80%, transparent);
+  font-size: 12.5px;
+  line-height: 1.35;
 }
-.dictate-processing .dictate-status { color: var(--amber-text); }
+
+/* Sound-wave bars: shown only while the mic is open. With reduced motion
+   they stand still (the global rule stops the animation). */
+.dictate-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.dictate-wave span {
+  width: 3px;
+  height: 16px;
+  border-radius: 99px;
+  background: var(--wave-1);
+  transform-origin: center;
+  animation: wave-bar 1.1s ease-in-out infinite;
+}
+.dictate-wave span:nth-child(3n + 2) { background: var(--wave-2); animation-delay: 0.25s; }
+.dictate-wave span:nth-child(3n) { background: var(--wave-3); animation-delay: 0.5s; }
+.dictate-wave span:nth-child(4n) { animation-delay: 0.15s; }
+.dictate-wave span:nth-child(5n) { animation-delay: 0.4s; }
+@keyframes wave-bar {
+  0%, 100% { transform: scaleY(0.3); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
 
 /* The Space shortcut only means something with a keyboard. */
 kbd {
@@ -613,18 +693,23 @@ kbd {
 @media (hover: hover) and (pointer: fine) {
   kbd { display: inline-block; }
 }
+.dictate-title kbd {
+  border-color: color-mix(in srgb, var(--on-brand) 30%, transparent);
+  color: color-mix(in srgb, var(--on-brand) 80%, transparent);
+}
 
 .retry-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 44px;
-  padding: 4px 0 0;
+  margin: -8px 0 -10px;
+  padding: 0;
   border: 0;
   background: transparent;
-  color: var(--brand-text);
-  font-size: 13px;
-  font-weight: 500;
+  color: var(--on-brand);
+  font-size: 12.5px;
+  font-weight: 600;
   text-align: left;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -1244,12 +1329,42 @@ kbd {
   .back-records { display: none; }
 }
 
-/* ---------- Footer actions (Print / Save) ---------- */
+/* ---------- Voice dock: the whole-visit mic, floating at the bottom ---------- */
+
+/* Always within reach while the form scrolls; .app-frame keeps room under
+   the content so the last field and Print / Save are never hidden. */
+.voice-dock {
+  position: fixed;
+  z-index: 20;
+  left: 10px;
+  right: 10px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px 8px 8px;
+  border: 1px solid color-mix(in srgb, var(--on-brand) 20%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 95%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--on-brand);
+  box-shadow: var(--dock-shadow);
+}
+.voice-dock :focus-visible { outline-color: var(--on-brand); }
+.app-frame:has(.voice-dock) { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+
+/* ---------- Print / Save: at the end of the form ---------- */
 
 .form-footer {
   display: flex;
-  gap: 10px;
   justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
 }
 
 .action-button {
@@ -1259,7 +1374,7 @@ kbd {
   justify-content: center;
   gap: 8px;
   border-radius: var(--radius-sm);
-  padding: 10px 16px;
+  padding: 10px 18px;
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
@@ -1276,20 +1391,60 @@ kbd {
 }
 .action-button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Sticky, thumb-reachable action bar on phones; .prescription-sheet has
-   bottom padding so the last field is never hidden behind it. */
+/* "Review N" in the voice dock: light on navy. */
+.voice-dock .action-button {
+  min-height: 44px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 8px 16px;
+}
+.voice-dock .action-button.secondary {
+  color: var(--on-brand);
+  border-color: color-mix(in srgb, var(--on-brand) 28%, transparent);
+  background: color-mix(in srgb, var(--on-brand) 10%, transparent);
+}
+.voice-dock .action-button.secondary:hover { background: color-mix(in srgb, var(--on-brand) 18%, transparent); }
+
+/* Phones: a rounded bar; Print and Save share the row at the end of the form. */
 @media (max-width: 639px) {
-  .form-footer {
-    position: fixed;
-    z-index: 10;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-    background: var(--paper-raised);
-    border-top: 1px solid var(--line);
+  .voice-dock {
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    gap: 8px;
+    padding: 8px;
+    border-radius: 20px;
   }
+  .dictate-bar { gap: 10px; }
+  .dictate-title kbd { display: none; }
   .form-footer .action-button { flex: 1; }
+  .voice-dock .action-button { padding: 8px 12px; }
+}
+@media (max-width: 479px) {
+  .dictate-status { -webkit-line-clamp: 1; }
+}
+
+/* Phones turned sideways (short screens): every pixel of height counts —
+   a slimmer navbar, a one-line doctor's card and a slimmer dock. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-navbar { padding-top: 4px; padding-bottom: 4px; }
+  .clinic-desk { padding-top: 8px; }
+  .sheet-letterhead { padding-top: 8px; padding-bottom: 8px; gap: 10px; }
+  .sheet-letterhead h1 { font-size: 17px; }
+  .letterhead-logo { width: 40px; height: 40px; padding: 2px; }
+  .letterhead-logo img { width: 36px; height: 36px; }
+  /* Name + qualifications only; the department and institution are on
+     the printout and in portrait. */
+  .letterhead-credentials { margin: 1px 0 0; font-size: 12px; }
+  .letterhead-institution { display: none; }
+  .sheet-stripe { margin-bottom: 8px; }
+  .toolbar { padding: 2px 0 4px; }
+  .toolbar .help-text { display: none; }
+  .toolbar .quiet-button { margin-left: auto; }
+  .voice-dock { bottom: calc(6px + env(safe-area-inset-bottom)); padding-top: 6px; padding-bottom: 6px; }
+  .dictate-button { flex-basis: 44px; width: 44px; height: 44px; }
+  .dictate-status { -webkit-line-clamp: 1; }
+  .app-frame:has(.voice-dock) { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- Signed-in doctor in the navbar / letterhead ---------- */
@@ -1313,6 +1468,13 @@ kbd {
   .navbar-doctor,
   .navbar-signout-label { display: none; }
   .navbar-button { padding: 6px 12px; }
+}
+@media (max-width: 479px) {
+  /* Small phones: History / Accounts as icons (their names stay for screen readers). */
+  .navbar-label { display: none; }
+  .navbar-button { padding: 6px 10px; }
+  .app-navbar { padding-left: 12px; padding-right: 12px; }
+  .navbar-name { font-size: 13px; letter-spacing: 0; }
 }
 
 /* ---------- Sign-in screens (design from the colleague's app) ---------- */
@@ -1389,7 +1551,7 @@ kbd {
   border-radius: 50%;
   background: #fff; /* JPEG on white */
 }
-.auth-logo img { display: block; border-radius: 50%; object-fit: contain; }
+.auth-logo img { display: block; border-radius: 50%; object-fit: cover; object-position: top; }
 
 .auth-main {
   flex: 1;
@@ -1741,23 +1903,7 @@ kbd {
 .patient-dialog-body .records-search { margin: 0; }
 
 
-/* ---------- Tablets (and PCs): Save / Print always within reach ---------- */
-
-/* Phones have the fixed bottom bar (above). From 640px the footer sticks to
-   the bottom of the screen while the long form scrolls under it. */
-@media (min-width: 640px) {
-  .form-footer {
-    position: sticky;
-    z-index: 5;
-    bottom: 0;
-    margin: 0 calc(-1 * var(--sheet-pad-x));
-    padding: 12px var(--sheet-pad-x) calc(12px + env(safe-area-inset-bottom));
-    border-top: 1px solid var(--line);
-    background: var(--paper);
-  }
-}
 /* "Review 2": waiting proposals, one tap to the review panel. */
-.review-jump { margin-right: auto; }
 .review-jump-count {
   min-width: 22px;
   padding: 1px 6px;
@@ -1766,16 +1912,9 @@ kbd {
   color: var(--amber-text);
   font-size: 13px;
 }
-/* Phones: three buttons don't fit with labels — while "Review" is shown,
-   it and Print become icon buttons (their names stay for screen readers). */
-@media (max-width: 479px) {
-  .review-jump { flex: 0 0 auto !important; }
+/* Phones: "Review" shows just its count. */
+@media (max-width: 639px) {
   .review-jump-label { display: none; }
-  .form-footer:has(.review-jump) .print-label { display: none; }
-  .form-footer:has(.review-jump) .action-button.secondary:not(.review-jump) { flex: 0 0 auto; min-width: 52px; }
-}
-@media (max-width: 359px) {
-  .form-footer:has(.review-jump) .save-word { display: none; }
 }
 .review-panel { scroll-margin-top: 16px; }
 

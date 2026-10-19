@@ -23,9 +23,10 @@ export function AppNavbar({ onHistory, onAccounts, doctorName, onSignOut }) {
           onClick={onHistory}
           aria-haspopup="dialog"
           title="View past prescriptions"
+          aria-label="History"
         >
           <History size={15} aria-hidden="true" />
-          History
+          <span className="navbar-label">History</span>
         </button>
         {onAccounts && (
           <button
@@ -33,15 +34,16 @@ export function AppNavbar({ onHistory, onAccounts, doctorName, onSignOut }) {
             className="navbar-button"
             onClick={onAccounts}
             aria-haspopup="dialog"
-            title="Add and manage the department's accounts"
+            title="Registration codes, approvals and accounts"
+            aria-label="Accounts"
           >
             <Users size={15} aria-hidden="true" />
-            Accounts
+            <span className="navbar-label">Accounts</span>
           </button>
         )}
         {doctorName && <span className="navbar-doctor">{doctorName}</span>}
         {onSignOut && (
-          <button type="button" className="navbar-button" onClick={onSignOut} title="Sign out">
+          <button type="button" className="navbar-button" onClick={onSignOut} title="Sign out" aria-label="Sign out">
             <LogOut size={15} aria-hidden="true" />
             <span className="navbar-signout-label">Sign out</span>
           </button>

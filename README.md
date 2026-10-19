@@ -20,12 +20,14 @@ mic ──► Groq Whisper ──► transcript ──► Gemini (forced JSON sc
   (`add …` appends, `change X to Y` edits in place, plain restatement replaces).
 - **Nothing is written to the form until the doctor accepts it** — by click or by voice
   ("accept", "accept diagnosis", "accept all").
-- Two mics: one per field, and one for the whole visit (also toggled with **Space**);
+- Two mics: one per field, and one for the whole visit in the bottom dock (also toggled with **Space**);
   only one records at a time. Hands-free confirm while dictating is paused.
 - Save → generates a Reference ID and the prescription becomes final. Print → A4 page.
 - **View past prescriptions** — search by name or Reference ID, filter by date, preview,
   reprint.
-- Works on phones (sticky Save/Print bar) and desktops; light and dark theme.
+- Works on tablets, phones (portrait and landscape) and desktops: the whole-visit mic
+  floats at the bottom of the screen, Print and Save are at the end of the form; light
+  and dark theme.
 
 ## Quick start (Windows / PowerShell, Python 3.11, Node 18+)
 
