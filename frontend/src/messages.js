@@ -120,7 +120,7 @@ export const SIGN_OUT_UNSAVED_MESSAGE =
 // shown as they are — like save validation. Anything else (network, server)
 // gets a fixed plain-language line.
 const AUTH_CODES_SHOWN_VERBATIM = new Set([
-  "validation", "invalid_credentials", "conflict", "account_disabled",
+  "validation", "invalid_credentials", "conflict", "account_disabled", "invalid_code", "pending_approval",
   "invalid_token", "rate_limited", "unauthenticated", "forbidden", "not_found",
 ]);
 

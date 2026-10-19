@@ -47,6 +47,10 @@ class Doctor(Base):
     role = Column(String(20), nullable=False, default="doctor", server_default="doctor")
     # Deactivated: can't sign in; their prescriptions are kept.
     is_active = Column(Boolean, nullable=False, default=True, server_default=true())
+    # Registered with a code, waiting for the administrator's approval: can't
+    # sign in until approved.
+    approved = Column(Boolean, nullable=False, default=True, server_default=true())
+    designation = Column(String(120), nullable=False, default="", server_default="")  # e.g. "Senior Resident"
     qualification = Column(String(120), default="")   # e.g. "MBBS, MD"
     specialization = Column(String(120), default="")  # e.g. "General Medicine"
     registration_no = Column(String(60), default="")  # medical council reg. no.
@@ -84,6 +88,28 @@ class PasswordReset(Base):
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)
     purpose = Column(String(20), nullable=False, default="reset", server_default="reset")
+
+
+class RegistrationCode(Base):
+    """A one-time code a new doctor uses to register (8 characters, single
+    use, expires). Stored as a scrypt hash, like a password, so a copy of the
+    database can't be used to register. The administrator fixes the
+    department; the account is always a plain doctor account."""
+
+    __tablename__ = "registration_codes"
+
+    id = Column(Integer, primary_key=True)
+    code_hash = Column(String(255), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    note = Column(String(120), nullable=False, default="", server_default="")  # e.g. who it is for
+    created_by = Column(Integer, ForeignKey("doctors.id"), nullable=True)
+    created_at = Column(DateTime, default=_utcnow)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    used_at = Column(DateTime, nullable=True)
+    used_by = Column(Integer, ForeignKey("doctors.id"), nullable=True)
+    revoked_at = Column(DateTime, nullable=True)
+
+    department = relationship(Department, lazy="joined")
 
 
 class Patient(Base):

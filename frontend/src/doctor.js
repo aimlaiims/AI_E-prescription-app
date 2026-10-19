@@ -7,9 +7,9 @@ export function doctorDisplayName(fullName) {
   return name ? `Dr. ${name}` : "";
 }
 
-// "MBBS, MD · General Medicine" (skips whatever is empty).
+// "Senior Resident · MBBS, MD · General Medicine" (skips whatever is empty).
 export function doctorCredentials(doctor) {
-  return [doctor?.qualification, doctor?.specialization]
+  return [doctor?.designation, doctor?.qualification, doctor?.specialization]
     .map((v) => String(v ?? "").trim())
     .filter(Boolean)
     .join(" · ");

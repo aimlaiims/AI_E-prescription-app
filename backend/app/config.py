@@ -46,6 +46,9 @@ class Settings:
     # Accounts are added by the department's admin (no self sign-up). The
     # emailed set-password link for a new account works this many days.
     INVITE_LINK_DAYS: int = int(os.getenv("INVITE_LINK_DAYS", "7"))
+    # A new doctor registers with a one-time code from the administrator; it
+    # works this many hours.
+    REGISTRATION_CODE_HOURS: int = int(os.getenv("REGISTRATION_CODE_HOURS", "72"))
     SESSION_HOURS: int = int(os.getenv("SESSION_HOURS", "12"))
     REMEMBER_DAYS: int = int(os.getenv("REMEMBER_DAYS", "30"))
     # "auto": Secure cookie when the page is served over HTTPS (e.g. ngrok),

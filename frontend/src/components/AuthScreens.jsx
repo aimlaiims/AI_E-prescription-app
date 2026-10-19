@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Eye, EyeOff, Lock, Mail, Mic, ShieldCheck, Sparkles } from "lucide-react";
+import { BadgeCheck, Briefcase, Eye, EyeOff, GraduationCap, KeyRound, Lock, Mail, Mic, ShieldCheck, Sparkles, Stethoscope, User } from "lucide-react";
 import { BRAND } from "../branding.js";
-import { forgotPassword, login, resetPassword } from "../api.js";
+import { checkRegistrationCode, forgotPassword, login, registerAccount, resetPassword } from "../api.js";
 import { authErrorMessage } from "../messages.js";
 
 // Sign-in screens. Design from the colleague's app (brand panel + card);
@@ -117,7 +117,7 @@ function SubmitButton({ busy, children, busyLabel }) {
 
 // `lockedEmail`: re-sign-in after a session ended mid-prescription — only
 // the same doctor may continue that form.
-export function LoginForm({ onSignedIn, onForgot, lockedEmail, onSwitchUser, notice, titleId }) {
+export function LoginForm({ onSignedIn, onForgot, onRegister, lockedEmail, onSwitchUser, notice, titleId }) {
   const [email, setEmail] = useState(lockedEmail || "");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -195,7 +195,16 @@ export function LoginForm({ onSignedIn, onForgot, lockedEmail, onSwitchUser, not
           (the open prescription will be discarded).
         </p>
       ) : (
-        <p className="auth-foot">No account yet? Your department's administrator adds it and sends you a link.</p>
+        <p className="auth-foot">
+          New doctor?{" "}
+          {onRegister ? (
+            <button type="button" className="auth-link" onClick={onRegister}>
+              Register with a code
+            </button>
+          ) : (
+            "Ask the administrator for a registration code."
+          )}
+        </p>
       )}
     </>
   );
@@ -306,6 +315,130 @@ export function ResetForm({ token, mode = "reset", onDone }) {
           </p>
         </>
       )}
+    </>
+  );
+}
+
+// Registration with the one-time code from the administrator: first the code
+// (says which department), then the doctor's own details. The account waits
+// for the administrator's approval before it can sign in.
+const EMPTY_REGISTRATION = {
+  full_name: "", designation: "", qualification: "", specialization: "", registration_no: "",
+  email: "", password: "", confirm: "",
+};
+
+export function RegisterForm({ onLogin }) {
+  const [code, setCode] = useState("");
+  const [department, setDepartment] = useState(null); // set once the code is accepted
+  const [f, setF] = useState(EMPTY_REGISTRATION);
+  const [done, setDone] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = (key) => (value) => setF((prev) => ({ ...prev, [key]: value }));
+
+  // Shown as K7QX-M4PZ while typing; any case and spacing is accepted.
+  const formatCode = (value) => {
+    const raw = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    return raw.length > 4 ? `${raw.slice(0, 4)}-${raw.slice(4)}` : raw;
+  };
+
+  const submitCode = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (code.replace("-", "").length !== 8) {
+      setError("Please enter the 8-character code from the administrator.");
+      return;
+    }
+    setBusy(true);
+    try {
+      setDepartment((await checkRegistrationCode(code)).department);
+    } catch (err) {
+      setError(authErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitDetails = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (f.password !== f.confirm) {
+      setError("The two passwords don't match.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { confirm, ...fields } = f;
+      setDone((await registerAccount({ ...fields, code })).message);
+    } catch (err) {
+      setError(authErrorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <>
+        <h2 className="auth-title">Registration sent</h2>
+        <p className="auth-success" role="status">
+          {done}
+        </p>
+        <button type="button" className="auth-submit" onClick={onLogin}>
+          Back to sign in
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h2 className="auth-title">Register</h2>
+      {!department ? (
+        <>
+          <p className="auth-subtitle">Enter the registration code the administrator gave you.</p>
+          <form onSubmit={submitCode} className="auth-form" noValidate>
+            <ErrorNote message={error} />
+            <Field
+              icon={KeyRound}
+              label="Registration code"
+              value={code}
+              onChange={(v) => setCode(formatCode(v))}
+              autoComplete="one-time-code"
+              autoCapitalize="characters"
+              spellCheck="false"
+              placeholder="XXXX-XXXX"
+              hint="8 letters and digits. It works once and expires after 72 hours."
+            />
+            <SubmitButton busy={busy} busyLabel="Checking…">
+              Continue
+            </SubmitButton>
+          </form>
+        </>
+      ) : (
+        <>
+          <p className="auth-subtitle">Registering for {department}. The administrator approves your account before you can sign in.</p>
+          <form onSubmit={submitDetails} className="auth-form" noValidate>
+            <ErrorNote message={error} />
+            <Field icon={User} label="Full name" value={f.full_name} onChange={set("full_name")} autoComplete="name" hint='As printed, e.g. "Meera Iyer" ("Dr." is added).' />
+            <Field icon={Briefcase} label="Designation" value={f.designation} onChange={set("designation")} required={false} hint="e.g. Senior Resident, Assistant Professor" />
+            <Field icon={GraduationCap} label="Qualification" value={f.qualification} onChange={set("qualification")} required={false} hint="e.g. MBBS, MS (ENT)" />
+            <Field icon={Stethoscope} label="Specialization" value={f.specialization} onChange={set("specialization")} required={false} />
+            <Field icon={BadgeCheck} label="Registration no." value={f.registration_no} onChange={set("registration_no")} required={false} hint="Medical council registration, printed on prescriptions." />
+            <Field icon={Mail} label="Email" type="email" inputMode="email" value={f.email} onChange={set("email")} autoComplete="email" autoCapitalize="none" spellCheck="false" hint="You sign in with this; password reset links come here." />
+            <Field icon={Lock} label="Password" type="password" value={f.password} onChange={set("password")} autoComplete="new-password" hint="At least 8 characters." />
+            <Field icon={Lock} label="Confirm password" type="password" value={f.confirm} onChange={set("confirm")} autoComplete="new-password" />
+            <SubmitButton busy={busy} busyLabel="Registering…">
+              Register
+            </SubmitButton>
+          </form>
+        </>
+      )}
+      <p className="auth-foot">
+        <button type="button" className="auth-link" onClick={onLogin}>
+          Back to sign in
+        </button>
+      </p>
     </>
   );
 }

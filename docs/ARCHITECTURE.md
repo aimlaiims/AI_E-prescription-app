@@ -122,10 +122,11 @@ Failure paths never fabricate data. A response that did not finish normally
 ## 5. Data model
 
 `backend/app/models.py`. `departments` (code `ENT`, name "ENT Department" — printed);
-accounts: `doctors` (email = sign-in name, lower-case; name, qualification,
+accounts: `doctors` (email = sign-in name, lower-case; name, designation, qualification,
 specialization, registration no., scrypt hash or "no password yet", `role` doctor/admin,
-`is_active`, department), `auth_sessions` (token hash, expiry), `password_resets` (token
-hash, expiry, used, `purpose` reset/invite).
+`is_active`, `approved`, department), `auth_sessions` (token hash, expiry), `password_resets`
+(token hash, expiry, used, `purpose` reset/invite), `registration_codes` (scrypt hash of
+the code, department, note, expiry, used at/by, revoked at).
 
 **SQLite or PostgreSQL** (`DATABASE_URL`), same code: everything goes through
 SQLAlchemy. The schema is owned by **Alembic** (`backend/alembic/versions/`); the app runs
@@ -255,16 +256,21 @@ Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month na
 | Method | Path | Notes |
 |---|---|---|
 | GET | `/api/health` | `{status, whisper_backend}` — the only route that needs no login |
-| POST | `/api/auth/login` | `{email, password, remember}` → profile + session cookie; 401 `invalid_credentials`, 403 `account_disabled` (only with the right password), 429 after 5 failures/15 min |
+| POST | `/api/auth/login` | `{email, password, remember}` → profile + session cookie; 401 `invalid_credentials`, 403 `account_disabled` / `pending_approval` (only with the right password), 429 after 5 failures/15 min |
 | POST | `/api/auth/logout` | ends the session |
 | GET | `/api/auth/me` | `{doctor (incl. role), department, institution}`; 401 `unauthenticated` |
 | POST | `/api/auth/forgot` | `{email}` → always the same reply; emails a 30-minute single-use link |
 | POST | `/api/auth/reset` | `{token, password}` — reset link or new account's set-password link; ends all of that doctor's sessions |
-| GET | `/api/admin/doctors` | admin only: the department's accounts |
-| POST | `/api/admin/doctors` | admin: add `{full_name, email, qualification, specialization, registration_no, role}` → `{doctor, emailed, link?, valid_for}` (link only if not emailed); 409 `conflict` |
-| PATCH | `/api/admin/doctors/{id}` | admin: edit details / role (the department keeps ≥ 1 active admin) |
-| POST | `/api/admin/doctors/{id}/deactivate` · `/activate` | admin: deactivation ends sessions and unused links; not yourself |
-| POST | `/api/admin/doctors/{id}/password-link` | admin: set-password link (never used) or 24 h reset link |
+| POST | `/api/auth/register/check` | `{code}` → `{ok, department}`; 400 `invalid_code` (one answer for wrong / used / expired / revoked), 429 after 5 wrong codes per IP per 15 min (50 overall) |
+| POST | `/api/auth/register` | `{code, full_name, email, password, designation, qualification, specialization, registration_no}` → `{message}`; creates a doctor (never an admin) waiting for approval and spends the code; 400 `invalid_code` / `validation`, 409 `conflict` |
+| GET | `/api/admin/departments` | admin only (the one administrator, all departments) |
+| GET · POST | `/api/admin/codes` | admin: latest 50 codes with status · new code `{department_id?, note}` → `{code, valid_hours, …}` (the code itself only in this answer) |
+| POST | `/api/admin/codes/{id}/revoke` | admin: an open code stops working |
+| GET | `/api/admin/doctors` | admin: every account, waiting for approval first |
+| POST | `/api/admin/doctors/{id}/approve` · `/reject` | admin: reject only before approval (the account is kept, inactive) |
+| PATCH | `/api/admin/doctors/{id}` | admin: edit details (no role field) |
+| POST | `/api/admin/doctors/{id}/deactivate` · `/activate` | admin: deactivation ends sessions and unused links; never the administrator |
+| POST | `/api/admin/doctors/{id}/password-link` | admin: set-password link (never used) or 24 h reset link; approved, active accounts only |
 | POST | `/api/transcribe` | multipart `audio` → `{transcript}` |
 | POST | `/api/extract` | `{transcript, current_state, target_field?}` → `{updates[], unmatched_transcript_note}` |
 | POST | `/api/forms` | `{state, raw_transcript_log, patient_id?, new_patient?}` → `{pid, saved_at, patient}`; 400 `validation`, 409 `possible_duplicate` (+ `candidates`) / `conflict` |
@@ -326,10 +332,18 @@ relative `/api`), HTTPS, auth, and a persistent host. Not built.
     costs the same time as a wrong password.
   - Sessions: random token in an HttpOnly, SameSite=Lax cookie (Secure over HTTPS); only
     its SHA-256 is stored. 12 h, or 30 days with "Keep me signed in".
-  - No self sign-up: the department's **administrator** (`role = admin`) adds accounts;
-    each gets a single-use set-password link (`INVITE_LINK_DAYS`, stored hashed). Roles
-    are checked on the server (`current_admin`); an admin only reaches their own
-    department's accounts and sees no prescriptions through `/api/admin`.
+  - One **administrator** (`role = admin`), made only on the server
+    (`tools/create_admin.py`, refuses a second one). Nothing in the API sets a role:
+    registration always makes a doctor, the edit route has no role field. The admin role
+    is checked on the server (`current_admin`); the administrator sees no prescriptions
+    through `/api/admin`, and their own records stay in their own department.
+  - New doctors **register with a one-time code**: 8 characters from 31 unambiguous
+    letters/digits (~40 bits), stored as an scrypt hash, single use, 72 h
+    (`REGISTRATION_CODE_HOURS`), revocable. Wrong codes get one answer whatever the reason
+    and are throttled (5 per IP per 15 min, 50 overall), so guessing is not practical.
+    The code decides the department. The new account is `approved = false`: it can't sign
+    in (told so only after the right password), a session for it opens nothing, and
+    "forgot password" ignores it, until the administrator approves it.
   - Deactivated accounts can't sign in (told so only after the right password), lose
     their sessions and unused links at once; their records are kept.
   - Login throttled (5 failures per email per 15 min; 30 per IP).

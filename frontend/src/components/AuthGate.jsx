@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import App from "../App.jsx";
-import { AuthLayout, ForgotForm, LoginForm, ResetForm } from "./AuthScreens.jsx";
+import { AuthLayout, ForgotForm, LoginForm, RegisterForm, ResetForm } from "./AuthScreens.jsx";
 import { UNAUTHENTICATED_EVENT, getMe, logout } from "../api.js";
 import { SESSION_ENDED_MESSAGE } from "../messages.js";
 
@@ -78,8 +78,11 @@ export default function AuthGate() {
     return (
       <AuthLayout>
         {view === "forgot" && <ForgotForm onLogin={toLogin} />}
+        {view === "register" && <RegisterForm onLogin={toLogin} />}
         {view === "reset" && <ResetForm token={resetToken} mode={link.mode} onDone={toLogin} />}
-        {view === "login" && <LoginForm onSignedIn={signedIn} onForgot={() => setView("forgot")} />}
+        {view === "login" && (
+          <LoginForm onSignedIn={signedIn} onForgot={() => setView("forgot")} onRegister={() => setView("register")} />
+        )}
       </AuthLayout>
     );
   }

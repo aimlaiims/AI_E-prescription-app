@@ -107,7 +107,7 @@ def doctor_for_token(db: Session, token: str | None) -> Doctor | None:
         db.commit()
         return None
     doctor = db.get(Doctor, row.doctor_id)
-    return doctor if doctor is not None and doctor.is_active else None
+    return doctor if doctor is not None and doctor.is_active and doctor.approved else None
 
 
 def end_session(db: Session, token: str | None) -> None:

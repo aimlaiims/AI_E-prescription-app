@@ -10,14 +10,25 @@ Run the manual tests on the machine and browser that will be used for the demo
 ## 0. Accounts
 - [ ] `python -m tools.create_admin --email … --name …` → sign in with that email; the
       navbar shows **Accounts**; letterhead shows "ENT Department · …"
-- [ ] Accounts → Add a doctor → without SMTP the set-password link is shown (Copy works);
-      with SMTP it arrives by email and is NOT shown
-- [ ] The link (on another device/tablet) → "Set your password" → sign in with the email
-      (not case-sensitive) → no Accounts button for a doctor
-- [ ] There is no "Create an account" anywhere; 5 wrong passwords → told to wait
+- [ ] Running `create_admin` again with another email refuses ("There is already an
+      administrator"); `--replace` moves the role
+- [ ] Accounts → Registration codes → pick the department, "Who is it for?" → Create →
+      the code shows once in large type (Copy works), "Works once, for 72 hours"
+- [ ] On the tablet: sign-in → **Register with a code** → type the code in lower case,
+      no dash (it formats itself) → Continue says "Registering for ENT Department" → fill
+      the details (designation free text) → Register → "Registration sent"
+- [ ] The same code again → "This code doesn't work…"; 5 made-up codes → told to wait
+- [ ] Sign in before approval → "waiting for the administrator's approval"; Forgot
+      password for that email sends nothing
+- [ ] Accounts: the doctor is at the top under **Waiting for approval**; the code says
+      "Used by Dr. …" → Approve → the doctor signs in; letterhead shows
+      "Designation · Qualification · Specialization"; no Accounts button for a doctor
+- [ ] A second code → Revoke → it no longer works; Reject a registration (asks first) →
+      that account can't sign in
+- [ ] 5 wrong passwords → told to wait
 - [ ] Deactivate a doctor (asks first) → their open app asks them to sign in, which says
       the account is deactivated; Reactivate → they can sign in, their prescriptions are there
-- [ ] The administrator can't deactivate themself or remove the last administrator role
+- [ ] The administrator's own account has no Deactivate button; editing has no role
 - [ ] Forgot password → email arrives (or, without SMTP, the link is in the backend
       terminal) → new password works, old one doesn't, the link can't be reused
 - [ ] Second doctor's account: History shows none of the first doctor's prescriptions

@@ -171,6 +171,9 @@ export const login = (email, password, remember) =>
   postJson("/auth/login", { email, password, remember });
 export const logout = () => postJson("/auth/logout");
 export const forgotPassword = (email) => postJson("/auth/forgot", { email });
+// Registration with a one-time code from the administrator.
+export const checkRegistrationCode = (code) => postJson("/auth/register/check", { code });
+export const registerAccount = (fields) => postJson("/auth/register", fields);
 export const resetPassword = (token, password) => postJson("/auth/reset", { token, password });
 
 // --- Accounts, for the department's administrator (backend/app/routers/admin.py).
@@ -187,8 +190,13 @@ async function adminRequest(method, path, body) {
 }
 
 export const listAccounts = () => adminRequest("GET", "/doctors");
-export const addAccount = (fields) => adminRequest("POST", "/doctors", fields);
 export const editAccount = (id, fields) => adminRequest("PATCH", `/doctors/${id}`, fields);
+export const approveAccount = (id) => adminRequest("POST", `/doctors/${id}/approve`);
+export const rejectAccount = (id) => adminRequest("POST", `/doctors/${id}/reject`);
+export const listDepartments = () => adminRequest("GET", "/departments");
+export const listCodes = () => adminRequest("GET", "/codes");
+export const createCode = (fields) => adminRequest("POST", "/codes", fields);
+export const revokeCode = (id) => adminRequest("POST", `/codes/${id}/revoke`);
 export const deactivateAccount = (id) => adminRequest("POST", `/doctors/${id}/deactivate`);
 export const activateAccount = (id) => adminRequest("POST", `/doctors/${id}/activate`);
 export const sendPasswordLink = (id) => adminRequest("POST", `/doctors/${id}/password-link`);

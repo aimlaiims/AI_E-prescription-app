@@ -1820,3 +1820,70 @@ kbd {
   font-weight: 600;
 }
 .review-check svg { flex: 0 0 auto; margin-top: 2px; }
+
+/* ---------- Accounts: approvals and registration codes ---------- */
+
+.accounts-section { display: grid; gap: 10px; }
+.accounts-section > h3 { margin: 6px 0 0; font-size: 17px; }
+.accounts-help { margin: 0; color: var(--ink-soft); font-size: 14px; }
+.account-card.is-pending { border-color: var(--amber); background: var(--amber-soft); }
+.account-badge.is-plain { background: var(--surface-muted); color: var(--ink-soft); }
+
+.accounts-code-form {
+  display: grid;
+  gap: 10px;
+  align-items: end;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper-raised);
+}
+@media (min-width: 768px) {
+  .accounts-code-form { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .accounts-code-form > button { justify-self: start; }
+}
+
+.new-code {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--sage);
+  border-radius: var(--radius-md);
+  background: var(--sage-soft);
+}
+.new-code p { margin: 0; }
+.new-code-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.new-code-value {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.code-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.code-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+.code-main { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; min-width: 0; }
+.code-status {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--sage-soft);
+  color: var(--sage);
+  font-size: 12px;
+  font-weight: 700;
+}
+.code-status.is-done { background: var(--brand-soft); color: var(--brand-text); }
+.code-status.is-muted { background: var(--surface-muted); color: var(--ink-soft); }

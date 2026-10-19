@@ -3,8 +3,8 @@
 Dictate a patient visit, review what was heard, save it under a Reference ID, print a
 prescription. Built for a doctor or their assistant.
 
-> **Status: demo, not production.** Doctors sign in with email + password; the
-> department's administrator adds the accounts. Patients and their prescriptions are
+> **Status: demo, not production.** Doctors sign in with email + password; they register
+> with a one-time code from the administrator, who approves each registration. Patients and their prescriptions are
 > shared by the doctors of the department (each opening is logged). Still missing before real patient data:
 > encryption at rest and a consent/privacy review (audio goes to Groq, transcripts to Google).
 
@@ -65,24 +65,36 @@ after every change.
 | `VOICE_QUEUE_WAIT_SECONDS` | longest wait before "many people are using voice input" (default 15) |
 | `TRANSCRIBE_TIMEOUT_SECONDS` / `EXTRACT_TIMEOUT_SECONDS` | longest one call may take (default 30) |
 | `VOICE_MAX_PER_USER` / `MAX_AUDIO_MB` | voice requests per user at once (3); largest recording (10 MB) |
-| `INVITE_LINK_DAYS` | how long a new account's set-password link works (default 7) |
+| `REGISTRATION_CODE_HOURS` | how long a registration code works (default 72) |
+| `INVITE_LINK_DAYS` | how long a set-password link works, for an account without a password (default 7) |
 | `INSTITUTION_NAME` | shown on the letterhead and printed prescriptions |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | set-password and reset emails; empty = the administrator is shown each link to pass on (forgot-password links go to the backend terminal) |
 | `APP_BASE_URL` | public address for links in emails (e.g. the ngrok URL) |
 
-**First run — accounts.** There is no self sign-up. Create the department's first
-administrator once, on the server (it asks for a password):
+**First run — accounts.** There is one **administrator**, created once on the server
+(it asks for a password; `--department TEST --department-name "…"` puts the administrator's
+own test prescriptions in a department of their own):
 
 ```powershell
 cd backend
 python -m tools.create_admin --email hod.ent@example.org --name "Full Name"
 ```
 
-The administrator signs in and opens **Accounts** (navbar) to add each doctor (name,
-email, qualification, registration no.). Each new doctor gets a **set-password link** —
-emailed when SMTP is configured, otherwise shown to the administrator to pass on. From
-Accounts the administrator can also edit details, send a reset link, and deactivate or
-reactivate an account (deactivation signs the doctor out at once; prescriptions are kept).
+Running it again for a different email refuses (there is only one administrator);
+`--replace` moves the role to the new account. Nothing in the app makes anyone an
+administrator.
+
+**New doctors register with a code.** The administrator opens **Accounts** (navbar),
+picks the department and creates a **registration code** (8 letters and digits, e.g.
+`K7QX-M4PZ`), shown once, and gives it to the doctor in person or by message. The code
+works once, for 72 hours, and can be revoked. The doctor taps **Register with a code** on
+the sign-in screen, enters it, and fills in their own name, designation, qualification,
+registration no., email and password. The account then **waits for approval**: the
+administrator sees it at the top of Accounts and approves (or rejects) it; only then can
+the doctor sign in. All doctors have the same rights: their own prescriptions, and
+the department's patients and records. From Accounts the administrator can also edit
+details, send a reset link, and deactivate or reactivate an account (deactivation signs the
+doctor out at once; prescriptions are kept).
 Every API call except `/api/health` needs a signed-in doctor.
 
 ## Patients

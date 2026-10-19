@@ -99,13 +99,29 @@ class LoginRequest(BaseModel):
 
 
 class DoctorFields(BaseModel):
-    """An account's details, as the admin enters them."""
+    """An account's details (the admin can correct them; the doctor enters them
+    when registering). There is no role here: registration and editing never
+    make anyone an administrator."""
     full_name: str = ""
     email: str = ""
+    designation: str = ""
     qualification: str = ""
     specialization: str = ""
     registration_no: str = ""
-    role: str = "doctor"
+
+
+class RegistrationCheck(BaseModel):
+    code: str = ""
+
+
+class RegistrationRequest(DoctorFields):
+    code: str = ""
+    password: str = ""
+
+
+class CodeRequest(BaseModel):
+    department_id: Optional[int] = None
+    note: str = ""
 
 
 class ForgotPasswordRequest(BaseModel):
