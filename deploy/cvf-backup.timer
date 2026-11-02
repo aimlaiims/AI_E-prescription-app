@@ -1,0 +1,11 @@
+# Runs cvf-backup.service every night at 02:30 (server time). Persistent: a
+# backup missed because the PC was off runs at the next start.
+[Unit]
+Description=Nightly prescription app database backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

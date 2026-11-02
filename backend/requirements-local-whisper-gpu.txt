@@ -1,0 +1,7 @@
+# WHISPER_BACKEND=local on an NVIDIA GPU (Linux): faster-whisper + the CUDA 12
+# libraries it needs (cuBLAS, cuDNN 9) as pip packages, so no system CUDA install.
+# The NVIDIA driver itself comes from Ubuntu (sudo ubuntu-drivers install).
+# The service sets LD_LIBRARY_PATH to these packages' lib folders (deploy/setup.sh).
+-r requirements-local-whisper.txt
+nvidia-cublas-cu12
+nvidia-cudnn-cu12==9.*

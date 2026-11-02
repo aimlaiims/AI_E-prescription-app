@@ -33,7 +33,11 @@ latency ≈ upload + Whisper + network + Gemini. See §9 for measuring it.
 `backend/app/services/transcription.py`. No medical cleanup here, deliberately: a "smart"
 transcription layer is where invented words come from. A short vocabulary hint
 (`MEDICAL_VOCAB_HINT`) biases decoding toward drug names/dose units without rewriting.
-`WHISPER_BACKEND=local` swaps in faster-whisper (less tested).
+`WHISPER_BACKEND=local` swaps in faster-whisper on the server (CPU, or an NVIDIA GPU with
+`LOCAL_WHISPER_DEVICE=cuda`): one recording at a time, the same time limit as a Groq call,
+the model loaded once in the background at startup (`preload_local_model`), and
+`compute_type` "auto" on a GPU (older cards lack fast float16). large-v3 on a Quadro P5000:
+about 2 s per 15 s recording.
 
 ### Department terms (`services/vocabulary.py`, `app/vocabulary/<CODE>.json`)
 - `GET /api/vocabulary` → the doctor's department's lists, for typing suggestions
@@ -322,9 +326,15 @@ relay hop to every request, and the audio upload is the largest payload. Test on
 localhost to separate the tunnel from the APIs. `gemini-3.5-flash-lite` is the default
 because extraction is simple structured parsing and that tier skips extended reasoning.
 
-## 10. Deployment (current: demo)
+## 10. Deployment
 
-Run backend + `npm run dev` locally, `ngrok http 5173`. The doctor opens the HTTPS link
+**Ubuntu server** (`deploy/`, since 2026-11-02): tablet → ngrok (https) → Caddy on
+127.0.0.1:8080 (serves `frontend/dist`, proxies `/api` keeping the browser's Host, trusts the
+tunnel's X-Forwarded-* headers) → uvicorn on 127.0.0.1:8000 (one worker: the sign-in limits
+and the voice queue live in its memory) → PostgreSQL. systemd starts everything at boot; a
+timer backs up the database nightly; ufw lets in only SSH. Steps: `deploy/README.md`.
+
+**Windows demo:** run backend + `npm run dev` locally, `ngrok http 5173`. The doctor opens the HTTPS link
 on their own device; HTTPS is also what makes microphone and clipboard APIs available
 off-localhost. Browser → ngrok URL → Vite proxy `/api` → `localhost:8000`, so requests are
 same-origin: no CORS changes needed, and the API stays bound to 127.0.0.1.

@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,13 +9,21 @@ from .config import settings
 from .database import engine
 from .routers import admin, auth, voice, forms, patients, vocabulary
 from .security import same_origin_guard
+from .services import transcription
 
 logging.basicConfig(level=logging.INFO)
 
 # Bring the database schema up to date (Alembic; see migrations.py).
 migrations.run(engine)
 
-app = FastAPI(title="Clinical Voice Form API")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if settings.WHISPER_BACKEND == "local":
+        transcription.preload_local_model()
+    yield
+
+
+app = FastAPI(title="Clinical Voice Form API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

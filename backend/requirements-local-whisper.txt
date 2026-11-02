@@ -1,3 +1,9 @@
 # Only needed for WHISPER_BACKEND=local. Kept separate because `av` (a dependency)
 # has no prebuilt wheels on some Python/Windows combinations and needs MSVC build tools.
-faster-whisper==1.0.3
+faster-whisper==1.2.1
+# faster-whisper 1.2.1 opens audio with an option PyAV 15+ removed
+# ("open() got an unexpected keyword argument 'metadata_errors'").
+av>=11,<15
+# ...and only a ready-made PyAV (some versions below 15 have none for newer
+# Pythons, and building it needs compilers and FFmpeg's sources).
+--only-binary=av

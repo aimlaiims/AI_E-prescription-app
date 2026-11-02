@@ -12,8 +12,8 @@ degraded to the caller, never mistaken for a real (if odd) transcript.
 import asyncio
 import io
 import logging
+import threading
 import time
-from functools import lru_cache
 
 from ..config import settings
 from ..errors import UpstreamError
@@ -44,9 +44,11 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.webm", hin
             async with limits.deadline(settings.TRANSCRIBE_TIMEOUT_SECONDS, "Groq transcription"):
                 return await _transcribe_groq(audio_bytes, filename, hint)
     elif settings.WHISPER_BACKEND == "local":
-        # CPU work on this machine: in a worker thread, one recording at a time.
+        # Work on this machine (CPU or GPU): in a worker thread, one recording
+        # at a time, with the same time limit as a Groq call.
         async with limits.local_whisper.slot():
-            return await asyncio.to_thread(_transcribe_local, audio_bytes, filename, hint)
+            async with limits.deadline(settings.TRANSCRIBE_TIMEOUT_SECONDS, "Local transcription"):
+                return await asyncio.to_thread(_transcribe_local, audio_bytes, filename, hint)
     else:
         raise UpstreamError(
             f"Unknown WHISPER_BACKEND: {settings.WHISPER_BACKEND}", code="unknown"
@@ -124,15 +126,51 @@ async def _transcribe_groq(audio_bytes: bytes, filename: str, hint: str = MEDICA
     return text.strip()
 
 
-@lru_cache(maxsize=1)
-def _get_local_model():
-    from faster_whisper import WhisperModel
+_model_lock = threading.Lock()
+_model = None
 
-    return WhisperModel(
-        settings.LOCAL_WHISPER_MODEL,
-        device=settings.LOCAL_WHISPER_DEVICE,
-        compute_type="int8" if settings.LOCAL_WHISPER_DEVICE == "cpu" else "float16",
-    )
+
+def _compute_type() -> str:
+    # "auto" lets CTranslate2 pick what the GPU does fastest (float16 on recent
+    # cards; older ones such as Pascal lack fast float16).
+    if settings.LOCAL_WHISPER_COMPUTE:
+        return settings.LOCAL_WHISPER_COMPUTE
+    return "int8" if settings.LOCAL_WHISPER_DEVICE == "cpu" else "auto"
+
+
+def _get_local_model():
+    """Loaded once (a large model takes tens of seconds); the lock stops the
+    startup preload and a first request from loading it twice."""
+    global _model
+    with _model_lock:
+        if _model is None:
+            from faster_whisper import WhisperModel
+
+            t0 = time.perf_counter()
+            _model = WhisperModel(
+                settings.LOCAL_WHISPER_MODEL,
+                device=settings.LOCAL_WHISPER_DEVICE,
+                compute_type=_compute_type(),
+            )
+            logger.info(
+                "Local Whisper %s loaded on %s (%s) in %.1fs",
+                settings.LOCAL_WHISPER_MODEL, settings.LOCAL_WHISPER_DEVICE, _compute_type(),
+                time.perf_counter() - t0,
+            )
+        return _model
+
+
+def preload_local_model() -> None:
+    """Load the model in the background at startup, so the first dictation
+    of the day doesn't wait for it. A failure is only logged here; the next
+    dictation tries again and shows the doctor a plain message."""
+    def load():
+        try:
+            _get_local_model()
+        except Exception as e:  # noqa: BLE001 - logged, retried on first use
+            logger.error("Could not load local Whisper model: %s", e)
+
+    threading.Thread(target=load, name="whisper-preload", daemon=True).start()
 
 
 def _transcribe_local(audio_bytes: bytes, filename: str, hint: str = MEDICAL_VOCAB_HINT) -> str:

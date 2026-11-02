@@ -10,6 +10,8 @@ class Settings:
 
     LOCAL_WHISPER_MODEL: str = os.getenv("LOCAL_WHISPER_MODEL", "base.en")
     LOCAL_WHISPER_DEVICE: str = os.getenv("LOCAL_WHISPER_DEVICE", "cpu")
+    # Empty = int8 on CPU, "auto" on a GPU (the card's fastest supported type).
+    LOCAL_WHISPER_COMPUTE: str = os.getenv("LOCAL_WHISPER_COMPUTE", "").strip()
 
     GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
     # flash-lite for speed; gemini-3.5-flash is the fallback if accuracy suffers.

@@ -223,6 +223,11 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] Dictate "BPPV right side" into Diagnosis → "Benign paroxysmal positional vertigo
       (BPPV) right side" (the side is kept)
 
+## 6b. Ubuntu server
+Follow `deploy/README.md` step 8 after any change in `deploy/`. With speech on the GPU:
+the backend log says "Local Whisper large-v3 loaded on cuda" within a minute of a restart,
+and the first dictation after a restart is as fast as the next ones.
+
 ## 7a. Tablet (Android, portrait and landscape)
 - [ ] The mic stays at the bottom of the screen while scrolling; Print / Save are at the
       end of the form

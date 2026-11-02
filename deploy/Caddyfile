@@ -1,0 +1,42 @@
+# Caddy: serves the built web pages and passes /api to the backend.
+# Installed by deploy/setup.sh as /etc/caddy/Caddyfile (@APP_DIR@ replaced).
+# Only the tunnel (ngrok, on this machine) talks to it: it listens on
+# 127.0.0.1:8080 and the tunnel provides HTTPS. Written for Caddy 2.6 (Ubuntu
+# 24.04's package); also valid on newer versions.
+
+http://:8080 {
+	bind 127.0.0.1 ::1
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		X-Frame-Options DENY
+		Permissions-Policy "microphone=(self), camera=(), geolocation=()"
+		-Server
+	}
+
+	# The API. Caddy passes the browser's Host header through unchanged, which
+	# the app's same-origin check and password links rely on (like the Vite
+	# proxy's changeOrigin: false).
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8000 {
+			# Keep the tunnel's X-Forwarded-* headers (https, the tablet's
+			# address): the app needs them for secure cookies and per-address
+			# sign-in limits. Only the tunnel on this machine connects.
+			trusted_proxies 127.0.0.1/32 ::1/128
+		}
+	}
+
+	# The web pages (frontend/dist). Hashed files under /assets never change,
+	# so browsers keep them; index.html is always checked for a newer version.
+	handle {
+		root * @APP_DIR@/frontend/dist
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@pages not path /assets/*
+		header @pages Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

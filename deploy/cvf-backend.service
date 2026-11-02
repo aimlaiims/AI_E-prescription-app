@@ -1,0 +1,34 @@
+# The app's backend (FastAPI). Installed by deploy/setup.sh, which replaces
+# @APP_DIR@ with the folder the repo was cloned into.
+#
+# One process on purpose: the sign-in limits and the fair voice queue live in
+# its memory, so several worker processes would each keep their own (weaker)
+# copy. It listens on 127.0.0.1 only: the tunnel reaches it through Caddy.
+# --proxy-headers: behind Caddy every request comes from 127.0.0.1; this makes
+# the app see each tablet's own address, so one person's wrong passwords don't
+# lock out everyone.
+
+[Unit]
+Description=Prescription app backend (FastAPI)
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+User=cvf
+Group=cvf
+WorkingDirectory=@APP_DIR@/backend
+ExecStart=@APP_DIR@/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=5
+# Speech models are downloaded to the app user's home on first use.
+Environment=HOME=/var/lib/cvf
+
+# Hardening: read-only code and system, private /tmp, no new privileges.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/cvf /var/backups/cvf
+
+[Install]
+WantedBy=multi-user.target

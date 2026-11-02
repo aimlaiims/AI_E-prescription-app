@@ -56,7 +56,7 @@ after every change.
 
 | Variable | Purpose |
 |---|---|
-| `WHISPER_BACKEND` | `groq` (default) or `local` (faster-whisper) |
+| `WHISPER_BACKEND` | `groq` (default) or `local` (faster-whisper on this machine; on an NVIDIA GPU: `LOCAL_WHISPER_MODEL=large-v3`, `LOCAL_WHISPER_DEVICE=cuda`) |
 | `GROQ_API_KEY` | Groq speech-to-text |
 | `GEMINI_API_KEY` | Gemini field extraction |
 | `EXTRACTION_MODEL` | default `gemini-3.5-flash-lite` |
@@ -168,9 +168,16 @@ python -m tools.copy_database --from sqlite:///./clinical_forms.db --to postgres
 It checks everything first and copies in one transaction (every record or none), then
 counts. Set `DATABASE_URL` to the PostgreSQL address and start the app.
 
+## Running on an Ubuntu server
+
+`deploy/README.md`: one Ubuntu 24.04 PC reached by tablets over an ngrok tunnel, with
+speech on its NVIDIA GPU. `sudo bash deploy/setup.sh` installs PostgreSQL, Caddy, the
+services and the firewall; `bash deploy/update.sh` brings it up to date.
+
 ## Docs
 
 | File | What it is |
 |---|---|
+| `deploy/README.md` | Running it on an Ubuntu server (setup, tunnel, backups, updates) |
 | `docs/ARCHITECTURE.md` | Design, data flow, API, error handling |
 | `docs/TESTING.md` | Manual test scripts and how to simulate failures |

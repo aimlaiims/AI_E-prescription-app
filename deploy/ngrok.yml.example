@@ -1,0 +1,12 @@
+# The tunnel: ngrok gives the app an https:// address (the microphone only works
+# on https) and forwards it to Caddy on this machine. Copy to /etc/ngrok/ngrok.yml,
+# fill in your token and your free static domain (ngrok dashboard: Domains), then
+# see deploy/README.md, step 5. Keep the file private: it holds your token.
+version: 3
+agent:
+  authtoken: YOUR_NGROK_AUTHTOKEN
+endpoints:
+  - name: prescriptions
+    url: https://your-name.ngrok-free.app
+    upstream:
+      url: http://127.0.0.1:8080
