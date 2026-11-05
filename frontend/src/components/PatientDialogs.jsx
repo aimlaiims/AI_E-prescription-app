@@ -14,7 +14,7 @@ import { useDialog } from "../useDialog.js";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-function Shell({ titleId, title, subtitle, onClose, closeLabel, children, className = "" }) {
+export function Shell({ titleId, title, subtitle, onClose, closeLabel, children, className = "" }) {
   const ref = useDialog(onClose);
   return (
     <div className="records-backdrop">

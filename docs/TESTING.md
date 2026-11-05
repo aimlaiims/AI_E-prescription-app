@@ -223,6 +223,16 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] Dictate "BPPV right side" into Diagnosis → "Benign paroxysmal positional vertigo
       (BPPV) right side" (the side is kept)
 
+## 6d. PAC tests (under Investigation)
+- [ ] Type "Pure tone audiometry" in Investigation, tap **PAC tests** → General anaesthesia →
+      CBC … PPBS ticked, TFT and Calcium profile unticked with their condition → tick TFT →
+      **Add to Investigation** → a second line "PAC (general anaesthesia): CBC, …, TFT"
+- [ ] Tap **PAC tests** again → General and TFT still ticked; choose Local → Add → the PAC
+      line is replaced, not doubled; Cancel changes nothing
+- [ ] Save, Print → the PAC line prints under Investigation; Past visits shows it
+- [ ] Tablet, portrait and landscape: the list fits, every tick is easy to hit; after Save
+      the button is gone
+
 ## 6b. Ubuntu server
 Follow `deploy/README.md` step 8 after any change in `deploy/`. With speech on the GPU:
 the backend log says "Local Whisper large-v3 loaded on cuda" within a minute of a restart,

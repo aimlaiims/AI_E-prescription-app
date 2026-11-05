@@ -25,6 +25,8 @@ export default function FormField({
   // whether a chosen term is followed by a space (medicines: the strength).
   suggestions,
   suggestTrailingSpace = false,
+  // Extra controls under the field (Investigation: the PAC button).
+  children,
 }) {
   const { isRecording, start, stop } = useRecorder();
 
@@ -251,6 +253,7 @@ export default function FormField({
         </p>
       )}
       {note && <p className="field-mic-note">{note}</p>}
+      {children}
     </div>
   );
 }

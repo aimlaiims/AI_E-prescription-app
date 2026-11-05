@@ -9,6 +9,7 @@ import {
   Search,
   NotebookPen,
   ListChecks,
+  ClipboardPlus,
   History as HistoryIcon,
   X,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import StatusBanner from "./components/StatusBanner.jsx";
 import SaveButton from "./components/SaveButton.jsx";
 import RecordsDialog from "./components/RecordsDialog.jsx";
 import AccountsDialog from "./components/AccountsDialog.jsx";
+import PacDialog from "./components/PacDialog.jsx";
 import { FindPatientDialog, PatientHistoryDialog, SamePatientDialog } from "./components/PatientDialogs.jsx";
 import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
 import { BRAND, loadLogoDataUri } from "./branding.js";
@@ -60,6 +62,7 @@ export default function App({ profile, onSignOut }) {
   // the save. Its summary (label = our Patient ID, visit count, ...).
   const [patient, setPatient] = useState(null);
   const [findOpen, setFindOpen] = useState(false);
+  const [pacOpen, setPacOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   // { candidates, print } while the save waits for "same patient?".
   const [samePatient, setSamePatient] = useState(null);
@@ -522,7 +525,14 @@ export default function App({ profile, onSignOut }) {
             <FormField {...commonFieldProps("chief_complaints")} />
             <FormField {...commonFieldProps("on_examination")} />
             <FormField {...commonFieldProps("diagnosis")} />
-            <FormField {...commonFieldProps("investigation")} />
+            <FormField {...commonFieldProps("investigation")}>
+              {!locked && (
+                <button type="button" className="records-button pac-button" onClick={() => setPacOpen(true)} aria-haspopup="dialog">
+                  <ClipboardPlus size={16} aria-hidden="true" />
+                  PAC tests
+                </button>
+              )}
+            </FormField>
           </div>
         </section>
 
@@ -597,6 +607,13 @@ export default function App({ profile, onSignOut }) {
         )}
       </article>
       {findOpen && <FindPatientDialog onPick={pickPatient} onClose={() => setFindOpen(false)} />}
+      {pacOpen && !locked && (
+        <PacDialog
+          investigation={state.investigation}
+          onApply={(value) => handleFieldChange("investigation", value)}
+          onClose={() => setPacOpen(false)}
+        />
+      )}
       {historyOpen && patient && (
         <PatientHistoryDialog patientId={patient.id} onClose={() => setHistoryOpen(false)} />
       )}
