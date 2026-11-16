@@ -51,6 +51,9 @@ class Settings:
     # A new doctor registers with a one-time code from the administrator; it
     # works this many hours.
     REGISTRATION_CODE_HOURS: int = int(os.getenv("REGISTRATION_CODE_HOURS", "72"))
+    # "Try the demo" button on the sign-in screen (services/demo.py). Off unless
+    # set to true; turning it off also ends open demo sessions.
+    DEMO_LOGIN: bool = os.getenv("DEMO_LOGIN", "").strip().lower() in ("1", "true", "yes", "on")
     SESSION_HOURS: int = int(os.getenv("SESSION_HOURS", "12"))
     REMEMBER_DAYS: int = int(os.getenv("REMEMBER_DAYS", "30"))
     # "auto": Secure cookie when the page is served over HTTPS (e.g. ngrok),

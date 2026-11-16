@@ -17,11 +17,17 @@ LISTS = ("diagnoses", "medications")
 FOR_FIELD = {"diagnosis": ("diagnoses",), "medications": ("medications",)}
 
 
+def terms_code(department_code: str | None) -> str | None:
+    """The demo department (services/demo.py) uses ENT's lists."""
+    return "ENT" if department_code and department_code.upper() == "DEMO" else department_code
+
+
 @lru_cache(maxsize=None)
 def load(department_code: str | None) -> dict:
     empty = {name: [] for name in LISTS}
     if not department_code:
         return empty
+    department_code = terms_code(department_code)
     path = FOLDER / f"{department_code.upper()}.json"
     if not path.is_file():
         return empty
@@ -80,7 +86,7 @@ def whisper_hint(department_code: str | None, field: str | None) -> str | None:
         if len(nxt) > WHISPER_WORDS_MAX_CHARS:
             break
         text = nxt
-    return f"{department_code.upper()} outpatient prescription. {text}. {WHISPER_TAIL}"
+    return f"{terms_code(department_code).upper()} outpatient prescription. {text}. {WHISPER_TAIL}"
 
 
 def prompt_section(department_code: str | None, target_field: str | None) -> str:

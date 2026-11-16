@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { BadgeCheck, Briefcase, Eye, EyeOff, GraduationCap, KeyRound, Lock, Mail, Mic, ShieldCheck, Sparkles, Stethoscope, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BadgeCheck, Briefcase, Eye, EyeOff, GraduationCap, KeyRound, Lock, Mail, Mic, Presentation, ShieldCheck, Sparkles, Stethoscope, User } from "lucide-react";
 import { BRAND } from "../branding.js";
-import { checkRegistrationCode, forgotPassword, login, registerAccount, resetPassword } from "../api.js";
+import {
+  checkRegistrationCode, demoLogin, forgotPassword, getSignInOptions, login, registerAccount, resetPassword,
+} from "../api.js";
 import { authErrorMessage } from "../messages.js";
 
 // Sign-in screens. Design from the colleague's app (brand panel + card);
@@ -123,6 +125,29 @@ export function LoginForm({ onSignedIn, onForgot, onRegister, lockedEmail, onSwi
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // "Try the demo": shown only while the server has it switched on.
+  const [demoOffered, setDemoOffered] = useState(false);
+  useEffect(() => {
+    if (lockedEmail) return undefined;
+    let live = true;
+    getSignInOptions()
+      .then((o) => live && setDemoOffered(!!o.demo_login))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [lockedEmail]);
+
+  const tryDemo = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      onSignedIn(await demoLogin());
+    } catch (err) {
+      setError(authErrorMessage(err));
+      setBusy(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -186,6 +211,15 @@ export function LoginForm({ onSignedIn, onForgot, onRegister, lockedEmail, onSwi
           Sign in
         </SubmitButton>
       </form>
+      {demoOffered && (
+        <div className="auth-demo">
+          <button type="button" className="auth-demo-button" onClick={tryDemo} disabled={busy}>
+            <Presentation size={17} aria-hidden="true" />
+            Try the demo
+          </button>
+          <p>A practice account with its own empty records. Not for real patients.</p>
+        </div>
+      )}
       {lockedEmail ? (
         <p className="auth-foot">
           Not you?{" "}

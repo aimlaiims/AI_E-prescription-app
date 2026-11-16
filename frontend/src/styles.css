@@ -1696,6 +1696,30 @@ kbd {
 .auth-error { border: 1px solid var(--maroon); background: var(--maroon-soft); color: var(--maroon); }
 .auth-success { border: 1px solid var(--sage); background: var(--sage-soft); color: var(--sage); }
 
+/* "Try the demo" (only while the server has DEMO_LOGIN on). */
+.auth-demo {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.auth-demo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border: 1px solid var(--brand);
+  border-radius: 99px;
+  background: var(--paper-raised);
+  color: var(--brand-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+.auth-demo-button:disabled { opacity: 0.6; cursor: progress; }
+.auth-demo p { margin: 0; color: var(--ink-soft); font-size: 13px; }
 .auth-foot { margin: 18px 0 0; color: var(--ink-soft); font-size: 13px; text-align: center; }
 
 /* Session ended mid-prescription: sign in again over the (kept) form. */

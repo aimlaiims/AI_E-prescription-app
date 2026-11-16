@@ -13,6 +13,7 @@ from .config import settings
 from .database import get_db
 from .models import Doctor
 from .services import auth as auth_service
+from .services import demo
 
 SESSION_COOKIE = "cvf_session"
 
@@ -54,7 +55,8 @@ def clear_session_cookie(response: Response, request: Request):
 
 def current_doctor(request: Request, db: Session = Depends(get_db)) -> Doctor:
     doctor = auth_service.doctor_for_token(db, request.cookies.get(SESSION_COOKIE))
-    if doctor is None:
+    # A demo session ends as soon as DEMO_LOGIN is turned off.
+    if doctor is None or (demo.is_demo(doctor) and not settings.DEMO_LOGIN):
         raise HTTPException(401, UNAUTHENTICATED)
     return doctor
 

@@ -56,6 +56,7 @@ after every change.
 
 | Variable | Purpose |
 |---|---|
+| `DEMO_LOGIN` | `true`: a **Try the demo** button on the sign-in screen (a demo doctor with its own empty department, never real patients). Off by default; set back to `false` and restart after the demo |
 | `WHISPER_BACKEND` | `groq` (default) or `local` (faster-whisper on this machine; on an NVIDIA GPU: `LOCAL_WHISPER_MODEL=large-v3`, `LOCAL_WHISPER_DEVICE=cuda`) |
 | `GROQ_API_KEY` | Groq speech-to-text |
 | `GEMINI_API_KEY` | Gemini field extraction |

@@ -170,6 +170,14 @@ export async function getMe() {
 export const login = (email, password, remember) =>
   postJson("/auth/login", { email, password, remember });
 export const logout = () => postJson("/auth/logout");
+// "Try the demo" (backend services/demo.py): offered only when the server has
+// DEMO_LOGIN on; any failure to ask means no button.
+export async function getSignInOptions() {
+  const res = await fetch(`${BASE}/auth/options`);
+  if (!res.ok) throw await parseApiError(res);
+  return res.json();
+}
+export const demoLogin = () => postJson("/auth/demo");
 export const forgotPassword = (email) => postJson("/auth/forgot", { email });
 // Registration with a one-time code from the administrator.
 export const checkRegistrationCode = (code) => postJson("/auth/register/check", { code });

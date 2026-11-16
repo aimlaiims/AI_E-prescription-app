@@ -12,7 +12,7 @@ from ..schemas import (
 )
 from ..security import SESSION_COOKIE, clear_session_cookie, current_doctor, set_session_cookie
 from ..services import auth as auth_service
-from ..services import registration
+from ..services import demo, registration
 from ..services.email import send_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -97,6 +97,23 @@ def login(req: LoginRequest, request: Request, response: Response, db: Session =
     auth_service.login_by_email.clear(email_key)
     token, expires = auth_service.create_session(db, doctor, remember=req.remember)
     set_session_cookie(response, request, token, expires, remember=req.remember)
+    return profile(doctor)
+
+
+@router.get("/options")
+def sign_in_options():
+    """What the sign-in screen offers (public)."""
+    return {"demo_login": settings.DEMO_LOGIN}
+
+
+@router.post("/demo")
+def demo_login(request: Request, response: Response, db: Session = Depends(get_db)):
+    """Sign in as the demo doctor (services/demo.py), when DEMO_LOGIN is on."""
+    doctor = demo.demo_doctor(db) if settings.DEMO_LOGIN else None
+    if doctor is None or not doctor.is_active:
+        raise HTTPException(404, {"error_code": "not_found", "message": "Not found."})
+    token, expires = auth_service.create_session(db, doctor, remember=False)
+    set_session_cookie(response, request, token, expires, remember=False)
     return profile(doctor)
 
 

@@ -8,6 +8,10 @@ Run the manual tests on the machine and browser that will be used for the demo
 (**Chrome or Edge**), including once **through the ngrok URL**.
 
 ## 0. Accounts
+- [ ] Demo button (only for a demo): `DEMO_LOGIN=true` in `backend\.env`, restart → the sign-in
+      screen shows **Try the demo** → it opens the form as "Dr. Demo Doctor", printouts say
+      "ENT Department (demo)", Past prescriptions shows none of ENT's → set it back to `false`,
+      restart → the button is gone and an open demo tab is asked to sign in
 - [ ] `python -m tools.create_admin --email … --name …` → sign in with that email; the
       navbar shows **Accounts**; letterhead shows "ENT Department · …"
 - [ ] Running `create_admin` again with another email refuses ("There is already an
