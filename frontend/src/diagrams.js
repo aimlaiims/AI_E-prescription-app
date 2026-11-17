@@ -7,8 +7,8 @@ import { ART } from "./diagramArt.js";
 export const DIAGRAM_WIDTH = 1000;
 
 export const DIAGRAMS = {
-  "tm-right": { label: "Tympanic membrane, right", short: "Right ear", version: 1, height: 1000 },
-  "tm-left": { label: "Tympanic membrane, left", short: "Left ear", version: 1, height: 1000 },
+  "tm-right": { label: "Tympanic membrane, right", short: "Right tympanic membrane", version: 1, height: 1000 },
+  "tm-left": { label: "Tympanic membrane, left", short: "Left tympanic membrane", version: 1, height: 1000 },
   nose: { label: "Nose", short: "Nose", version: 1, height: 900 },
   "oral-cavity": { label: "Oral cavity", short: "Oral cavity", version: 1, height: 1100 },
   "floor-of-mouth": { label: "Floor of mouth", short: "Floor of mouth", version: 1, height: 850 },

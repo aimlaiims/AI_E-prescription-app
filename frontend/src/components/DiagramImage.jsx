@@ -28,6 +28,9 @@ export default function DiagramImage({ diagram, version, strokes = [], svgRef, c
       )}
       <g className="diagram-ink">
         {strokes.map((s, i) => (
+          <path key={`h${i}`} d={strokePath(s.points)} className="ink-halo" strokeWidth={s.width + 4} />
+        ))}
+        {strokes.map((s, i) => (
           <path key={i} d={strokePath(s.points)} className={`ink ink-${s.color}`} strokeWidth={s.width} />
         ))}
       </g>
