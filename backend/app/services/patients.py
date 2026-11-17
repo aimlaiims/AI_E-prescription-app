@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..clock import to_local_iso
+from . import diagrams
 from ..models import AccessLog, ClinicalForm, Doctor, Patient
 
 # "ENT-000123", "ent 123", "000123", "123"
@@ -140,5 +141,7 @@ def visit(form: ClinicalForm) -> dict:
         "medications": form.medications or "",
         "advice": form.advice or "",
         "raw_transcript_log": form.raw_transcript_log or "",
+        # Examination diagrams drawn on (not printed; shown in history).
+        "drawings": [diagrams.stored(d) for d in form.drawings],
         "created_at": to_local_iso(form.created_at) if form.created_at else None,
     }

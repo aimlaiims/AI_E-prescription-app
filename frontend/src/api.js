@@ -89,8 +89,10 @@ export async function extractFields(transcript, currentState, targetField = null
 // { newPatient: true } (register a new patient even though a likely
 // duplicate exists). Neither: the server registers a new patient, or answers
 // "possible_duplicate" with `detail.candidates` for the doctor to choose.
+// `drawings`: examination diagrams drawn on ([{ diagram, version, strokes }],
+// diagrams.js drawingsForSave), saved with the visit.
 // Returns { pid, saved_at, patient }.
-export async function saveForm(state, rawTranscriptLog, link = {}) {
+export async function saveForm(state, rawTranscriptLog, link = {}, drawings = []) {
   const res = await fetch(`${BASE}/forms`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -99,6 +101,7 @@ export async function saveForm(state, rawTranscriptLog, link = {}) {
       raw_transcript_log: rawTranscriptLog,
       patient_id: link.patientId ?? null,
       new_patient: !!link.newPatient,
+      drawings,
     }),
   });
   if (!res.ok) throw await toApiError(res);

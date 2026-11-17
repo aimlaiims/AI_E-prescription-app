@@ -237,6 +237,19 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
 - [ ] Tablet, portrait and landscape: the list fits, every tick is easy to hit; after Save
       the button is gone
 
+## 6e. Examination diagrams (under On examination)
+- [ ] Tap **Throat** → full screen, tabs Oral cavity / Floor of mouth / Side view / Larynx;
+      the page does not move while drawing with a finger
+- [ ] Red pen: circle a tonsil; Blue: a line; switch to Larynx, draw → a dot on both tabs;
+      Eraser: touch one line → it goes; Undo → it is back; Done → two thumbnails, "Throat 2"
+- [ ] Tap a thumbnail → opens at that diagram; erase everything there, Done → its thumbnail goes
+- [ ] Draw, then Cancel → asked first; Cancel with nothing drawn → closes at once
+- [ ] Stylus (if the tablet has one): write with the hand resting on the screen → only the
+      stylus draws; without a stylus, a finger draws
+- [ ] Save → region buttons gone, thumbnails stay and open to look at only; Print shows no
+      diagram; Past visits → the visit → Diagrams → tap → full screen, Esc / Close
+- [ ] Tablet portrait and landscape, phone: the whole diagram fits, nothing distorted
+
 ## 6b. Ubuntu server
 Follow `deploy/README.md` step 8 after any change in `deploy/`. With speech on the GPU:
 the backend log says "Local Whisper large-v3 loaded on cuda" within a minute of a restart,

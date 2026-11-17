@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 # The single source of truth for which fields exist and their type/description.
@@ -77,9 +77,24 @@ class ExtractResponse(BaseModel):
     unmatched_transcript_note: str = ""
 
 
+class DrawingStroke(BaseModel):
+    """One pen stroke on an examination diagram (services/diagrams.py)."""
+    color: Literal["black", "red", "blue"]
+    width: float = Field(ge=1, le=40)
+    points: list[int] = Field(min_length=2, max_length=40000)  # x, y, x, y, ...
+
+
+class Drawing(BaseModel):
+    diagram: str = Field(max_length=40)
+    version: int = Field(ge=1)
+    strokes: list[DrawingStroke] = Field(min_length=1, max_length=600)
+
+
 class SaveFormRequest(BaseModel):
     state: FormState
     raw_transcript_log: str = ""
+    # Examination diagrams drawn on during the visit; only those with marks.
+    drawings: list[Drawing] = Field(default_factory=list, max_length=20)
     # The patient this visit belongs to (picked with "Find patient", or chosen
     # when the save asked "same patient?"). None: a new patient is registered,
     # unless likely duplicates exist and `new_patient` isn't set.

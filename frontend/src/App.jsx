@@ -21,6 +21,8 @@ import SaveButton from "./components/SaveButton.jsx";
 import RecordsDialog from "./components/RecordsDialog.jsx";
 import AccountsDialog from "./components/AccountsDialog.jsx";
 import PacDialog from "./components/PacDialog.jsx";
+import ExamDiagrams from "./components/ExamDiagrams.jsx";
+import DiagramPad from "./components/DiagramPad.jsx";
 import { FindPatientDialog, PatientHistoryDialog, SamePatientDialog } from "./components/PatientDialogs.jsx";
 import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
 import { BRAND, loadLogoDataUri } from "./branding.js";
@@ -37,6 +39,7 @@ import {
 import { localToday as today } from "./dates.js";
 import { buildPrintHtml } from "./printTemplate.js";
 import { mergePending, splitForAcceptAll, withPendingApplied } from "./pendingUpdates.js";
+import { drawingsForSave } from "./diagrams.js";
 
 // Fields with typing suggestions, and which department list they use.
 const SUGGESTIONS = { diagnosis: "diagnoses", medications: "medications" };
@@ -63,6 +66,10 @@ export default function App({ profile, onSignOut }) {
   const [patient, setPatient] = useState(null);
   const [findOpen, setFindOpen] = useState(false);
   const [pacOpen, setPacOpen] = useState(false);
+  // Examination diagrams drawn on: { diagram: strokes } (diagrams.js), and
+  // the drawing screen while open: { keys, start, title }.
+  const [drawings, setDrawings] = useState({});
+  const [diagramPad, setDiagramPad] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   // { candidates, print } while the save waits for "same patient?".
   const [samePatient, setSamePatient] = useState(null);
@@ -279,7 +286,7 @@ export default function App({ profile, onSignOut }) {
     const busy = win ? setPrinting : setSaving;
     busy(true);
     try {
-      const res = await saveForm(state, transcriptLog.join("\n---\n"), link);
+      const res = await saveForm(state, transcriptLog.join("\n---\n"), link, drawingsForSave(drawings));
       setSavedPid(res.pid);
       setPatient(res.patient);
       if (win) writePrint(win, res.pid, res.patient.label);
@@ -360,7 +367,23 @@ export default function App({ profile, onSignOut }) {
     setSavedPid(null);
     setPatient(null);
     setSamePatient(null);
+    setDrawings({});
+    setDiagramPad(null);
     setError("");
+  };
+
+  // Done on the drawing screen: diagrams left without marks are dropped.
+  const keepDrawings = (changed) => {
+    setDiagramPad(null);
+    if (lockedRef.current) return;
+    setDrawings((prev) => {
+      const next = { ...prev };
+      for (const [k, strokes] of Object.entries(changed)) {
+        if (strokes.length) next[k] = strokes;
+        else delete next[k];
+      }
+      return next;
+    });
   };
 
   // Printed letterhead: institution seal + the signed-in doctor's details.
@@ -370,6 +393,7 @@ export default function App({ profile, onSignOut }) {
   const hasUnsavedWork =
     !locked &&
     (pending.length > 0 ||
+      Object.keys(drawings).length > 0 ||
       Object.entries(state).some(([k, v]) => k !== "date" && String(v ?? "").trim()));
   const handleSignOut = () => {
     if (hasUnsavedWork && !window.confirm(SIGN_OUT_UNSAVED_MESSAGE)) return;
@@ -523,7 +547,13 @@ export default function App({ profile, onSignOut }) {
           </h2>
           <div className="field-grid clinical-grid">
             <FormField {...commonFieldProps("chief_complaints")} />
-            <FormField {...commonFieldProps("on_examination")} />
+            <FormField {...commonFieldProps("on_examination")}>
+              <ExamDiagrams
+                drawings={drawings}
+                readOnly={locked}
+                onOpen={(keys, start, title) => setDiagramPad({ keys, start, title })}
+              />
+            </FormField>
             <FormField {...commonFieldProps("diagnosis")} />
             <FormField {...commonFieldProps("investigation")}>
               {!locked && (
@@ -612,6 +642,15 @@ export default function App({ profile, onSignOut }) {
           investigation={state.investigation}
           onApply={(value) => handleFieldChange("investigation", value)}
           onClose={() => setPacOpen(false)}
+        />
+      )}
+      {diagramPad && (
+        <DiagramPad
+          {...diagramPad}
+          drawings={drawings}
+          readOnly={locked}
+          onDone={keepDrawings}
+          onClose={() => setDiagramPad(null)}
         />
       )}
       {historyOpen && patient && (

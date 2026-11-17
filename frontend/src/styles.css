@@ -54,6 +54,14 @@
   --amber-soft: #fffbeb;
   /* Text on --amber-soft (plain --amber is too light for small text there). */
   --amber-text: #92400e;
+  /* Examination diagrams are a white sheet with dark lines in both themes
+     (same values in dark, so not repeated there); the three pen colours. */
+  --diagram-paper: #ffffff;
+  --diagram-line: #1f2937;
+  --diagram-line-fine: #4b5563;
+  --pen-black: #111827;
+  --pen-red: #dc2626;
+  --pen-blue: #1d4ed8;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -1943,6 +1951,158 @@ kbd {
 .pac-type input,
 .pac-test input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--brand); }
 .pac-when { color: var(--ink-soft); font-size: 13px; }
+
+/* Examination diagrams: region buttons under On examination, thumbnails,
+   and the full-screen drawing screen (DiagramPad). */
+.exam-diagrams { display: grid; gap: 10px; margin-top: 8px; }
+.exam-diagram-regions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.exam-diagrams-label {
+  color: var(--label);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.diagram-region { padding: 6px 12px; font-size: 13px; }
+.diagram-region.has-drawing { border-color: var(--brand); color: var(--brand-text); }
+.diagram-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-size: 12px;
+}
+.diagram-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.diagram-thumb {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.diagram-image { display: block; width: 100%; height: auto; border-radius: var(--radius-sm); }
+.diagram-paper { fill: var(--diagram-paper); }
+.diagram-art .a,
+.diagram-art .f,
+.diagram-art .d { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.diagram-art .a { stroke: var(--diagram-line); stroke-width: 1.6px; }
+.diagram-art .f { stroke: var(--diagram-line-fine); stroke-width: 1px; }
+.diagram-art .d { stroke: var(--diagram-line-fine); stroke-width: 1px; stroke-dasharray: 6 5; }
+.diagram-art .p { fill: var(--diagram-paper); }
+.diagram-art .t,
+.diagram-missing { fill: var(--diagram-line); font: 600 48px var(--font-body); }
+.ink { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.ink-black { stroke: var(--pen-black); }
+.ink-red { stroke: var(--pen-red); }
+.ink-blue { stroke: var(--pen-blue); }
+
+/* Above the other dialogs (history opens drawings over itself), below the
+   sign-in-again overlay. */
+.diagram-pad-backdrop { position: fixed; inset: 0; z-index: 55; display: flex; background: var(--page-bg); }
+.diagram-pad {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  outline: none;
+  padding: 8px 16px max(12px, env(safe-area-inset-bottom));
+  color: var(--ink);
+}
+.diagram-pad-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-bottom: 8px;
+}
+.diagram-pad-header h2 { margin: 0; color: var(--heading); font-size: 18px; }
+.diagram-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.diagram-tab {
+  position: relative;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--control-line);
+  border-radius: 999px;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.diagram-tab[aria-pressed="true"] { border-color: var(--brand); background: var(--brand); color: var(--on-brand); }
+.diagram-tab-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--sage);
+  vertical-align: middle;
+}
+/* The picture fills the space left, whole and undistorted: as wide as the
+   stage allows, or as high (--diagram-ratio = width / height, set inline). */
+.diagram-stage {
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.diagram-stage .diagram-image {
+  width: min(100cqw, 100cqh * var(--diagram-ratio, 1));
+  height: auto;
+  box-shadow: var(--pad-shadow);
+}
+/* Drawing: the page must not scroll or zoom under the pen or finger. */
+.diagram-image.is-drawing { touch-action: none; user-select: none; -webkit-user-select: none; cursor: crosshair; }
+.diagram-image.tool-eraser { cursor: cell; }
+.diagram-note { margin: 8px 0 0; color: var(--amber-text); font-size: 14px; text-align: center; }
+.diagram-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 10px;
+}
+.diagram-tools,
+.diagram-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.diagram-actions { margin-left: auto; }
+.pen-button {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--control-line);
+  border-radius: 50%;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.pen-button[aria-pressed="true"] { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand); }
+.pen-button:disabled { opacity: 0.45; }
+.pen-swatch { width: 24px; height: 24px; border-radius: 50%; }
+.pen-black .pen-swatch { background: var(--pen-black); }
+.pen-red .pen-swatch { background: var(--pen-red); }
+.pen-blue .pen-swatch { background: var(--pen-blue); }
 
 .patient-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .patient-card {

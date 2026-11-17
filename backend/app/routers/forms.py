@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 
 from ..clock import local_today, to_local_iso
 from ..database import get_db
-from ..models import ClinicalForm, Doctor, Patient, max_length
+from ..models import ClinicalForm, Doctor, ExamDrawing, Patient, max_length
 from ..security import current_doctor
 from ..schemas import SaveFormRequest, REQUIRED_FIELDS, FORM_FIELD_SPECS
+from ..services import diagrams
 from ..services import patients as patient_service
 
 router = APIRouter(prefix="/api/forms", tags=["forms"])
@@ -100,6 +101,8 @@ def _patient_for_visit(db: Session, doctor: Doctor, req: SaveFormRequest, state:
 def save_form(req: SaveFormRequest, db: Session = Depends(get_db), doctor: Doctor = Depends(current_doctor)):
     state = req.state.model_dump()
     _validate(state)
+    if problem := diagrams.problem(req.drawings):
+        raise _error(400, "validation", problem)
     patient = _patient_for_visit(db, doctor, req, state)
 
     # The database's unique constraint is the real guard: two saves at the same
@@ -111,6 +114,10 @@ def save_form(req: SaveFormRequest, db: Session = Depends(get_db), doctor: Docto
             pid=_generate_pid(), doctor_id=doctor.id, department_id=doctor.department_id,
             patient_id=patient.id, raw_transcript_log=req.raw_transcript_log, **state
         )
+        # Saved together with the visit: all or nothing.
+        record.drawings = [
+            ExamDrawing(diagram=d.diagram, version=d.version, strokes=diagrams.to_json(d)) for d in req.drawings
+        ]
         db.add(record)
         try:
             db.commit()

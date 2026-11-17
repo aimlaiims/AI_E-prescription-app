@@ -199,5 +199,25 @@ class ClinicalForm(Base):
     updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
 
 
+class ExamDrawing(Base):
+    """What the doctor drew on one examination diagram during a visit
+    (services/diagrams.py). Only diagrams with marks are stored. `strokes` is
+    JSON: [{"color", "width", "points": [x, y, x, y, ...]}] in the diagram's own
+    coordinates, so the picture is redrawn exactly; `version` names the
+    artwork it was drawn on (old artwork is kept when a diagram is redrawn)."""
+
+    __tablename__ = "exam_drawings"
+    __table_args__ = (UniqueConstraint("form_id", "diagram", name="uq_exam_drawings_form_diagram"),)
+
+    id = Column(Integer, primary_key=True)
+    form_id = Column(Integer, ForeignKey("clinical_forms.id"), index=True, nullable=False)
+    diagram = Column(String(40), nullable=False)  # e.g. "tm-right"
+    version = Column(Integer, nullable=False)
+    strokes = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=_utcnow)
+
+
 ClinicalForm.patient = relationship(Patient, lazy="joined")
 ClinicalForm.doctor = relationship(Doctor, lazy="joined")
+# In the order they were drawn on the form (the form's diagram order).
+ClinicalForm.drawings = relationship(ExamDrawing, order_by=ExamDrawing.id, lazy="selectin")

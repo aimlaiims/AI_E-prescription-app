@@ -5,6 +5,8 @@ import { formatDate } from "../printTemplate.js";
 import { FIELD_SPECS } from "../fieldSpecs.js";
 import { doctorDisplayName } from "../doctor.js";
 import { useDialog } from "../useDialog.js";
+import DiagramPad from "./DiagramPad.jsx";
+import { DiagramThumbs } from "./ExamDiagrams.jsx";
 
 // Patients shared by the department (backend: routers/patients.py):
 //   FindPatientDialog  — search by name, Patient ID, OPD No. or city; pick one.
@@ -154,6 +156,8 @@ const VISIT_SECTIONS = ["chief_complaints", "on_examination", "diagnosis", "inve
 export function PatientHistoryDialog({ patientId, onClose }) {
   const [data, setData] = useState({ status: "loading" });
   const [open, setOpen] = useState(null);
+  // { visit, start }: a visit's diagrams, full screen.
+  const [viewing, setViewing] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -215,6 +219,12 @@ export function PatientHistoryDialog({ patientId, onClose }) {
                       <p>{v[k]}</p>
                     </section>
                   ))}
+                  {v.drawings?.length > 0 && (
+                    <section>
+                      <h3>Diagrams</h3>
+                      <DiagramThumbs items={v.drawings} onOpen={(start) => setViewing({ visit: v, start })} />
+                    </section>
+                  )}
                   <p className="visit-ref">
                     Reference ID <code>{v.pid}</code>
                   </p>
@@ -224,6 +234,17 @@ export function PatientHistoryDialog({ patientId, onClose }) {
           );
         })}
       </ol>
+      {viewing && (
+        <DiagramPad
+          readOnly
+          title={`Diagrams · ${formatDate(viewing.visit.date) || "No date"}`}
+          keys={viewing.visit.drawings.map((d) => d.diagram)}
+          start={viewing.start}
+          drawings={Object.fromEntries(viewing.visit.drawings.map((d) => [d.diagram, d.strokes]))}
+          versions={Object.fromEntries(viewing.visit.drawings.map((d) => [d.diagram, d.version]))}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </Shell>
   );
 }
