@@ -59,26 +59,6 @@
   --diagram-paper: #ffffff;
   --diagram-line: #2b2324;
   --diagram-line-fine: #5b4b4c;
-  /* Diagram fills (diagramArt.js classes): skin, lip, mucosa, tongue,
-     tonsil, airway, tooth, bone, cartilage, eardrum, muscle, sinus, eye. */
-  --dg-skin: #f6dccb;
-  --dg-skin-shade: #ebc2a6;
-  --dg-lip: #d98c88;
-  --dg-mucosa: #f4c1bd;
-  --dg-mucosa-deep: #e39a96;
-  --dg-palate: #f7d3ce;
-  --dg-tongue: #eba7a3;
-  --dg-tonsil: #d97a76;
-  --dg-cavity: #5b2b31;
-  --dg-tooth: #fffdf5;
-  --dg-bone: #f1e6cc;
-  --dg-cartilage: #dce6ee;
-  --dg-eardrum: #ece3dc;
-  --dg-pars-flaccida: #f7f1ec;
-  --dg-muscle: #dc958c;
-  --dg-sinus: #d3dfeb;
-  --dg-iris: #8a6a4e;
-  --dg-vein: #7f8fb5;
   --pen-black: #111827;
   --pen-red: #dc2626;
   --pen-blue: #1d4ed8;
@@ -2026,28 +2006,7 @@ kbd {
 .diagram-art .a { stroke: var(--diagram-line); stroke-width: 1.6px; }
 .diagram-art .f { stroke: var(--diagram-line-fine); stroke-width: 1px; }
 .diagram-art .d { stroke: var(--diagram-line-fine); stroke-width: 1px; stroke-dasharray: 6 5; }
-.diagram-art .vn { fill: none; stroke: var(--dg-vein); stroke-width: 2.5px; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-/* Fills after the outline rules: "a sk" = outlined and filled. */
-.diagram-art .p,
-.diagram-art .wh,
-.diagram-art .lt { fill: var(--diagram-paper); }
-.diagram-art .sk { fill: var(--dg-skin); }
-.diagram-art .sk2 { fill: var(--dg-skin-shade); }
-.diagram-art .lp { fill: var(--dg-lip); }
-.diagram-art .mu { fill: var(--dg-mucosa); }
-.diagram-art .md { fill: var(--dg-mucosa-deep); }
-.diagram-art .pl { fill: var(--dg-palate); }
-.diagram-art .tg { fill: var(--dg-tongue); }
-.diagram-art .tn { fill: var(--dg-tonsil); }
-.diagram-art .cv { fill: var(--dg-cavity); }
-.diagram-art .th { fill: var(--dg-tooth); }
-.diagram-art .bn { fill: var(--dg-bone); }
-.diagram-art .cg { fill: var(--dg-cartilage); }
-.diagram-art .tm { fill: var(--dg-eardrum); }
-.diagram-art .pf { fill: var(--dg-pars-flaccida); }
-.diagram-art .ms { fill: var(--dg-muscle); }
-.diagram-art .sn { fill: var(--dg-sinus); }
-.diagram-art .ir { fill: var(--dg-iris); }
+.diagram-art .wh { fill: var(--diagram-paper); }
 .diagram-art .t,
 .diagram-missing { fill: var(--diagram-line); font: 600 48px var(--font-body); }
 .ink,

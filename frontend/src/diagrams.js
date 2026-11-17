@@ -2,20 +2,20 @@
 // On examination). Saved with the visit, not printed, shown in history.
 // The names and versions exist twice — here and in backend
 // services/diagrams.py — change both or neither. Artwork: diagramArt.js.
-import { ART } from "./diagramArt.js";
+import { ART, HEIGHT } from "./diagramArt.js";
 
 export const DIAGRAM_WIDTH = 1000;
 
 export const DIAGRAMS = {
-  "tm-right": { label: "Tympanic membrane, right", short: "Right tympanic membrane", version: 1, height: 1000 },
-  "tm-left": { label: "Tympanic membrane, left", short: "Left tympanic membrane", version: 1, height: 1000 },
-  nose: { label: "Nose", short: "Nose", version: 1, height: 900 },
-  "oral-cavity": { label: "Oral cavity", short: "Oral cavity", version: 1, height: 1100 },
-  "floor-of-mouth": { label: "Floor of mouth", short: "Floor of mouth", version: 1, height: 850 },
-  oropharynx: { label: "Oral cavity and oropharynx, side view", short: "Side view", version: 1, height: 1100 },
-  larynx: { label: "Larynx", short: "Larynx", version: 1, height: 1000 },
-  "neck-right": { label: "Head and neck, right side", short: "Right side", version: 1, height: 1000 },
-  "neck-left": { label: "Head and neck, left side", short: "Left side", version: 1, height: 1000 },
+  "tm-right": { label: "Tympanic membrane, right", short: "Right tympanic membrane", version: 1, height: HEIGHT["tm-right"] },
+  "tm-left": { label: "Tympanic membrane, left", short: "Left tympanic membrane", version: 1, height: HEIGHT["tm-left"] },
+  nose: { label: "Nose", short: "Nose", version: 1, height: HEIGHT["nose"] },
+  "oral-cavity": { label: "Oral cavity", short: "Oral cavity", version: 1, height: HEIGHT["oral-cavity"] },
+  "floor-of-mouth": { label: "Floor of mouth", short: "Floor of mouth", version: 1, height: HEIGHT["floor-of-mouth"] },
+  oropharynx: { label: "Oral cavity and oropharynx, side view", short: "Side view", version: 1, height: HEIGHT["oropharynx"] },
+  larynx: { label: "Larynx", short: "Larynx", version: 1, height: HEIGHT["larynx"] },
+  "neck-right": { label: "Head and neck, right side", short: "Right side", version: 1, height: HEIGHT["neck-right"] },
+  "neck-left": { label: "Head and neck, left side", short: "Left side", version: 1, height: HEIGHT["neck-left"] },
 };
 
 export const REGIONS = [

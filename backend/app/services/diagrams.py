@@ -28,7 +28,7 @@ COLORS = ("black", "red", "blue")
 # never a real drawing.
 MAX_STROKES = 600
 MAX_POINTS = 20000  # x, y pairs per diagram
-COORD_MIN, COORD_MAX = -100, 2100  # every artwork is 1000 wide, at most 1200 high
+COORD_MIN, COORD_MAX = -100, 2100  # every picture is 1000 wide, under 2000 high
 
 
 def problem(drawings) -> str | None:
