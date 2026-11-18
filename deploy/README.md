@@ -168,6 +168,7 @@ to visit" page: tap **Visit Site** once.
 | Restart the app | `sudo systemctl restart cvf-backend` |
 | Backups | `sudo ls -lt /var/backups/cvf` |
 | Back up now | `sudo systemctl start cvf-backup` |
+| Report files (uploads) | `/var/lib/cvf/reports`; space left: `df -h /var/lib/cvf` |
 
 **Copy the backups off this machine** (one PC is one disk): for example, plug in a USB
 drive once a week and run `sudo rsync -a /var/backups/cvf/ /media/$USER/YOUR-USB/cvf-backups/`.

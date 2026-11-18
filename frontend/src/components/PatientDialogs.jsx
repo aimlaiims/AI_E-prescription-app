@@ -7,6 +7,7 @@ import { doctorDisplayName } from "../doctor.js";
 import { useDialog } from "../useDialog.js";
 import DiagramPad from "./DiagramPad.jsx";
 import { DiagramThumbs } from "./ExamDiagrams.jsx";
+import VisitReports from "./VisitReports.jsx";
 
 // Patients shared by the department (backend: routers/patients.py):
 //   FindPatientDialog  — search by name, Patient ID, OPD No. or city; pick one.
@@ -225,6 +226,16 @@ export function PatientHistoryDialog({ patientId, onClose }) {
                       <DiagramThumbs items={v.drawings} onOpen={(start) => setViewing({ visit: v, start })} />
                     </section>
                   )}
+                  <section>
+                    <h3>Reports</h3>
+                    <VisitReports
+                      pid={v.pid}
+                      reports={v.reports || []}
+                      onChange={(next) =>
+                        setData((d) => ({ ...d, visits: d.visits.map((x) => (x.pid === v.pid ? { ...x, reports: next } : x)) }))
+                      }
+                    />
+                  </section>
                   <p className="visit-ref">
                     Reference ID <code>{v.pid}</code>
                   </p>

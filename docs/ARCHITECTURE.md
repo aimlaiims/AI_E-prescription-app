@@ -184,6 +184,18 @@ No. that is taken). Migration `0003` made each existing prescription its own pat
 
 Audio is **not** stored: it is held in memory, sent to Groq, discarded. Transcripts are.
 
+**Reports** (`reports`, migration `0007`; `services/reports.py`): files added to a saved
+visit — test reports, endoscopy videos, clinical photos — after saving, also to earlier
+visits. Not printed. The file is on disk under `REPORTS_DIR` with a random name
+(`2026/11/<32 hex>`); the row keeps `category` (key from
+`app/report_types/<DEPT>.json`, which lists the categories and tests; never rename a used
+key), `test` (one of the list or typed: "Other"), `file_name` (as on the device),
+`media_type` (from the file's first bytes, never from the name or the browser), `size`,
+`uploaded_by`. Only PDF, pictures and videos are accepted; the largest is
+`REPORT_MAX_FILE_MB` (200); no limit per visit; refused when the disk would keep less than
+`REPORTS_MIN_FREE_MB`. The uploader may remove their own (file deleted, logged). The backup
+tool copies new files into `<backup folder>/reports`.
+
 ## 6. Hands-free confirm (Web Speech API)
 
 Separate from the Whisper/Gemini pipeline: Chrome/Edge `SpeechRecognition`, continuous,
@@ -289,12 +301,16 @@ Chrome — checked by rendering PDFs for 1–60 lines). Dates use fixed month na
 | GET | `/api/forms/{pid}` | the visit as stored (+ `patient_label`, `doctor_name`) — the department's (another department's = 404); logged |
 | GET | `/api/patients` | `?q=` name / Patient ID / OPD No. / city → `{items[]}` (summaries: label, details, visit count, last visit); latest without `q` |
 | GET | `/api/patients/{id}` | `{patient, visits[]}` newest first; logged |
+| GET | `/api/reports/types` | `{categories: [{key, label, tests}], max_mb}` for the doctor's department |
+| POST | `/api/forms/{pid}/reports` | `?category=&test=&name=`, body = the file itself (streamed to disk) → the report; 400 `validation`, 404, 413 `too_large` (+ `max_mb`), 415 `unsupported_type`, 507 `storage_full`; logged |
+| GET | `/api/reports/{id}/file` | the file, as its detected type, `nosniff`, ranges (video seeking); `?download=1` saves it; logged once per opening |
+| DELETE | `/api/reports/{id}` | only the one who added it (403 otherwise); logged |
 | GET | `/api/forms` | the department's; `?q=` (name, Patient ID, OPD No. or Reference ID, partial, case-insensitive) `&date_from=&date_to=` (YYYY-MM-DD) `&limit=` (≤100, default 50) `&offset=` → `{items[], total, has_more}`, newest visit first |
 
 Every route except `health` and `auth/*` needs a signed-in doctor (401 `unauthenticated`
 otherwise); records and patients are filtered to that doctor's **department**.
 
-There is **no update or delete endpoint**: a saved prescription is final and the form
+There is **no update or delete endpoint** for a visit (reports are added to it, not part of it): a saved prescription is final and the form
 locks after save, so a printout always matches the stored record.
 Voice calls are **async all the way** (`AsyncGroq`, Gemini `client.aio`): waiting for a
 provider, for a retry, or for a turn in the queue holds no thread, so other requests

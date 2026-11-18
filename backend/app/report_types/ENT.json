@@ -1,0 +1,11 @@
+{
+  "_note": "What can be added to a visit as a report (services/reports.py). From the ENT department's notes of 2026-11-17. A category with tests also offers 'Other' (a name typed in). Keys are stored with each file: never change or remove one that has been used; labels and tests can change freely.",
+  "categories": [
+    {"key": "audiological", "label": "Audiological evaluation", "tests": ["PTA", "BERA", "OAE"]},
+    {"key": "dne", "label": "DNE (diagnostic nasal endoscopy)", "tests": []},
+    {"key": "vls", "label": "VLS (videolaryngoscopy)", "tests": []},
+    {"key": "clinical-picture", "label": "Clinical picture", "tests": []},
+    {"key": "radiological", "label": "Radiological", "tests": ["USG", "CT scan", "MRI", "Angiography", "PET CT"]},
+    {"key": "pathological", "label": "Pathological", "tests": ["HPE (histopathology)", "FNAC", "IHC"]}
+  ]
+}

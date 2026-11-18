@@ -13,6 +13,9 @@ been restored — see README "Database and backups".
 SQLite:      a .db file made with SQLite's own backup function (a plain file
              copy while the app is writing can be corrupt), then checked.
 PostgreSQL:  a .dump file made with pg_dump (installed with PostgreSQL).
+Reports:     the uploaded files (REPORTS_DIR) are copied into <folder>/reports;
+             only files not copied before (they never change once added).
+             A file removed in the app stays in the backup.
 """
 import argparse
 import os
@@ -88,6 +91,27 @@ def backup(database_url: str, folder: Path, keep: int) -> Path:
     return out
 
 
+def copy_reports(source: Path, folder: Path) -> int:
+    """New report files from `source` into folder/reports, same layout.
+    Returns how many were copied."""
+    if not source.is_dir():
+        return 0
+    target = folder / "reports"
+    copied = 0
+    for f in source.rglob("*"):
+        if not f.is_file():
+            continue
+        out = target / f.relative_to(source)
+        if out.is_file() and out.stat().st_size == f.stat().st_size:
+            continue
+        out.parent.mkdir(parents=True, exist_ok=True)
+        part = out.with_name(out.name + ".part")
+        shutil.copy2(f, part)
+        part.replace(out)
+        copied += 1
+    return copied
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Back up the database to a dated file.")
     parser.add_argument("--to", type=Path, default=DEFAULT_DIR, help="backup folder")
@@ -95,6 +119,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     out = backup(settings.DATABASE_URL, args.to, args.keep)
     print(f"Backup written: {out} ({out.stat().st_size:,} bytes)")
+    copied = copy_reports(Path(settings.REPORTS_DIR).resolve(), args.to)
+    print(f"Report files: {copied} new copied to {args.to / 'reports'}")
 
 
 if __name__ == "__main__":

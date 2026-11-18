@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import migrations
 from .config import settings
 from .database import engine
-from .routers import admin, auth, voice, forms, patients, vocabulary
+from .routers import admin, auth, voice, forms, patients, reports, vocabulary
 from .security import same_origin_guard
 from .services import transcription
 
@@ -41,6 +41,7 @@ app.include_router(patients.router)
 app.include_router(vocabulary.router)
 app.include_router(voice.router)
 app.include_router(forms.router)
+app.include_router(reports.router)
 
 
 @app.get("/api/health")

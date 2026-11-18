@@ -158,6 +158,7 @@ class AccessLog(Base):
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True, index=True)
     form_id = Column(Integer, ForeignKey("clinical_forms.id"), nullable=True)
     # view_patient | view_visit | create_patient | create_visit | update_patient
+    # | add_report | view_report | remove_report
     action = Column(String(30), nullable=False)
 
 
@@ -217,7 +218,30 @@ class ExamDrawing(Base):
     created_at = Column(DateTime, default=_utcnow)
 
 
+class Report(Base):
+    """A file added to a visit: a test report, an endoscopy video, a clinical
+    photo (services/reports.py). The file itself is on disk under REPORTS_DIR
+    with a random name; this row says what it is and who added it."""
+
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True)
+    form_id = Column(Integer, ForeignKey("clinical_forms.id"), index=True, nullable=False)
+    category = Column(String(40), nullable=False)  # e.g. "radiological" (report_types/<DEPT>.json)
+    test = Column(String(80), nullable=False, default="", server_default="")  # e.g. "MRI"
+    file_name = Column(String(200), nullable=False)  # as it was on the device
+    media_type = Column(String(60), nullable=False)  # from the file's content, not the browser
+    size = Column(Integer, nullable=False)  # bytes
+    path = Column(String(120), unique=True, nullable=False)  # inside REPORTS_DIR
+    uploaded_by = Column(Integer, ForeignKey("doctors.id"), nullable=False)
+    created_at = Column(DateTime, default=_utcnow)
+
+    uploader = relationship(Doctor, lazy="joined")
+
+
 ClinicalForm.patient = relationship(Patient, lazy="joined")
 ClinicalForm.doctor = relationship(Doctor, lazy="joined")
 # In the order they were drawn on the form (the form's diagram order).
 ClinicalForm.drawings = relationship(ExamDrawing, order_by=ExamDrawing.id, lazy="selectin")
+# In the order they were added.
+ClinicalForm.reports = relationship(Report, order_by=Report.id, lazy="selectin")

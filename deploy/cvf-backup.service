@@ -1,5 +1,6 @@
 # Daily database backup (run by cvf-backup.timer). Keeps 30 days in
-# /var/backups/cvf. Copy that folder off this machine too (see deploy/README.md).
+# /var/backups/cvf, plus every report file in /var/backups/cvf/reports.
+# Copy that folder off this machine too (see deploy/README.md).
 [Unit]
 Description=Prescription app database backup
 After=postgresql.service
@@ -9,6 +10,7 @@ Type=oneshot
 User=cvf
 Group=cvf
 WorkingDirectory=@APP_DIR@/backend
+Environment=REPORTS_DIR=/var/lib/cvf/reports
 ExecStart=@APP_DIR@/backend/venv/bin/python -m tools.backup_database --to /var/backups/cvf --keep 30
 NoNewPrivileges=yes
 ProtectSystem=strict

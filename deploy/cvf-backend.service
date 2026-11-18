@@ -22,6 +22,8 @@ Restart=always
 RestartSec=5
 # Speech models are downloaded to the app user's home on first use.
 Environment=HOME=/var/lib/cvf
+# Uploaded reports (the code folder is read-only to the service).
+Environment=REPORTS_DIR=/var/lib/cvf/reports
 
 # Hardening: read-only code and system, private /tmp, no new privileges.
 NoNewPrivileges=yes

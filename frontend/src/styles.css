@@ -2281,3 +2281,56 @@ kbd {
 }
 .code-status.is-done { background: var(--brand-soft); color: var(--brand-text); }
 .code-status.is-muted { background: var(--surface-muted); color: var(--ink-soft); }
+
+/* Reports added to a saved visit (VisitReports.jsx): the list, uploads in
+   progress, and the add panel. In the form and in the patient's history. */
+.visit-reports { display: grid; gap: 10px; justify-items: start; }
+.report-list { display: grid; gap: 6px; width: 100%; margin: 0; padding: 0; list-style: none; }
+.report-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 4px 4px 4px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+.report-item.has-error { border-color: var(--maroon); background: var(--maroon-soft); }
+.report-icon { flex: none; color: var(--ink-soft); }
+.report-text { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.report-open { color: var(--brand-text); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.report-open:hover { text-decoration: underline; }
+.report-name { font-weight: 600; overflow-wrap: anywhere; }
+.report-meta { color: var(--ink-soft); font-size: 13px; overflow-wrap: anywhere; }
+.report-item progress { width: 100%; height: 8px; accent-color: var(--brand); }
+.report-error { margin: 0; color: var(--maroon); font-size: 14px; }
+.report-add {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+.report-field { display: grid; gap: 4px; color: var(--label); font-size: 14px; font-weight: 600; }
+.report-field select,
+.report-field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--control-line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px; /* no zoom on iOS */
+  font-weight: 400;
+}
+.report-field select:focus-visible,
+.report-field input:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.report-add-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.report-add-actions label { cursor: pointer; }
+.report-add-actions label:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.report-add-actions label.is-disabled { opacity: 0.5; cursor: not-allowed; }
+.report-hint { margin: 0; color: var(--ink-soft); font-size: 13px; }

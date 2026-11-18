@@ -211,3 +211,53 @@ export const revokeCode = (id) => adminRequest("POST", `/codes/${id}/revoke`);
 export const deactivateAccount = (id) => adminRequest("POST", `/doctors/${id}/deactivate`);
 export const activateAccount = (id) => adminRequest("POST", `/doctors/${id}/activate`);
 export const sendPasswordLink = (id) => adminRequest("POST", `/doctors/${id}/password-link`);
+
+// --- Reports: files added to a saved visit (backend routers/reports.py) ---
+
+// { categories: [{ key, label, tests }], max_mb }. A category with tests also
+// takes a typed name ("Other").
+export async function getReportTypes() {
+  const res = await fetch(`${BASE}/reports/types`);
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
+// Sends the file itself as the body (the server writes it to disk as it
+// arrives). XMLHttpRequest, not fetch, for upload progress: onProgress(0..1).
+// Returns { promise (resolves to the stored report), abort }.
+export function uploadReport(pid, { category, test = "", file }, onProgress) {
+  const xhr = new XMLHttpRequest();
+  const promise = new Promise((resolve, reject) => {
+    const qs = new URLSearchParams({ category, test, name: file.name || "" });
+    xhr.open("POST", `${BASE}/forms/${encodeURIComponent(pid)}/reports?${qs}`);
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onload = async () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new ApiError("Unexpected answer", "unknown"));
+        }
+        return;
+      }
+      reject(await toApiError(new Response(xhr.responseText, { status: xhr.status })));
+    };
+    xhr.onerror = () => reject(new ApiError("Network error", "unavailable"));
+    xhr.onabort = () => reject(new ApiError("Stopped", "cancelled"));
+    xhr.send(file);
+  });
+  return { promise, abort: () => xhr.abort() };
+}
+
+export async function removeReport(id) {
+  const res = await fetch(`${BASE}/reports/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
+// Opened in a new tab (the session cookie goes along); download: save it instead.
+export const reportFileUrl = (id, download = false) =>
+  `${BASE}/reports/${encodeURIComponent(id)}/file${download ? "?download=1" : ""}`;

@@ -42,3 +42,6 @@ coverage/
 *.bak
 .DS_Store
 Thumbs.db
+
+# Reports added to visits (REPORTS_DIR)
+backend/reports/

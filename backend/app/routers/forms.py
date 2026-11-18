@@ -149,7 +149,7 @@ def get_form(pid: str, db: Session = Depends(get_db), doctor: Doctor = Depends(c
         raise _error(404, "not_found", f"No saved prescription found for Reference ID {pid}.")
     patient_service.log_access(db, doctor, "view_visit", record.patient_id, record.id)
     db.commit()
-    return patient_service.visit(record)
+    return patient_service.visit(record, doctor)
 
 
 ISO_DATE = r"^\d{4}-\d{2}-\d{2}$"

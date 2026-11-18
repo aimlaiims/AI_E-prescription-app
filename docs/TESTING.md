@@ -250,8 +250,24 @@ by hand on the doctor's actual phone. Check at 375px, 768px, 1280px:
       diagram; Past visits → the visit → Diagrams → tap → full screen, Esc / Close
 - [ ] Tablet portrait and landscape, phone: the whole diagram fits, nothing distorted
 
+## 6f. Reports (after saving)
+- [ ] Before saving: the Reports section only says to save first
+- [ ] Save → Add report → Radiological, MRI → Choose files: a PDF → progress bar, then
+      "Radiological · MRI" with name, size, date, your name; tap it → opens in a new tab
+- [ ] Audiological, Other… → type "Impedance audiometry" → a picture; DNE → a video (no
+      test asked) → plays in a new tab, and can jump forward
+- [ ] Tablet: **Camera** → take a photo, and record a short video → both listed
+- [ ] A .docx or .html file → "Only PDF files, pictures and videos can be added."; a file
+      over 200 MB → refused at once, nothing sent
+- [ ] Past visits → an earlier visit → Reports → Add report works there too
+- [ ] Remove: asked first; another doctor sees your file and can open it but has no Remove
+- [ ] Print shows no reports; the download button saves the file with its own name
+- [ ] Through ngrok: a 50 MB video uploads (free ngrok has a monthly data limit; mind it)
+
 ## 6b. Ubuntu server
-Follow `deploy/README.md` step 8 after any change in `deploy/`. With speech on the GPU:
+Follow `deploy/README.md` step 8 after any change in `deploy/`. Reports: add one in the
+app, then `sudo ls -R /var/lib/cvf/reports` shows it; `sudo systemctl start cvf-backup` →
+it is also under `/var/backups/cvf/reports`. With speech on the GPU:
 the backend log says "Local Whisper large-v3 loaded on cuda" within a minute of a restart,
 and the first dictation after a restart is as fast as the next ones.
 

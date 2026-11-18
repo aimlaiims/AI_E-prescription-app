@@ -10,6 +10,7 @@ import {
   NotebookPen,
   ListChecks,
   ClipboardPlus,
+  Paperclip,
   History as HistoryIcon,
   X,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import AccountsDialog from "./components/AccountsDialog.jsx";
 import PacDialog from "./components/PacDialog.jsx";
 import ExamDiagrams from "./components/ExamDiagrams.jsx";
 import DiagramPad from "./components/DiagramPad.jsx";
+import VisitReports from "./components/VisitReports.jsx";
 import { FindPatientDialog, PatientHistoryDialog, SamePatientDialog } from "./components/PatientDialogs.jsx";
 import { AppNavbar, SheetLetterhead, AppFooter } from "./components/Brand.jsx";
 import { BRAND, loadLogoDataUri } from "./branding.js";
@@ -70,6 +72,8 @@ export default function App({ profile, onSignOut }) {
   // the drawing screen while open: { keys, start, title }.
   const [drawings, setDrawings] = useState({});
   const [diagramPad, setDiagramPad] = useState(null);
+  // Files added after saving (VisitReports); never printed.
+  const [reports, setReports] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
   // { candidates, print } while the save waits for "same patient?".
   const [samePatient, setSamePatient] = useState(null);
@@ -288,6 +292,7 @@ export default function App({ profile, onSignOut }) {
     try {
       const res = await saveForm(state, transcriptLog.join("\n---\n"), link, drawingsForSave(drawings));
       setSavedPid(res.pid);
+      setReports([]);
       setPatient(res.patient);
       if (win) writePrint(win, res.pid, res.patient.label);
     } catch (err) {
@@ -369,6 +374,7 @@ export default function App({ profile, onSignOut }) {
     setSamePatient(null);
     setDrawings({});
     setDiagramPad(null);
+    setReports([]);
     setError("");
   };
 
@@ -580,6 +586,18 @@ export default function App({ profile, onSignOut }) {
             <span>Advice</span>
           </h2>
           <FormField {...commonFieldProps("advice")} />
+        </section>
+
+        <section className="form-section">
+          <h2 className="section-heading">
+            <Paperclip size={17} aria-hidden="true" />
+            <span>Reports</span>
+          </h2>
+          {savedPid ? (
+            <VisitReports pid={savedPid} reports={reports} onChange={setReports} />
+          ) : (
+            <p className="help-text">Save the prescription, then add reports, photos and videos here.</p>
+          )}
         </section>
 
         {/* Print / Save at the end of the form, like signing a paper pad. */}

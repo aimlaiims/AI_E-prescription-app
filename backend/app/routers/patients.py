@@ -33,4 +33,4 @@ def patient_history(patient_id: int, db: Session = Depends(get_db), doctor: Doct
     )
     patient_service.log_access(db, doctor, "view_patient", patient.id)
     db.commit()
-    return {"patient": patient_service.summary(db, patient), "visits": [patient_service.visit(v) for v in visits]}
+    return {"patient": patient_service.summary(db, patient), "visits": [patient_service.visit(v, doctor) for v in visits]}

@@ -10,6 +10,9 @@ PostgreSQL. The source is only read; the target must be empty.
 3. Run this. It checks everything first, then copies in ONE transaction:
    either every record arrives or none does.
 4. Set DATABASE_URL in .env to the target and start the app.
+
+Uploaded report FILES are not in the database: if the app moves to another
+machine, copy the REPORTS_DIR folder too (the database only points at them).
 """
 import argparse
 import sys
@@ -114,6 +117,7 @@ def main(argv=None):
     for name, n in counts.items():
         print(f"  {name}: {n}")
     print("Done. Every record copied and counted. Now set DATABASE_URL to the target.")
+    print("Report files are not in the database: on a new machine, copy the REPORTS_DIR folder too.")
 
 
 if __name__ == "__main__":

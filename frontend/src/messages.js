@@ -128,3 +128,30 @@ export function authErrorMessage(err) {
   if (AUTH_CODES_SHOWN_VERBATIM.has(err?.code) && err.message) return err.message;
   return "Couldn't reach the server. Please check the connection and try again.";
 }
+
+// Adding, opening or removing a report (VisitReports.jsx). Fixed wording per
+// code; only "validation" (what to choose or shorten) is the server's own text.
+export function reportErrorMessage(err) {
+  switch (err?.code) {
+    case "unauthenticated":
+      return SESSION_ENDED_MESSAGE;
+    case "too_large":
+      return `This file is larger than ${err.detail?.max_mb ?? 200} MB, the most one file may be.`;
+    case "unsupported_type":
+      return "Only PDF files, pictures and videos can be added.";
+    case "storage_full":
+      return "The server is short of space for reports. Please tell the administrator.";
+    case "validation":
+      return err.message;
+    case "cancelled":
+      return "Upload stopped.";
+    case "not_found":
+      return "This file or visit wasn't found. It may have been removed.";
+    case "forbidden":
+      return "Only the person who added this file can remove it.";
+    case "unavailable":
+      return "Couldn't reach the server. Check the connection and try again.";
+    default:
+      return "Something went wrong with this file. Please try again.";
+  }
+}

@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..clock import to_local_iso
-from . import diagrams
+from . import diagrams, reports
 from ..models import AccessLog, ClinicalForm, Doctor, Patient
 
 # "ENT-000123", "ent 123", "000123", "123"
@@ -120,8 +120,9 @@ def summary(db: Session, patient: Patient) -> dict:
     }
 
 
-def visit(form: ClinicalForm) -> dict:
-    """A visit as stored (what a reprint shows), plus who wrote it."""
+def visit(form: ClinicalForm, viewer: Doctor | None = None) -> dict:
+    """A visit as stored (what a reprint shows), plus who wrote it and the
+    files added to it (`viewer`: who is looking, for "may remove")."""
     return {
         "pid": form.pid,
         "patient_id": form.patient_id,
@@ -143,5 +144,7 @@ def visit(form: ClinicalForm) -> dict:
         "raw_transcript_log": form.raw_transcript_log or "",
         # Examination diagrams drawn on (not printed; shown in history).
         "drawings": [diagrams.stored(d) for d in form.drawings],
+        # Files added after saving (not printed; services/reports.py).
+        "reports": [reports.stored(r, viewer) for r in form.reports],
         "created_at": to_local_iso(form.created_at) if form.created_at else None,
     }

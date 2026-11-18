@@ -19,6 +19,15 @@ class Settings:
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./clinical_forms.db")
 
+    # --- Reports (uploaded files: services/reports.py) ---
+    # Folder for the files (the database keeps only their details). Relative
+    # = inside the folder the backend runs in. The server sets its own.
+    REPORTS_DIR: str = os.getenv("REPORTS_DIR", "reports").strip() or "reports"
+    # Largest file accepted, in MB. No limit on how many files a visit has.
+    REPORT_MAX_FILE_MB: float = float(os.getenv("REPORT_MAX_FILE_MB", "200"))
+    # Uploads are refused when the disk would have less than this left (MB).
+    REPORTS_MIN_FREE_MB: float = float(os.getenv("REPORTS_MIN_FREE_MB", "2048"))
+
     # --- Many users at once (voice) ---
     # Calls in progress at the same time, per provider; more wait in a fair queue.
     GROQ_MAX_IN_FLIGHT: int = int(os.getenv("GROQ_MAX_IN_FLIGHT", "8"))
